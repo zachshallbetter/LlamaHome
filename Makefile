@@ -100,6 +100,38 @@ train-eval:
 	@echo "Evaluating model..."
 	@$(BIN)/python -m src.interfaces.cli train-eval $(filter-out $@,$(MAKECMDGOALS))
 
+# Distributed Training
+.PHONY: train-distributed train-multi-node
+
+train-distributed:
+	@echo "Starting distributed training..."
+	python -m src.training.launch \
+		--config .config/distributed_config.yaml \
+		--data data/training \
+		--output output/training \
+		--epochs $(EPOCHS) \
+		--world-size $(WORLD_SIZE)
+
+train-multi-node:
+	@echo "Starting multi-node training..."
+	python -m src.training.launch \
+		--config .config/distributed_config.yaml \
+		--data data/training \
+		--output output/training \
+		--epochs $(EPOCHS) \
+		--num-nodes $(NUM_NODES) \
+		--node-rank $(NODE_RANK) \
+		--master-addr $(MASTER_ADDR) \
+		--master-port $(MASTER_PORT)
+
+# Default values for training parameters
+EPOCHS ?= 10
+WORLD_SIZE ?= $(shell python -c "import torch; print(torch.cuda.device_count())")
+NUM_NODES ?= 1
+NODE_RANK ?= 0
+MASTER_ADDR ?= localhost
+MASTER_PORT ?= 29500
+
 # Development targets
 .PHONY: test
 test:
