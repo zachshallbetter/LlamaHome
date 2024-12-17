@@ -1,0 +1,58 @@
+models:
+  llama3.3:
+    name: "Llama 3.3"
+    versions:
+      - "7b"
+      - "13b"
+      - "70b"
+    variants:
+      - "base"
+      - "chat"
+    requires_gpu: true
+    min_gpu_memory:
+      7b: 8
+      13b: 16
+      70b: 80
+    h2o_config:
+      enabled: true
+      window_length: 512
+      heavy_hitter_tokens: 128
+    max_tokens: 32768
+    context_window: 8192
+    temperature_range: [0.1, 2.0]
+
+  gpt4:
+    name: "GPT-4 Turbo"
+    requires_key: true
+    max_tokens: 128000
+    context_window: 128000
+    temperature_range: [0.0, 2.0]
+    env_vars:
+      - LLAMAHOME_GPT4_API_KEY
+      - LLAMAHOME_GPT4_ORG_ID
+    rate_limits:
+      tokens_per_minute: 180000
+      requests_per_minute: 500
+
+  claude:
+    name: "Claude 3"
+    requires_key: true
+    model_variants:
+      - "opus"
+      - "sonnet"
+      - "haiku"
+    max_tokens:
+      opus: 200000
+      sonnet: 150000
+      haiku: 100000
+    context_window:
+      opus: 200000
+      sonnet: 150000
+      haiku: 100000
+    temperature_range: [0.0, 1.0]
+    env_vars:
+      - LLAMAHOME_CLAUDE_API_KEY
+      - LLAMAHOME_CLAUDE_ORG_ID
+    rate_limits:
+      tokens_per_minute: 150000
+      requests_per_minute: 450

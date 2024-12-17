@@ -1,0 +1,53 @@
+training:
+  # General settings
+  batch_size: 4
+  max_workers: 4
+  max_length: 512
+  validation_split: 0.1
+
+  # Training parameters
+  epochs: 3
+  learning_rate: 5e-5
+  warmup_steps: 100
+  weight_decay: 0.01
+  gradient_accumulation_steps: 4
+  fp16: true
+  
+  # LoRA settings
+  lora:
+    r: 8
+    alpha: 32
+    dropout: 0.1
+    target_modules: ["q_proj", "v_proj"]
+    bias: "none"
+    
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 3
+    min_delta: 0.01
+    
+  # Checkpointing
+  checkpointing:
+    save_strategy: "epoch"
+    save_total_limit: 3
+    
+  # Logging
+  logging:
+    steps: 10
+    eval_steps: 100
+    
+  # Model specific overrides
+  model_configs:
+    llama:
+      batch_size: 2
+      max_length: 1024
+      lora:
+        r: 16
+        target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    gpt4:
+      batch_size: 8
+      max_length: 2048
+    claude:
+      batch_size: 4
+      max_length: 4096 
