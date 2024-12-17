@@ -1,0 +1,109 @@
+# Test Configuration
+
+# Test Categories
+categories:
+  unit:
+    description: "Basic unit tests"
+    enabled: true
+    parallel: true
+    
+  integration:
+    description: "Integration tests between components"
+    enabled: true
+    parallel: false
+    timeout: 300  # 5 minutes
+    
+  performance:
+    description: "Performance and benchmark tests"
+    enabled: true
+    parallel: true
+    timeout: 600  # 10 minutes
+    requirements:
+      min_memory: "4GB"
+      min_cpu_cores: 2
+      
+  specialized:
+    description: "Specialized domain-specific tests"
+    enabled: true
+    parallel: true
+    timeout: 300
+    subcategories:
+      - needle_search
+      - edge_cases
+      - stress_tests
+      
+  distributed:
+    description: "Distributed training and processing tests"
+    enabled: false  # Disabled by default
+    parallel: true
+    timeout: 900  # 15 minutes
+    requirements:
+      min_nodes: 2
+      min_memory_per_node: "8GB"
+      
+  gpu:
+    description: "GPU-specific functionality tests"
+    enabled: false  # Disabled by default
+    parallel: true
+    timeout: 300
+    requirements:
+      gpu: true
+      min_vram: "4GB"
+
+# Test Data Configuration
+test_data:
+  base_dir: "tests/data"
+  sample_sizes:
+    small: 1000
+    medium: 10000
+    large: 100000
+    huge: 1000000
+    
+  datasets:
+    needle_search:
+      path: "specialized/needle"
+      pattern_lengths: [10, 20, 50]
+      needle_counts: [10, 100, 1000]
+      
+    performance:
+      path: "performance"
+      batch_sizes: [1, 16, 32, 64]
+      sequence_lengths: [128, 512, 1024]
+
+# Test Environment
+environment:
+  temp_dir: "tests/temp"
+  cache_dir: "tests/cache"
+  log_dir: "tests/logs"
+  artifacts_dir: "tests/artifacts"
+  
+  cleanup:
+    enabled: true
+    preserve_failed: true
+    max_age: 86400  # 24 hours
+
+# Reporting Configuration
+reporting:
+  formats:
+    - json
+    - html
+    - junit
+    
+  metrics:
+    - execution_time
+    - memory_usage
+    - accuracy
+    - throughput
+    
+  thresholds:
+    max_execution_time: 3600  # 1 hour
+    max_memory_usage: "90%"
+    min_accuracy: 0.95
+    min_throughput: 100  # requests/second
+
+# Resource Management
+resources:
+  max_parallel_tests: 4
+  max_memory_usage: "80%"
+  max_cpu_usage: "90%"
+  gpu_memory_limit: "80%" 

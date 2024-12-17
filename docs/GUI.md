@@ -1,5 +1,9 @@
 # LlamaHome GUI Guide
 
+## Overview
+
+The LlamaHome GUI provides a user-friendly environment for interacting with large language models. It allows you to quickly test prompts, refine generated content, and configure performance parameters—all without diving into terminal commands.
+
 ## Getting Started
 
 ### Quick Start Tutorial
@@ -11,93 +15,266 @@
    ```
 
 2. **First-Time Setup**
-   - Click "Settings" (⚙️) in the top right
-   - Configure model path and basic settings
+   - Click Settings (⚙️) in the top right corner
+   - Configure your model path, theme, and basic performance settings
    - Click "Apply" to save changes
 
 3. **Your First Prompt**
-   - Type in the prompt area: "Summarize this text: [your text]"
+   - In the Prompt Area, type your prompt
    - Click "Submit" or press Ctrl+Enter
-   - View the response in the display area
+   - The generated response appears in the Response Display
 
-### Common Use Cases
+## Common Use Cases
 
-1. **Text Summarization**
+### Text Summarization
 
-   ```text
-   Input: "Summarize this article: [paste article]"
+```text
+Input: "Summarize this article: [paste article]"
+Options:
+- Length: Short / Medium / Long
+- Style: Bullet Points / Paragraphs
+- Focus: Key Points / Full Detail
+
+Example Output:
+Key Findings (Short):
+- Main point one with supporting evidence
+- Secondary insight with context
+- Final conclusion with implications
+```
+
+### Code Generation
+
+```text
+Input: "Write a Python function that [description]"
+Options:
+- Language: Python / JavaScript / etc.
+- Style: Modern / Traditional
+- Comments: Minimal / Detailed
+
+Example:
+"Write a Python function that processes a list of transactions and returns daily totals"
+
+Response:
+```python
+def calculate_daily_totals(transactions: List[Dict[str, Any]]) -> Dict[str, float]:
+    """
+    Calculate daily transaction totals.
+    
+    Args:
+        transactions: List of transaction dictionaries with 'date' and 'amount'
+        
+    Returns:
+        Dictionary mapping dates to total amounts
+    """
+    daily_totals = defaultdict(float)
+    for transaction in transactions:
+        date = transaction['date'].split()[0]  # Get date part only
+        daily_totals[date] += transaction['amount']
+    return dict(daily_totals)
+```
+```
+
+### Content Refinement
+
+```text
+Input: "Improve this text: [your text]"
+Options:
+- Goal: Clarity / Engagement / Technical Depth
+- Tone: Professional / Casual
+- Length: Preserve / Expand / Condense
+
+Example:
+Original: "The system processes data and gives results."
+Improved: "Our advanced analytics pipeline efficiently processes raw data streams, 
+          delivering actionable insights through interactive visualizations."
+```
+
+### Data Analysis
+
+```text
+Input: "Analyze this dataset: [paste data]"
+Options:
+- Analysis Type: Statistical / Trends / Patterns
+- Visualization: Tables / Charts / Graphs
+- Detail Level: Summary / Detailed / Technical
+
+Example:
+```python
+# Input data analysis
+data_summary = {
+    "total_records": 1000,
+    "key_metrics": {
+        "mean": 45.6,
+        "median": 42.0,
+        "std_dev": 12.3
+    },
+    "trends": [
+        "Upward trend in Q3",
+        "Seasonal pattern detected",
+        "Outliers in December"
+    ]
+}
+```
+```
+
+### Document Processing
+
+```text
+Input: "Convert this document: [paste content]"
+Options:
+- Input Format: Markdown / HTML / LaTeX
+- Output Format: PDF / DOCX / HTML
+- Style: Academic / Business / Technical
+
+Example:
+"Convert this markdown document to a professional PDF with IEEE style"
+```
+
+### Model Training
+
+```text
+Input: "Fine-tune model for [specific task]"
+Options:
+- Task Type: Classification / Generation / Analysis
+- Data Size: Small / Medium / Large
+- Training Time: Quick / Standard / Extended
+
+Example:
+"Fine-tune for technical documentation analysis with these examples: [data]"
+```
+
+## Advanced Use Cases
+
+### Interactive Workflows
+
+```text
+1. Code Review Workflow:
+   Input: "Review this code for best practices: [code]"
+   Steps:
+   - Analyze code structure
+   - Check for patterns
+   - Suggest improvements
+   - Generate test cases
+
+2. Document Generation:
+   Input: "Generate technical documentation for: [project]"
+   Steps:
+   - Analyze project structure
+   - Extract key components
+   - Generate documentation
+   - Add code examples
+```
+
+### Batch Processing
+
+```text
+1. Multiple File Processing:
+   Command: process_batch --input-dir /path/to/files --output-dir /results
    Options:
-   - Length: Short/Medium/Long
-   - Style: Bullet Points/Paragraphs
-   - Focus: Key Points/Full Detail
-   ```
+   - Parallel processing
+   - Progress tracking
+   - Error handling
+   - Result aggregation
 
-2. **Code Generation**
+2. Dataset Transformation:
+   Input: "Transform these datasets: [files]"
+   Features:
+   - Format conversion
+   - Data validation
+   - Schema mapping
+   - Quality checks
+```
 
-   ```text
-   Input: "Write a Python function that [description]"
-   Options:
-   - Language: Python/JavaScript/etc.
-   - Style: Modern/Traditional
-   - Comments: Minimal/Detailed
-   ```
+### Advanced Integration
 
-3. **Content Refinement**
+```python
+# Custom Processing Pipeline
+from llamahome.gui import GUI
+from llamahome.processors import DataProcessor, ModelProcessor
 
-   ```text
-   Input: "Improve this text: [your text]"
-   Options:
-   - Goal: Clarity/Engagement/Technical
-   - Tone: Professional/Casual
-   - Length: Preserve/Expand/Condense
-   ```
+class CustomPipeline:
+    """Advanced processing pipeline with GUI integration."""
+    
+    def __init__(self, gui: GUI):
+        self.gui = gui
+        self.data_processor = DataProcessor()
+        self.model_processor = ModelProcessor()
+    
+    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process data through custom pipeline.
+        
+        Features:
+        - Multi-stage processing
+        - Progress updates
+        - Error recovery
+        - Result caching
+        """
+        try:
+            # Pre-processing
+            processed_data = await self.data_processor.process(input_data)
+            
+            # Model processing
+            results = await self.model_processor.process(processed_data)
+            
+            # Update GUI
+            self.gui.update_results(results)
+            
+            return results
+            
+        except Exception as e:
+            self.gui.show_error(f"Processing error: {e}")
+            return {"error": str(e)}
+```
 
 ## Interface Guide
 
 ### Main Components
 
 1. **Prompt Area**
-   - Multi-line text input
-   - Template selector
-   - Context length indicator
-   - Submit button
+   - Multi-line Input: Supports multiline prompts and templates
+   - Template Selector: Load previously saved templates
+   - Context Indicator: Shows context length used
+   - Submit Button: Execute the prompt
 
 2. **Response Display**
-   - Syntax highlighting
-   - Code block formatting
-   - Export options
-   - Copy button
+   - Syntax Highlighting: Ideal for code outputs
+   - Code Block Formatting: Enhanced readability
+   - Export Options: Save responses as files
+   - Copy Button: Quick clipboard access
 
 3. **Settings Panel**
-   - Model configuration
-   - Theme selection
-   - Performance tuning
-   - Keyboard shortcuts
+   - Model Configuration: Set paths and defaults
+   - Theme Selection: Light, dark, and high-contrast
+   - Performance Tuning: Hardware acceleration options
+   - Keyboard Shortcuts: Customizable bindings
 
-### Power User Features
+## Power User Features
 
-1. **Keyboard Shortcuts**
+### Keyboard Shortcuts
 
-   ```text
-   Ctrl+Enter    Submit prompt
-   Ctrl+L        Clear input
-   Ctrl+S        Save response
-   Ctrl+/        Toggle settings
-   F1            Help panel
-   Esc           Cancel operation
-   ```
+```text
+Ctrl+Enter    Submit prompt
+Ctrl+L        Clear input
+Ctrl+S        Save response
+Ctrl+/        Toggle settings panel
+F1            Open help panel
+Esc           Cancel current operation
+```
 
-2. **Context Menu Options**
-   - Right-click in prompt area:
-     - Clear text
-     - Load template
-     - Insert snippet
-     - Save as template
+### Context Menu Options
 
-3. **Drag and Drop**
-   - Drop text files into prompt area
-   - Drop code files for analysis
-   - Drop configuration files
+- Right-Click in Prompt Area:
+  - Clear text
+  - Load template
+  - Insert snippet
+  - Save as new template
+
+### Drag and Drop
+
+- Files into Prompt Area: Drop .txt or .md files
+- Code Files: Analyze code snippets
+- Configuration Files: Quick settings application
 
 ## Configuration Guide
 
@@ -136,25 +313,29 @@ accessibility:
   reduced_motion: false
 ```
 
+### Environment Variables
+
+```bash
+export LLAMAHOME_CONFIG="path/to/custom_config.yaml"
+export LLAMAHOME_CACHE=".cache/llamahome_models"
+```
+
 ## User Role Guide
 
 ### Novice Users
-
-- Start with templates
-- Use basic prompts
-- Follow guided workflows
+- Start with built-in templates
+- Use the "Help" panel for guidance
+- Keep default settings initially
 
 ### Data Scientists
-
-- Access to advanced parameters
-- Batch processing capabilities
-- Performance monitoring tools
+- Utilize batch processing
+- Monitor performance metrics
+- Experiment with advanced parameters
 
 ### Developers
-
-- API integration tools
-- Custom plugin development
-- Debug information access
+- Integrate with API client
+- Leverage custom plugins
+- Access debug logs
 
 ## Accessibility Features
 
@@ -207,43 +388,42 @@ accessibility:
 ### Common Issues
 
 1. **Display Problems**
-
-   ```text
-   Issue: Blurry text
-   Fix: Adjust DPI scaling in Settings > Display
-   ```
+   - Issue: Blurry text
+   - Fix: Adjust DPI scaling or increase font size
 
 2. **Performance Issues**
-
-   ```text
-   Issue: Slow response
-   Fix: Enable hardware acceleration in Settings > Performance
-   ```
+   - Issue: Slow response generation
+   - Fix: Enable hardware acceleration
+   - Increase cache size
+   - Stream responses
 
 3. **Connection Issues**
+   - Issue: Cannot connect to model
+   - Fix: Check model path
+   - Verify environment variables
 
-   ```text
-   Issue: Cannot connect to model
-   Fix: Check model path and network settings
-   ```
+### Additional Tips
+- Check logs in `logs/` directory
+- Reset config to defaults if needed
+- Refer to community support channels
 
-### Performance Optimization
+## Performance Optimization
 
-1. **Memory Usage**
+### Memory Usage
 
-   ```yaml
-   performance:
-     cache_size: "2GB"
-     cleanup_interval: 300
-   ```
+```yaml
+performance:
+  cache_size: "2GB"
+  cleanup_interval: 300
+```
 
-2. **Response Time**
+### Response Time
 
-   ```yaml
-   performance:
-     stream_responses: true
-     batch_size: 16
-   ```
+```yaml
+performance:
+  stream_responses: true
+  batch_size: 16
+```
 
 ## Integration Guide
 
@@ -253,7 +433,7 @@ accessibility:
 from llamahome.gui import GUI
 from llamahome.api import APIClient
 
-# Initialize GUI with API client
+# Initialize GUI with an external API client
 gui = GUI()
 api_client = APIClient(endpoint="http://localhost:8080")
 gui.set_api_client(api_client)
@@ -268,15 +448,13 @@ gui.start_server(port=3000)
 from llamahome.gui.plugins import GUIPlugin
 
 class CustomVisualizer(GUIPlugin):
-    """Custom visualization plugin."""
+    """A custom visualization plugin for advanced data displays."""
     
     def initialize(self):
-        """Set up plugin."""
         self.register_view("custom_view")
         self.register_handler("custom_event")
     
     def render_view(self, data):
-        """Render custom visualization."""
         return self.template.render(data=data)
 ```
 
@@ -287,32 +465,26 @@ class CustomVisualizer(GUIPlugin):
 1. **Clear Instructions**
 
    ```text
-   Good: "Summarize this article in 3 paragraphs, focusing on key findings"
-   Bad: "Summarize this"
+   Good: "Summarize this article in 3 paragraphs, focusing on key findings."
+   Bad:  "Summarize this."
    ```
 
 2. **Context Provision**
 
    ```text
    Good: "Given this Python code, optimize the loop for performance: [code]"
-   Bad: "Make this faster: [code]"
+   Bad:  "Make this faster: [code]"
    ```
 
 ### Resource Management
-
-1. **Memory Optimization**
-   - Clear unused responses
-   - Limit history size
-   - Use response streaming
-
-2. **Performance Tuning**
-   - Enable hardware acceleration
-   - Optimize batch size
-   - Configure caching
+- Use caching and streaming for large outputs
+- Adjust batch sizes for performance
+- Enable hardware acceleration when available
+- Monitor and tune logging levels
 
 ## Next Steps
 
-1. [API Documentation](docs/API.md)
-2. [Plugin Development](docs/Plugins.md)
-3. [Advanced Configuration](docs/Config.md)
-4. [Performance Tuning](docs/Performance.md)
+1. [API Documentation](API.md)
+2. [Plugin Development Guide](Plugins.md)
+3. [Advanced Configuration](Config.md)
+4. [Performance Tuning Guide](Performance.md)

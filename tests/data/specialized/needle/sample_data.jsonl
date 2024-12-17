@@ -1,0 +1,10 @@
+{"type": "needle", "pattern": "rare_pattern_1234", "priority": "high", "expected_response": "specific_handling_required"}
+{"type": "regular", "pattern": "common_pattern_1", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "regular", "pattern": "common_pattern_2", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "needle", "pattern": "rare_pattern_5678", "priority": "high", "expected_response": "specific_handling_required"}
+{"type": "regular", "pattern": "common_pattern_3", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "regular", "pattern": "common_pattern_4", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "needle", "pattern": "rare_pattern_9012", "priority": "high", "expected_response": "specific_handling_required"}
+{"type": "regular", "pattern": "common_pattern_5", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "regular", "pattern": "common_pattern_6", "priority": "normal", "expected_response": "standard_handling"}
+{"type": "needle", "pattern": "rare_pattern_3456", "priority": "high", "expected_response": "specific_handling_required"} 

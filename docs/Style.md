@@ -495,3 +495,276 @@
 2. [Contributing Guide](docs/Contributing.md)
 3. [Documentation Guide](docs/Documentation.md)
 4. [Testing Guide](docs/Testing.md)
+
+# Markdown Style Guide
+
+## Overview
+
+This guide defines the Markdown formatting standards for LlamaHome documentation. These rules are enforced by markdownlint and ensure consistency across all documentation.
+
+## Basic Rules
+
+### Headings
+
+- Use ATX-style headings with `#` symbols
+- Include one space after the `#`
+- Leave one blank line before and after headings
+- Increment heading levels by one only (no skipping levels)
+
+```markdown
+# Top Level Heading
+
+## Second Level
+
+### Third Level
+```
+
+### Lists
+
+- Use `-` for unordered lists
+- Use `1.` for ordered lists (can also use sequential numbers)
+- Indent nested lists with 2 spaces
+- Leave one blank line before and after lists
+
+```markdown
+- First item
+  - Nested item
+  - Another nested item
+- Second item
+
+1. First ordered item
+2. Second ordered item
+   1. Nested ordered item
+   2. Another nested item
+```
+
+### Code Blocks
+
+- Use fenced code blocks with backticks (```)
+- Always specify the language
+- Leave one blank line before and after code blocks
+
+```markdown
+```python
+def example():
+    return "This is a code block"
+```
+```
+
+### Emphasis and Strong Emphasis
+
+- Use single asterisks for *emphasis*
+- Use double asterisks for **strong emphasis**
+- No spaces inside emphasis markers
+
+```markdown
+This is *emphasized* text
+This is **strong** text
+```
+
+## Spacing and Length
+
+### Line Length
+
+- Maximum line length is 120 characters
+- Exceptions:
+  - Code blocks
+  - Tables
+  - Headings
+  - URLs
+
+### Blank Lines
+
+- Maximum of 2 consecutive blank lines
+- One blank line before and after:
+  - Headings
+  - Lists
+  - Code blocks
+  - Blockquotes
+
+## Links and URLs
+
+- Use reference-style links for repeated URLs
+- Bare URLs are allowed in some cases
+- No spaces inside link text
+- Include alt text for images
+
+```markdown
+[Link text][reference]
+[Direct link](https://example.com)
+![Alt text](image.png "Optional title")
+
+[reference]: https://example.com
+```
+
+## HTML Elements
+
+Allowed HTML elements:
+- `<br>` - Line breaks
+- `<details>` - Collapsible sections
+- `<summary>` - Details summary
+- `<kbd>` - Keyboard input
+- `<sup>` - Superscript
+- `<sub>` - Subscript
+
+## Proper Names
+
+The following names must be capitalized correctly:
+
+### Project Names
+- LlamaHome
+- H2O
+- TensorBoard
+- PyTorch
+- Hugging Face
+- PEFT
+- LoRA
+
+### Languages and Frameworks
+- Python
+- JavaScript
+- TypeScript
+- React
+- Node.js
+- FastAPI
+- Django
+
+### Tools and Platforms
+- GitHub
+- GitLab
+- Docker
+- Kubernetes
+- VS Code
+- PyCharm
+- Jupyter
+
+### Technologies
+- CUDA
+- GPU
+- CPU
+- YAML
+- JSON
+- REST
+- API
+- ML
+- AI
+- LLM
+
+### Operating Systems
+- Linux
+- macOS
+- Windows
+- Ubuntu
+- CentOS
+
+## File Structure
+
+### Required Elements
+
+- Every file should have a title (H1)
+- Include a brief description after the title
+- End file with a single newline
+
+### Optional Elements
+
+- Table of contents for longer documents
+- Next steps or related documents section
+- Code examples when relevant
+
+## Examples
+
+### Document Template
+
+```markdown
+# Document Title
+
+Brief description of the document's purpose.
+
+## Table of Contents
+
+- [Section One](#section-one)
+- [Section Two](#section-two)
+
+## Section One
+
+Content for section one.
+
+## Section Two
+
+Content for section two.
+
+## Next Steps
+
+1. [Related Document One](doc1.md)
+2. [Related Document Two](doc2.md)
+```
+
+### Code Documentation
+
+```markdown
+## Function Description
+
+```python
+def process_data(input: str) -> Dict[str, Any]:
+    """Process input data."""
+    return {"result": input}
+```
+
+Key features:
+- Input validation
+- Error handling
+- Return type specification
+```
+
+## Common Issues
+
+### Avoid
+
+- Mixing emphasis styles (*asterisk* and _underscore_)
+- Skipping heading levels (# then ###)
+- Empty links or images
+- Inconsistent list marker spacing
+- Hard tabs (use spaces)
+
+### Prefer
+
+- Consistent emphasis style (asterisks)
+- Sequential heading levels
+- Complete link references
+- Proper list indentation
+- Soft wrapping for long lines
+
+## Tools and Enforcement
+
+### markdownlint
+
+Our Markdown style is enforced using markdownlint with custom configuration:
+
+```json
+{
+  "default": true,
+  "MD013": {
+    "line_length": 120,
+    "code_blocks": false,
+    "tables": false
+  }
+}
+```
+
+### VS Code Settings
+
+Recommended VS Code settings for Markdown:
+
+```json
+{
+  "editor.wordWrap": "on",
+  "editor.rulers": [120],
+  "markdown.preview.breaks": true
+}
+```
+
+## Next Steps
+
+1. [Code Style Guide](Code.md)
+2. [Documentation Guide](Documentation.md)
+3. [Contributing Guide](Contributing.md)

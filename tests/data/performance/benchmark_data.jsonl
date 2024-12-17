@@ -1,0 +1,15 @@
+{"test_type": "throughput", "input_size": 128, "batch_size": 1, "expected_time": 0.1}
+{"test_type": "throughput", "input_size": 128, "batch_size": 16, "expected_time": 0.5}
+{"test_type": "throughput", "input_size": 128, "batch_size": 32, "expected_time": 0.8}
+{"test_type": "throughput", "input_size": 512, "batch_size": 1, "expected_time": 0.2}
+{"test_type": "throughput", "input_size": 512, "batch_size": 16, "expected_time": 0.7}
+{"test_type": "throughput", "input_size": 512, "batch_size": 32, "expected_time": 1.2}
+{"test_type": "latency", "input_size": 128, "priority": "high", "max_latency": 0.05}
+{"test_type": "latency", "input_size": 512, "priority": "high", "max_latency": 0.1}
+{"test_type": "latency", "input_size": 1024, "priority": "normal", "max_latency": 0.2}
+{"test_type": "memory", "operation": "inference", "max_memory": "2GB", "duration": 60}
+{"test_type": "memory", "operation": "training", "max_memory": "8GB", "duration": 300}
+{"test_type": "gpu", "operation": "inference", "max_gpu_memory": "4GB", "min_throughput": 100}
+{"test_type": "gpu", "operation": "training", "max_gpu_memory": "8GB", "min_throughput": 50}
+{"test_type": "cpu", "operation": "inference", "max_cpu_usage": "80%", "min_throughput": 200}
+{"test_type": "cpu", "operation": "training", "max_cpu_usage": "90%", "min_throughput": 100} 

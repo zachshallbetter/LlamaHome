@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Optional
 
+import subprocess
+import sys
 import torch
 import click
 import yaml
@@ -234,6 +236,57 @@ def shell():
     
     # Run shell
     asyncio.run(run_shell())
+
+@cli.group()
+def test():
+    """Testing commands."""
+    pass
+
+@test.command()
+@click.option('--unit', is_flag=True, help='Run unit tests')
+@click.option('--integration', is_flag=True, help='Run integration tests')
+@click.option('--performance', is_flag=True, help='Run performance tests')
+@click.option('--specialized', is_flag=True, help='Run specialized tests')
+@click.option('--distributed', is_flag=True, help='Run distributed tests')
+@click.option('--coverage', is_flag=True, help='Generate coverage report')
+@click.option('--gpu', is_flag=True, help='Run GPU tests')
+@click.option('--all', is_flag=True, help='Run all tests')
+def run(unit, integration, performance, specialized, distributed, coverage, gpu, all):
+    """Run tests."""
+    try:
+        args = []
+        
+        if all:
+            args.extend(['tests/', '-v'])
+        else:
+            if unit:
+                args.extend(['tests/', '-v', '-m', 'not integration and not performance and not specialized'])
+            if integration:
+                args.extend(['tests/', '-v', '-m', 'integration'])
+            if performance:
+                args.extend(['tests/performance/', '-v', '-m', 'performance'])
+            if specialized:
+                args.extend(['tests/specialized/', '-v', '-m', 'specialized'])
+            if distributed:
+                args.extend(['tests/distributed/', '-v', '-m', 'distributed'])
+                
+        if gpu:
+            args.append('--gpu')
+            
+        if coverage:
+            args.extend(['--cov=src', '--cov-report=html', '--cov-report=xml'])
+            
+        if not args:
+            args.extend(['tests/', '-v', '-m', 'not integration and not performance and not specialized'])
+            
+        result = subprocess.run(['pytest'] + args, check=True)
+        if result.returncode != 0:
+            console.print("[red]Tests failed[/red]")
+            sys.exit(1)
+            
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Error running tests: {e}[/red]")
+        sys.exit(1)
 
 if __name__ == '__main__':
     cli()

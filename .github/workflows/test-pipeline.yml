@@ -1,0 +1,82 @@
+name: Testing Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist
+        
+    - name: Run unit tests
+      run: |
+        pytest tests/ -v -n auto --cov=src --cov-report=xml
+        
+    - name: Run specialized tests
+      run: |
+        python -m pytest tests/specialized/ -v --cov=src --cov-append
+        
+    - name: Performance baseline tests
+      run: |
+        python tests/performance/run_benchmarks.py
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: |
+          coverage.xml
+          test-results/
+          performance-results/
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  distributed-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run distributed training tests
+      run: |
+        python tests/distributed/test_training.py
+        
+    - name: Upload distributed test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: distributed-test-results
+        path: distributed-test-results/ 

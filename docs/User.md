@@ -329,8 +329,6 @@ Enable detailed logging:
 
 ## Examples
 
-### Basic Usage
-
 1. **Simple Chat**
 
    ```text
@@ -404,4 +402,4 @@ This guide is regularly updated. For the latest information:
 3. Follow announcements
 4. Join community discussions
 
-Remember to check the [Documentation](.) directory for more detailed information on specific topics. 
+Remember to check the [Documentation](.) directory for more detailed information on specific topics.

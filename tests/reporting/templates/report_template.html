@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Results Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .visualization {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .details {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+        }
+        
+        .passed { color: #28a745; }
+        .failed { color: #dc3545; }
+        .skipped { color: #ffc107; }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Test Results Report</h1>
+        <p>Generated on: {{ timestamp }}</p>
+    </div>
+    
+    <div class="summary">
+        <div class="summary-card">
+            <h3>Total Tests</h3>
+            <p>{{ results.total_tests }}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Passed</h3>
+            <p class="passed">{{ results.passed }}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Failed</h3>
+            <p class="failed">{{ results.failed }}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Skipped</h3>
+            <p class="skipped">{{ results.skipped }}</p>
+        </div>
+        <div class="summary-card">
+            <h3>Total Duration</h3>
+            <p>{{ "%.2f"|format(results.duration) }}s</p>
+        </div>
+    </div>
+    
+    <div class="visualization">
+        <h2>Test Results Distribution</h2>
+        <img src="{{ plots[0] }}" alt="Test Results Distribution">
+    </div>
+    
+    <div class="visualization">
+        <h2>Test Duration Distribution</h2>
+        <img src="{{ plots[1] }}" alt="Test Duration Distribution">
+    </div>
+    
+    <div class="details">
+        <h2>Test Details</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Name</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for test in results.details %}
+                <tr>
+                    <td>{{ test.name }}</td>
+                    <td class="{{ test.status }}">{{ test.status }}</td>
+                    <td>{{ "%.3f"|format(test.duration) }}s</td>
+                    <td>{{ test.message if test.message else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html> 

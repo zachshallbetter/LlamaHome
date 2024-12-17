@@ -1,282 +1,289 @@
-"""
-Tests for training pipeline components.
-"""
-
-import asyncio
-from pathlib import Path
-from typing import Dict, List
+"""Tests for comprehensive training pipeline."""
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import yaml
+from pathlib import Path
+from unittest.mock import patch, MagicMock
 
-from src.training import (
-    CacheConfig,
-    DataConfig,
-    MonitorConfig,
-    OptimizationConfig,
-    ProcessingConfig,
-    ResourceConfig,
-    TrainingConfig,
-    TrainingPipeline
-)
+from src.training.pipeline import TrainingPipeline
+from src.training.monitoring import MetricsCollector
+from src.training.distributed import DistributedTrainer
+from src.training.optimization import Optimizer
+from src.core.config_handler import ConfigManager
+
 
 @pytest.fixture
-def model():
-    """Get test model."""
-    return AutoModelForCausalLM.from_pretrained(
-        "facebook/opt-125m",
-        torch_dtype=torch.float16,
-        device_map="auto"
-    )
-
-@pytest.fixture
-def tokenizer():
-    """Get test tokenizer."""
-    return AutoTokenizer.from_pretrained("facebook/opt-125m")
-
-@pytest.fixture
-def config():
-    """Get test configuration."""
-    return TrainingConfig(
-        cache=CacheConfig(
-            memory_size=100,
-            disk_size=1000
-        ),
-        data=DataConfig(
-            batch_size=2,
-            max_length=128,
-            num_workers=0
-        ),
-        monitor=MonitorConfig(
-            tensorboard=False,
-            progress_bars=False
-        ),
-        optimization=OptimizationConfig(
-            learning_rate=1e-5,
-            warmup_steps=10
-        ),
-        processing=ProcessingConfig(
-            mixed_precision=True,
-            max_batch_size=2
-        ),
-        resource=ResourceConfig(
-            gpu_memory_fraction=0.5
-        ),
-        num_epochs=1,
-        save_steps=10,
-        eval_steps=5,
-        max_steps=20
-    )
-
-@pytest.fixture
-def train_data():
-    """Get test training data."""
-    return [
-        {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant."
-                },
-                {
-                    "role": "user",
-                    "content": "Hello!"
-                },
-                {
-                    "role": "assistant",
-                    "content": "Hi there! How can I help you today?"
-                }
-            ]
+def mock_config():
+    """Create mock training configuration."""
+    return {
+        "training": {
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "warmup_steps": 100,
+            "gradient_accumulation_steps": 4,
+            "max_grad_norm": 1.0,
+            "optimizer": {
+                "name": "adamw",
+                "weight_decay": 0.01,
+                "beta1": 0.9,
+                "beta2": 0.999
+            },
+            "scheduler": {
+                "name": "cosine",
+                "num_cycles": 1
+            }
+        },
+        "distributed": {
+            "backend": "nccl",
+            "world_size": 1,
+            "init_method": "tcp://localhost:23456"
         }
-    ] * 10
+    }
+
 
 @pytest.fixture
-def eval_data():
-    """Get test evaluation data."""
-    return [
-        {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant."
-                },
-                {
-                    "role": "user",
-                    "content": "How are you?"
-                },
-                {
-                    "role": "assistant",
-                    "content": "I'm doing well, thank you for asking!"
-                }
-            ]
+def setup_test_env(tmp_path, mock_config):
+    """Set up test environment with configuration."""
+    # Create config directory
+    config_dir = tmp_path / ".config"
+    config_dir.mkdir(parents=True)
+    
+    # Create config file
+    config_file = config_dir / "training_config.yaml"
+    with open(config_file, "w") as f:
+        yaml.dump(mock_config, f)
+    
+    # Create data directories
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True)
+    
+    # Create sample training file
+    train_file = data_dir / "train.jsonl"
+    with open(train_file, "w") as f:
+        f.write('{"text": "Sample training text 1"}\n')
+        f.write('{"text": "Sample training text 2"}\n')
+    
+    return tmp_path
+
+
+class TestTrainingPipeline:
+    """Test suite for training pipeline."""
+    
+    def test_pipeline_initialization(self, setup_test_env, mock_config):
+        """Test training pipeline initialization."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        assert pipeline.config == mock_config["training"]
+        assert pipeline.batch_size == 32
+        assert pipeline.learning_rate == 1e-4
+    
+    def test_data_loading(self, setup_test_env, mock_config):
+        """Test training data loading and preprocessing."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Test data loading
+        data_path = setup_test_env / "data" / "train.jsonl"
+        dataset = pipeline.load_dataset(data_path)
+        
+        assert len(dataset) > 0
+        assert "text" in dataset[0]
+    
+    def test_optimizer_setup(self, setup_test_env, mock_config):
+        """Test optimizer and scheduler setup."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        with patch('torch.optim.AdamW') as mock_adamw:
+            optimizer = pipeline.setup_optimizer()
+            mock_adamw.assert_called_once()
+            
+            # Test scheduler setup
+            scheduler = pipeline.setup_scheduler(optimizer)
+            assert scheduler is not None
+    
+    def test_training_step(self, setup_test_env, mock_config):
+        """Test single training step."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Mock batch data
+        batch = {
+            "input_ids": torch.randint(0, 32000, (32, 128)),
+            "attention_mask": torch.ones(32, 128),
+            "labels": torch.randint(0, 32000, (32, 128))
         }
-    ] * 5
-
-@pytest.mark.asyncio
-async def test_training_pipeline_initialization(
-    model,
-    tokenizer,
-    config,
-    tmp_path
-):
-    """Test training pipeline initialization."""
-    config.output_dir = str(tmp_path)
-    pipeline = TrainingPipeline(model, tokenizer, config)
+        
+        with patch.object(pipeline.model, 'forward') as mock_forward:
+            mock_forward.return_value.loss = torch.tensor(0.5)
+            
+            loss = pipeline.training_step(batch)
+            assert isinstance(loss, torch.Tensor)
+            assert loss.item() > 0
     
-    assert pipeline.model == model
-    assert pipeline.tokenizer == tokenizer
-    assert pipeline.config == config
-    assert Path(pipeline.output_dir).exists()
-
-@pytest.mark.asyncio
-async def test_training_with_dict_data(
-    model,
-    tokenizer,
-    config,
-    train_data,
-    eval_data,
-    tmp_path
-):
-    """Test training with dictionary data."""
-    # Save test data
-    train_path = tmp_path / "train.json"
-    eval_path = tmp_path / "eval.json"
+    def test_validation_step(self, setup_test_env, mock_config):
+        """Test validation step."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Mock batch data
+        batch = {
+            "input_ids": torch.randint(0, 32000, (32, 128)),
+            "attention_mask": torch.ones(32, 128),
+            "labels": torch.randint(0, 32000, (32, 128))
+        }
+        
+        with patch.object(pipeline.model, 'forward') as mock_forward:
+            mock_forward.return_value.loss = torch.tensor(0.3)
+            
+            metrics = pipeline.validation_step(batch)
+            assert "val_loss" in metrics
+            assert metrics["val_loss"] > 0
     
-    import json
-    with open(train_path, "w") as f:
-        json.dump(train_data, f)
-    with open(eval_path, "w") as f:
-        json.dump(eval_data, f)
+    @pytest.mark.integration
+    def test_full_training_loop(self, setup_test_env, mock_config):
+        """Test complete training loop."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Mock dataset
+        train_dataset = MagicMock()
+        train_dataset.__len__.return_value = 100
+        
+        val_dataset = MagicMock()
+        val_dataset.__len__.return_value = 20
+        
+        with patch.object(pipeline, 'training_step') as mock_train_step:
+            with patch.object(pipeline, 'validation_step') as mock_val_step:
+                mock_train_step.return_value = torch.tensor(0.5)
+                mock_val_step.return_value = {"val_loss": 0.3}
+                
+                history = pipeline.train(
+                    train_dataset=train_dataset,
+                    val_dataset=val_dataset,
+                    num_epochs=1
+                )
+                
+                assert "train_loss" in history
+                assert "val_loss" in history
     
-    # Initialize pipeline
-    config.output_dir = str(tmp_path)
-    pipeline = TrainingPipeline(model, tokenizer, config)
+    def test_distributed_training(self, setup_test_env, mock_config):
+        """Test distributed training setup."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        
+        with patch('torch.distributed.init_process_group') as mock_init_process:
+            trainer = DistributedTrainer(
+                model_name="llama",
+                model_version="3.3-7b",
+                config_manager=config_manager
+            )
+            
+            mock_init_process.assert_called_once()
+            assert trainer.world_size == mock_config["distributed"]["world_size"]
     
-    # Train
-    await pipeline.train(train_path, eval_path)
+    def test_metrics_collection(self, setup_test_env, mock_config):
+        """Test training metrics collection."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        metrics_collector = MetricsCollector()
+        
+        # Test metrics logging
+        metrics_collector.log_metric("train_loss", 0.5)
+        metrics_collector.log_metric("val_loss", 0.3)
+        
+        # Test metrics retrieval
+        metrics = metrics_collector.get_metrics()
+        assert "train_loss" in metrics
+        assert "val_loss" in metrics
     
-    # Check outputs
-    assert (tmp_path / "checkpoint-10").exists()
-    assert (tmp_path / "checkpoint-10" / "pytorch_model.bin").exists()
-    assert (tmp_path / "checkpoint-10" / "optimizer.pt").exists()
-    assert (tmp_path / "checkpoint-10" / "metrics.pt").exists()
-
-@pytest.mark.asyncio
-async def test_training_with_dataloader(
-    model,
-    tokenizer,
-    config,
-    train_data,
-    eval_data,
-    tmp_path
-):
-    """Test training with DataLoader."""
-    from src.training import ConversationDataset
+    def test_optimization_features(self, setup_test_env, mock_config):
+        """Test training optimization features."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        optimizer = Optimizer(config_manager)
+        
+        # Test gradient accumulation
+        assert optimizer.gradient_accumulation_steps == 4
+        
+        # Test gradient clipping
+        assert optimizer.max_grad_norm == 1.0
+        
+        # Test learning rate scheduling
+        assert optimizer.get_scheduler_name() == "cosine"
     
-    # Create datasets
-    train_dataset = ConversationDataset(
-        train_data,
-        tokenizer,
-        max_length=config.data.max_length
-    )
-    eval_dataset = ConversationDataset(
-        eval_data,
-        tokenizer,
-        max_length=config.data.max_length
-    )
+    def test_checkpointing(self, setup_test_env, mock_config):
+        """Test model checkpointing."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Test checkpoint saving
+        checkpoint_path = setup_test_env / "checkpoints" / "checkpoint.pt"
+        pipeline.save_checkpoint(
+            checkpoint_path,
+            epoch=1,
+            step=1000,
+            optimizer_state={"state": "test"},
+            metrics={"loss": 0.5}
+        )
+        
+        # Test checkpoint loading
+        loaded_state = pipeline.load_checkpoint(checkpoint_path)
+        assert loaded_state["epoch"] == 1
+        assert loaded_state["step"] == 1000
+        assert loaded_state["metrics"]["loss"] == 0.5
     
-    # Create dataloaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config.data.batch_size,
-        shuffle=True
-    )
-    eval_loader = DataLoader(
-        eval_dataset,
-        batch_size=config.data.batch_size,
-        shuffle=False
-    )
-    
-    # Initialize pipeline
-    config.output_dir = str(tmp_path)
-    pipeline = TrainingPipeline(model, tokenizer, config)
-    
-    # Train
-    await pipeline.train(train_loader, eval_loader)
-    
-    # Check outputs
-    assert (tmp_path / "checkpoint-10").exists()
-    assert (tmp_path / "checkpoint-10" / "pytorch_model.bin").exists()
-    assert (tmp_path / "checkpoint-10" / "optimizer.pt").exists()
-    assert (tmp_path / "checkpoint-10" / "metrics.pt").exists()
-
-@pytest.mark.asyncio
-async def test_early_stopping(
-    model,
-    tokenizer,
-    config,
-    train_data,
-    eval_data,
-    tmp_path
-):
-    """Test early stopping."""
-    # Configure early stopping
-    config.output_dir = str(tmp_path)
-    config.early_stopping_patience = 2
-    config.early_stopping_threshold = 0.1
-    config.eval_steps = 2
-    
-    # Initialize pipeline
-    pipeline = TrainingPipeline(model, tokenizer, config)
-    
-    # Train
-    await pipeline.train(train_data, eval_data)
-    
-    # Check if training stopped early
-    checkpoints = list(tmp_path.glob("checkpoint-*"))
-    assert len(checkpoints) < config.max_steps // config.save_steps
-
-@pytest.mark.asyncio
-async def test_resource_management(
-    model,
-    tokenizer,
-    config,
-    train_data,
-    tmp_path
-):
-    """Test resource management during training."""
-    # Configure resource limits
-    config.output_dir = str(tmp_path)
-    config.resource.gpu_memory_fraction = 0.1
-    config.resource.cpu_usage_threshold = 0.5
-    
-    # Initialize pipeline
-    pipeline = TrainingPipeline(model, tokenizer, config)
-    
-    # Train
-    await pipeline.train(train_data)
-    
-    # Check resource usage
-    gpu_info = pipeline.resource_manager.resources["gpu"].get_memory_info()
-    assert gpu_info["allocated"] / gpu_info["total"] <= 0.1
-
-@pytest.mark.asyncio
-async def test_error_handling(
-    model,
-    tokenizer,
-    config,
-    tmp_path
-):
-    """Test error handling during training."""
-    # Invalid data
-    invalid_data = [{"invalid": "data"}]
-    
-    # Initialize pipeline
-    config.output_dir = str(tmp_path)
-    pipeline = TrainingPipeline(model, tokenizer, config)
-    
-    # Check error handling
-    with pytest.raises(Exception):
-        await pipeline.train(invalid_data) 
+    def test_error_handling(self, setup_test_env, mock_config):
+        """Test training error handling."""
+        config_manager = ConfigManager(config_path=setup_test_env / ".config")
+        pipeline = TrainingPipeline(
+            model_name="llama",
+            model_version="3.3-7b",
+            config_manager=config_manager
+        )
+        
+        # Test invalid dataset
+        with pytest.raises(ValueError):
+            pipeline.load_dataset("nonexistent.jsonl")
+        
+        # Test invalid checkpoint
+        with pytest.raises(FileNotFoundError):
+            pipeline.load_checkpoint("nonexistent.pt")
+        
+        # Test invalid configuration
+        with pytest.raises(ValueError):
+            pipeline.update_config({"invalid_key": "value"})

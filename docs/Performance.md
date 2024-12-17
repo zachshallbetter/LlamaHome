@@ -324,6 +324,62 @@ class MetricsCollector:
         }
 ```
 
+### Performance Baselines
+
+#### Training Metrics
+
+```yaml
+training:
+  single_gpu:
+    batch_size: 32
+    training_speed: "X samples/second"
+    memory_usage: "Y GB"
+    gpu_utilization: "Z%"
+  
+  distributed:
+    gpus: 8
+    global_batch_size: 256
+    training_speed: "X samples/second"
+    memory_per_gpu: "Y GB"
+    communication_overhead: "X ms"
+```
+
+#### Model Metrics
+
+```yaml
+model:
+  inference:
+    batch_1_latency: "X ms"
+    batch_32_latency: "X ms"
+    memory_usage: "Y GB"
+  
+  quality:
+    validation_accuracy: "X%"
+    convergence_epochs: "Y"
+    validation_loss: "Z"
+```
+
+### Warning Thresholds
+
+```python
+class PerformanceAlertSystem:
+    """Monitor and alert on performance metrics."""
+    
+    def __init__(self):
+        self.warning_thresholds = {
+            "memory_usage": 0.90,  # 90%
+            "gpu_utilization_min": 0.70,  # 70%
+            "training_speed_min": "X samples/second",
+            "validation_loss_max": ("X", "Y")  # (value, epochs)
+        }
+        
+        self.critical_thresholds = {
+            "memory_usage": 0.95,  # 95%
+            "training_speed_min": "X/2 samples/second",
+            "validation_loss_max": ("2X", "Y")  # (value, epochs)
+        }
+```
+
 ## Troubleshooting
 
 1. **Memory Issues**

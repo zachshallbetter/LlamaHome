@@ -133,10 +133,29 @@ MASTER_ADDR ?= localhost
 MASTER_PORT ?= 29500
 
 # Development targets
-.PHONY: test
-test:
-	@echo "Running tests..."
-	@$(BIN)/pytest tests/
+.PHONY: test test-unit test-integration test-coverage test-performance test-specialized
+
+test: test-unit test-integration test-specialized
+
+test-unit:
+	@echo "Running unit tests..."
+	@$(BIN)/pytest tests/ -v -m "not integration and not performance and not specialized"
+
+test-integration:
+	@echo "Running integration tests..."
+	@$(BIN)/pytest tests/ -v -m "integration"
+
+test-performance:
+	@echo "Running performance tests..."
+	@$(BIN)/pytest tests/performance/ -v -m "performance"
+
+test-specialized:
+	@echo "Running specialized tests..."
+	@$(BIN)/pytest tests/specialized/ -v -m "specialized"
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	@$(BIN)/pytest tests/ --cov=src --cov-report=html --cov-report=xml
 
 .PHONY: lint
 lint:
