@@ -1,286 +1,521 @@
-# LlamaHome API Documentation
+# LlamaHome API Guide
 
-This document describes the LlamaHome REST API which enables communication between components
-and interaction with the Llama 3.3 model.
+## API Overview
 
-## Overview
+### Core Concepts
 
-The LlamaHome API enables seamless integration and interaction across all components of the
-system. It includes:
+1. **Architecture**
 
-- **Core API**: Manages requests and responses between user interfaces (CLI/GUI) and the
-  Llama 3.3 model
-- **Configuration API**: Handles dynamic adjustments to settings like model parameters
-- **Utility API**: Provides helper functions for logging, error handling, and performance
-  monitoring
+   ```mermaid
+   graph TD
+       A[Client] --> B[API]
+       B --> C[Model]
+   ```
 
-## API Structure
+2. **Key Features**
+   - RESTful endpoints
+   - WebSocket support
+   - Streaming responses
+   - Rate limiting
+   - Authentication
+   - Monitoring
 
-### Core API
+## Quick Start
 
-Responsible for handling user requests and model interactions.
+### Basic Usage
 
-| Endpoint | Method | Description | Stream |
-|----------|--------|-------------|---------|
-| `/api/process` | POST | Process user prompt and return response | Yes |
-| `/api/stream` | POST | Stream responses | Yes |
-| `/api/models` | GET | List available models | No |
-| `/api/config` | POST | Get/update configuration | No |
+1. **Authentication**
 
-### Configuration API
+   ```python
+   from llamahome.client import APIClient
+   
+   client = APIClient(
+       api_key="your_api_key",
+       endpoint="https://api.llamahome.ai"
+   )
+   ```
 
-Manages runtime adjustments to settings and parameters.
+2. **Simple Request**
 
-| Endpoint | Method | Description | Stream |
-|----------|--------|-------------|---------|
-| `/api/configure_model` | POST | Update model parameters | No |
-| `/api/get_config` | GET | Get current configuration | No |
-| `/api/save_config` | POST | Save configuration to disk | No |
-| `/api/reset_config` | POST | Reset to default configuration | No |
+   ```python
+   response = await client.process_prompt(
+       prompt="Summarize this text",
+       model="llama3.3",
+       max_tokens=100
+   )
+   print(response.text)
+   ```
 
-### Utility API
+### Streaming Responses
 
-Provides auxiliary functions to support system operations.
+1. **Async Stream**
 
-| Endpoint | Method | Description | Stream |
-|----------|--------|-------------|---------|
-| `/api/health_check` | GET | Check API and model status | No |
-| `/api/logs` | GET | Get recent debug logs | Yes |
-| `/api/clear_cache` | POST | Clear temporary data | No |
-| `/api/metrics` | GET | Get performance metrics | Yes |
-| `/api/diagnostics` | GET | Get system diagnostics | Yes |
-| `/api/shutdown` | POST | Shutdown API and release resources | No |
+   ```python
+   async for chunk in client.stream_response(
+       prompt="Generate a story",
+       model="llama3.3"
+   ):
+       print(chunk.text, end="", flush=True)
+   ```
 
-## Detailed API Reference
+2. **Batch Processing**
+
+   ```python
+   results = await client.process_batch(
+       prompts=["Query 1", "Query 2", "Query 3"],
+       model="llama3.3",
+       batch_size=3
+   )
+   ```
+
+## API Reference
+
+### Core Endpoints
+
+1. **Process Prompt**
+
+   ```http
+   POST /api/v1/process
+   Content-Type: application/json
+   Authorization: Bearer <api_token>
+   
+   {
+     "prompt": "string (required)",
+     "model": "string (optional, default: llama3.3)",
+     "max_tokens": "integer (optional, default: 100)",
+     "temperature": "float (optional, default: 0.7)",
+     "stream": "boolean (optional, default: false)"
+   }
+   ```
+
+   Response:
+
+   ```json
+   {
+     "text": "Generated response",
+     "usage": {
+       "prompt_tokens": 10,
+       "completion_tokens": 50,
+       "total_tokens": 60
+     },
+     "model": "llama3.3",
+     "created": "2024-03-15T12:00:00Z"
+   }
+   ```
+
+2. **Stream Response**
+
+   ```http
+   POST /api/v1/stream
+   Content-Type: application/json
+   Authorization: Bearer <api_token>
+   
+   {
+     "prompt": "string (required)",
+     "model": "string (optional)",
+     "max_tokens": "integer (optional)"
+   }
+   ```
+
+   Response Stream:
+
+   ```json
+   {"chunk": "First", "index": 0}
+   {"chunk": "part", "index": 1}
+   {"chunk": "of response", "index": 2}
+   ```
 
 ### Model Management
 
-#### POST /api/load_model
+1. **List Models**
 
-Load a specific Llama 3.3 model into memory.
+   ```http
+   GET /api/v1/models
+   Authorization: Bearer <api_token>
+   ```
 
-**Request Body:**
+   Response:
 
-```json
-{
-    "model_path": "string (required)"
-}
-```
+   ```json
+   {
+     "models": [
+       {
+         "id": "llama3.3-7b",
+         "name": "Llama 3.3 7B",
+         "version": "3.3",
+         "parameters": "7B",
+         "context_length": 32768
+       }
+     ]
+   }
+   ```
 
-**Response:**
+2. **Model Information**
 
-```json
-{
-    "status": "string ('success' or 'error')",
-    "message": "string"
-}
-```
+   ```http
+   GET /api/v1/models/{model_id}
+   Authorization: Bearer <api_token>
+   ```
 
-**Errors:**
+   Response:
 
-- `400`: Bad Request - Invalid or missing fields
-- `404`: Not Found - Model file not found
-- `500`: Internal Server Error - Loading failed
-
-##### POST /api/unload_model
-
-Unload the currently active model.
-
-**Response:**
-
-```json
-{
-    "status": "string ('success' or 'error')",
-    "message": "string"
-}
-```
-
-**Errors:**
-
-- `404`: Not Found - No model loaded
-- `500`: Internal Server Error - Unloading failed
-
-##### POST /api/process_prompt
-
-Process a user prompt and generate a response.
-
-**Request Body:**
-
-```json
-{
-    "prompt": "string (required)",
-    "model": "string (optional, default: 'llama3.3')",
-    "temperature": "float (optional, default: 0.7)",
-    "max_tokens": "integer (optional, default: 100)",
-    "top_p": "float (optional, default: 0.9)",
-    "frequency_penalty": "float (optional, default: 0.0)",
-    "presence_penalty": "float (optional, default: 0.0)"
-}
-```
-
-**Response:**
-
-```json
-{
-    "response": "string",
-    "tokens_used": "integer",
-    "processing_time": "float",
-    "model_used": "string"
-}
-```
-
-**Errors:**
-
-- `400`: Bad Request - Invalid request
-- `401`: Unauthorized - Invalid credentials
-- `403`: Forbidden - Unauthorized model access
-- `404`: Not Found - Model not found
-- `408`: Request Timeout - Processing timeout
-- `413`: Payload Too Large - Request too large
-- `415`: Unsupported Media Type
-- `422`: Unprocessable Entity
-- `429`: Too Many Requests
-- `500`: Internal Server Error
-- `503`: Service Unavailable
+   ```json
+   {
+     "id": "llama3.3-7b",
+     "name": "Llama 3.3 7B",
+     "version": "3.3",
+     "parameters": "7B",
+     "context_length": 32768,
+     "capabilities": [
+       "text-generation",
+       "summarization",
+       "translation"
+     ],
+     "performance": {
+       "tokens_per_second": 100,
+       "memory_required": "8GB"
+     }
+   }
+   ```
 
 ### Configuration
 
-#### POST /api/configure_model
+1. **Update Settings**
 
-Update model-specific parameters.
+   ```http
+   POST /api/v1/config
+   Content-Type: application/json
+   Authorization: Bearer <api_token>
+   
+   {
+     "model_settings": {
+       "default_model": "llama3.3",
+       "max_tokens": 2000,
+       "temperature": 0.7
+     },
+     "system_settings": {
+       "cache_size": "10GB",
+       "max_requests_per_minute": 60
+     }
+   }
+   ```
 
-**Request Body:**
+2. **Get Settings**
 
-```json
-{
-    "model": "string (required)",
-    "temperature": "float (optional)",
-    "max_tokens": "integer (optional)"
-}
-```
+   ```http
+   GET /api/v1/config
+   Authorization: Bearer <api_token>
+   ```
 
-**Response:**
+## Integration Patterns
 
-```json
-{
-    "status": "string ('success' or 'error')",
-    "message": "string",
-    "updated_params": {
-        "temperature": "float",
-        "max_tokens": "integer"
-    }
-}
-```
+### Client Integration
 
-**Errors:**
+1. **Python Client**
 
-- `400`: Bad Request - Invalid parameters
-- `404`: Not Found - Model not found
-- `500`: Internal Server Error
+   ```python
+   from llamahome.client import LlamaClient
+   
+   class CustomClient:
+       def __init__(self, api_key: str):
+           self.client = LlamaClient(api_key=api_key)
+           
+       async def process_with_retry(
+           self,
+           prompt: str,
+           max_retries: int = 3
+       ) -> str:
+           """Process prompt with retry logic."""
+           for attempt in range(max_retries):
+               try:
+                   response = await self.client.process(prompt)
+                   return response.text
+               except Exception as e:
+                   if attempt == max_retries - 1:
+                       raise
+                   await asyncio.sleep(2 ** attempt)
+   ```
 
-### Utilities
+2. **JavaScript Client**
 
-#### GET /api/health_check
+   ```javascript
+   class LlamaClient {
+     constructor(apiKey) {
+       this.apiKey = apiKey;
+       this.baseUrl = 'https://api.llamahome.ai';
+     }
+     
+     async processPrompt(prompt, options = {}) {
+       const response = await fetch(`${this.baseUrl}/api/v1/process`, {
+         method: 'POST',
+         headers: {
+           'Authorization': `Bearer ${this.apiKey}`,
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+           prompt,
+           ...options
+         })
+       });
+       return response.json();
+     }
+   }
+   ```
 
-Check API and model health status.
+### Server Integration
 
-**Response:**
+1. **FastAPI Server**
 
-```json
-{
-    "status": "string ('success' or 'error')",
-    "message": "string",
-    "model_loaded": "boolean",
-    "uptime": "integer"
-}
-```
+   ```python
+   from fastapi import FastAPI, Depends
+   from llamahome.server import LlamaServer
+   
+   app = FastAPI()
+   llama = LlamaServer()
+   
+   @app.post("/process")
+   async def process_prompt(
+       prompt: str,
+       current_user = Depends(get_current_user)
+   ):
+       return await llama.process(prompt)
+   ```
 
-**Errors:**
+2. **Express Server**
 
-- `500`: Internal Server Error
+   ```javascript
+   const express = require('express');
+   const { LlamaServer } = require('llamahome');
+   
+   const app = express();
+   const llama = new LlamaServer();
+   
+   app.post('/process', async (req, res) => {
+     const result = await llama.process(req.body.prompt);
+     res.json(result);
+   });
+   ```
 
-#### GET /api/logs
+## Security
 
-Fetch recent system logs.
+### Authentication
 
-**Query Parameters:**
+1. **Token Generation**
 
-- `level`: string (optional) - Log level filter
-- `limit`: integer (optional) - Number of logs to return
-- `start_time`: string (optional) - ISO timestamp
-- `end_time`: string (optional) - ISO timestamp
+   ```python
+   from llamahome.auth import TokenGenerator
+   
+   generator = TokenGenerator(secret_key="your-secret")
+   token = generator.create_token(
+       user_id="user123",
+       expires_in=3600
+   )
+   ```
 
-**Response:**
-Stream of log entries in JSON format.
+2. **Token Validation**
+
+   ```python
+   from llamahome.auth import TokenValidator
+   
+   validator = TokenValidator(secret_key="your-secret")
+   is_valid = validator.validate_token(token)
+   ```
+
+### Rate Limiting
+
+1. **Basic Rate Limiting**
+
+   ```python
+   from llamahome.security import RateLimiter
+   
+   limiter = RateLimiter(
+       requests_per_minute=60,
+       burst_size=10
+   )
+   ```
+
+2. **Advanced Rate Limiting**
+
+   ```python
+   from llamahome.security import AdvancedRateLimiter
+   
+   limiter = AdvancedRateLimiter(
+       tiers={
+           "basic": {"rpm": 60, "burst": 10},
+           "pro": {"rpm": 300, "burst": 50},
+           "enterprise": {"rpm": 1000, "burst": 100}
+       }
+   )
+   ```
+
+## Monitoring
+
+### Metrics Collection
+
+1. **Basic Metrics**
+
+   ```python
+   from llamahome.monitoring import MetricsCollector
+   
+   collector = MetricsCollector()
+   collector.record_request(
+       endpoint="/api/v1/process",
+       duration=0.123,
+       status=200
+   )
+   ```
+
+2. **Advanced Metrics**
+
+   ```python
+   from llamahome.monitoring import AdvancedMetrics
+   
+   metrics = AdvancedMetrics(
+       enable_tracing=True,
+       detailed_logging=True
+   )
+   ```
+
+### Performance Monitoring
+
+1. **Response Time Tracking**
+
+   ```python
+   from llamahome.monitoring import PerformanceMonitor
+   
+   monitor = PerformanceMonitor()
+   with monitor.track_operation("process_prompt"):
+       result = await process_prompt()
+   ```
+
+2. **Resource Usage Tracking**
+
+   ```python
+   from llamahome.monitoring import ResourceMonitor
+   
+   monitor = ResourceMonitor()
+   monitor.track_resources(
+       interval=60,
+       metrics=["cpu", "memory", "gpu"]
+   )
+   ```
 
 ## Error Handling
 
-All API endpoints follow consistent error response format:
+### Error Types
 
-```json
-{
-    "error": {
-        "code": "string",
-        "message": "string",
-        "details": "object (optional)"
-    }
-}
-```
+1. **API Errors**
 
-## Rate Limiting
+   ```python
+   class APIError(Exception):
+       def __init__(self, message: str, code: int):
+           self.message = message
+           self.code = code
+   
+   class RateLimitError(APIError):
+       pass
+   
+   class AuthenticationError(APIError):
+       pass
+   ```
 
-- Default: 60 requests per minute
-- Streaming endpoints: 10 concurrent connections
-- Batch operations: 5 requests per minute
+2. **Error Responses**
 
-## Authentication
+   ```json
+   {
+     "error": {
+       "code": "rate_limit_exceeded",
+       "message": "Too many requests",
+       "details": {
+         "retry_after": 60
+       }
+     }
+   }
+   ```
 
-All API requests require authentication:
+### Error Recovery
 
-```http
-Authorization: Bearer <api_token>
-```
+1. **Retry Logic**
 
-## Versioning
+   ```python
+   from llamahome.error import RetryHandler
+   
+   handler = RetryHandler(
+       max_retries=3,
+       backoff_factor=2
+   )
+   ```
 
-The API version is specified in the URL:
+2. **Circuit Breaker**
 
-```http
-https://api.llamahome.ai/v1/
-```
-
-## WebSocket Support
-
-Real-time updates available via WebSocket connection:
-
-```javascript
-ws://api.llamahome.ai/v1/ws
-```
+   ```python
+   from llamahome.error import CircuitBreaker
+   
+   breaker = CircuitBreaker(
+       failure_threshold=5,
+       reset_timeout=300
+   )
+   ```
 
 ## Best Practices
 
-1. Use appropriate error handling
-2. Implement request retries with exponential backoff
-3. Cache responses when appropriate
-4. Monitor rate limits
-5. Keep authentication tokens secure
+### API Usage
 
-## Implementation Timeline
+1. **Request Optimization**
 
-### Phase 1
+   ```python
+   # Good: Batch related requests
+   results = await client.batch_process([
+       "Query 1",
+       "Query 2",
+       "Query 3"
+   ])
+   
+   # Bad: Multiple individual requests
+   result1 = await client.process("Query 1")
+   result2 = await client.process("Query 2")
+   result3 = await client.process("Query 3")
+   ```
 
-- Core API endpoints setup and testing
-- Basic model integration and validation
-- Document preprocessing pipeline
+2. **Resource Management**
 
-### Phase 2
+   ```python
+   # Good: Use context managers
+   async with client.session() as session:
+       result = await session.process(prompt)
+   
+   # Bad: Manual resource management
+   session = await client.create_session()
+   result = await session.process(prompt)
+   await session.close()
+   ```
 
-- Advanced model endpoints with error handling
-- Parameter tuning API with validation
-- Performance monitoring and alerting
+### Performance
 
-### Phase 3
+1. **Connection Pooling**
 
-- Image model endpoints with format support
-- Batch processing with rate limiting
-- Advanced analytics dashboard
+   ```python
+   from llamahome.client import PooledClient
+   
+   client = PooledClient(
+       pool_size=10,
+       max_retries=3
+   )
+   ```
+
+2. **Response Streaming**
+
+   ```python
+   async for chunk in client.stream_response(
+       prompt,
+       chunk_size=1000
+   ):
+       process_chunk(chunk)
+   ```
+
+## Next Steps
+
+1. [API Examples](docs/Examples.md)
+2. [Integration Guide](docs/Integration.md)
+3. [Security Guide](docs/Security.md)
+4. [Monitoring Guide](docs/Monitoring.md)

@@ -1,117 +1,345 @@
-# LlamaHome Performance Metrics
+# Performance Optimization Guide
 
-## Current Performance
+## Memory Management
 
-### Document Processing
+### Training Optimizations
 
-- Text files: ~2000 docs/min
-- Office formats: ~500 docs/min
-- PDF processing: ~200 docs/min
+1. **Streaming Data Pipeline**
 
-### Memory Usage
+   ```python
+   class StreamingDataset:
+       """Memory-efficient dataset implementation."""
+       
+       def __init__(self, buffer_size: int = 1000):
+           self.buffer_size = buffer_size
+           self._buffer = []
+   ```
 
-- Base system: ~100MB
-- Document processing: 200MB-1GB (depending on batch size)
-- Model inference: Varies by model size
-  - 7B: ~8GB GPU VRAM
-  - 13B: ~16GB GPU VRAM
-  - 70B: ~80GB GPU VRAM
-  - CPU Memory Requirements:
-    - 7B: ~14GB RAM
-    - 13B: ~28GB RAM
-    - 70B: ~140GB RAM
+   Key features:
+   - Dynamic buffer management
+   - Memory-aware streaming
+   - Efficient disk I/O
+   - Automatic cleanup
 
-### Response Times
+2. **Batch Processing**
 
-- Document preprocessing: 50-200ms/doc
-- API response: <100ms
-- Model inference: 100-500ms (varies by length)
+   ```python
+   class BatchProcessor:
+       """Optimized batch processing."""
+       
+       async def process_batch(self, batch: Dict[str, torch.Tensor]):
+           if self.config.dynamic_batch_size:
+               batch = await self._adjust_batch_size(batch)
+   ```
 
-### ROUGE Scores
+   Optimizations:
+   - Dynamic batch sizing
+   - Gradient accumulation
+   - Memory monitoring
+   - Cache optimization
 
-Latest benchmark results on test dataset:
+### Resource Management
 
-- ROUGE-1:
-  - F1: 45.2%
-  - Precision: 48.7%
-  - Recall: 42.8%
-- ROUGE-2:
-  - F1: 21.3%
-  - Precision: 23.5%
-  - Recall: 19.6%
-- ROUGE-L:
-  - F1: 42.1%
-  - Precision: 44.8%
-  - Recall: 39.9%
+1. **Memory Tracking**
 
-## Optimization Goals
+   ```python
+   class MemoryTracker:
+       """Track and optimize memory usage."""
+       
+       def update(self):
+           if torch.cuda.is_available():
+               self.peak_memory = max(
+                   self.peak_memory,
+                   torch.cuda.memory_allocated()
+               )
+   ```
 
-### Phase 1 (Current)
+   Features:
+   - Real-time monitoring
+   - Peak usage tracking
+   - Automatic optimization
+   - Resource alerts
 
-- Basic caching implementation
-- Document batch processing
-- Memory-mapped file handling
+2. **Device Management**
 
-### Phase 2 (Planned)
+   ```python
+   class DeviceManager:
+       """Manage compute devices."""
+       
+       def optimize_device_usage(self):
+           if torch.cuda.is_available():
+               torch.cuda.empty_cache()
+               torch.cuda.memory.set_per_process_memory_fraction(0.95)
+   ```
 
-- Enhanced caching system
-- Response streaming
-- GPU memory optimization
+   Capabilities:
+   - GPU memory optimization
+   - CPU offloading
+   - Mixed precision
+   - Device synchronization
 
-### Phase 3 (Future)
+## Data Processing
 
-- Distributed processing
-- Load balancing
-- Real-time monitoring
+### Loading Optimizations
 
-## Benchmarks
+1. **Efficient Loading**
 
-Run benchmarks with:
+   ```python
+   async def load_data(self, path: Path) -> Dataset:
+       return StreamingDataset(
+           path,
+           buffer_size=self.config.stream_buffer_size,
+           memory_limit=self.config.memory_limit
+       )
+   ```
 
-```bash
-python run.py benchmark --iterations 100
+   Features:
+   - Async loading
+   - Memory limits
+   - Streaming support
+   - Format detection
+
+2. **Preprocessing Pipeline**
+
+   ```python
+   class PreprocessingPipeline:
+       """Efficient data preprocessing."""
+       
+       def preprocess_batch(self, batch: Dict):
+           return self._apply_transforms(
+               batch,
+               num_workers=self.config.num_workers
+           )
+   ```
+
+   Optimizations:
+   - Parallel processing
+   - Memory mapping
+   - Caching
+   - Format optimization
+
+### Cache Management
+
+1. **Tiered Caching**
+
+   ```python
+   class CacheManager:
+       """Multi-level cache system."""
+       
+       def __init__(self):
+           self.memory_cache = MemoryCache()
+           self.disk_cache = DiskCache()
+           self.network_cache = NetworkCache()
+   ```
+
+   Levels:
+   - Memory (fast, limited)
+   - Disk (medium, local)
+   - Network (slow, distributed)
+
+2. **Cache Policies**
+
+   ```python
+   class CachePolicy:
+       """Cache management policies."""
+       
+       def apply_policy(self, cache: Cache):
+           if cache.memory_pressure > 0.8:
+               cache.evict_least_used()
+   ```
+
+   Features:
+   - LRU eviction
+   - Size limits
+   - TTL management
+   - Priority levels
+
+## Training Optimization
+
+### Memory Efficiency
+
+1. **Gradient Management**
+
+   ```python
+   class GradientOptimizer:
+       """Optimize gradient handling."""
+       
+       def optimize_gradients(self):
+           if self.config.gradient_checkpointing:
+               self.model.gradient_checkpointing_enable()
+   ```
+
+   Features:
+   - Checkpointing
+   - Accumulation
+   - Clipping
+   - Scaling
+
+2. **Model Optimization**
+
+   ```python
+   class ModelOptimizer:
+       """Model memory optimization."""
+       
+       def optimize_model(self):
+           if self.config.memory_efficient_attention:
+               self.model.enable_memory_efficient_attention()
+   ```
+
+   Techniques:
+   - Attention optimization
+   - Parameter sharing
+   - Quantization
+   - Pruning
+
+### Resource Utilization
+
+1. **Compute Optimization**
+
+   ```python
+   class ComputeOptimizer:
+       """Optimize compute resources."""
+       
+       def optimize(self):
+           self._optimize_threads()
+           self._optimize_memory()
+           self._optimize_io()
+   ```
+
+   Areas:
+   - Thread management
+   - Memory allocation
+   - I/O scheduling
+   - Cache utilization
+
+2. **Monitoring System**
+
+   ```python
+   class PerformanceMonitor:
+       """Monitor system performance."""
+       
+       def monitor(self):
+           self._track_memory()
+           self._track_compute()
+           self._track_io()
+   ```
+
+   Metrics:
+   - Memory usage
+   - GPU utilization
+   - I/O throughput
+   - Cache hits
+
+## Configuration
+
+### Memory Settings
+
+```yaml
+memory:
+  # Memory limits
+  max_gpu_memory: "90%"
+  max_cpu_memory: "85%"
+  
+  # Cache settings
+  cache_size: "10GB"
+  cache_ttl: 3600
+  
+  # Buffer settings
+  stream_buffer: 1000
+  prefetch_factor: 2
 ```
 
-### Latest Benchmarks
+### Processing Settings
 
-- Document processing: 1000 docs in 30s
-- Model inference: 100 requests in 45s
-- Memory efficiency: 85% GPU utilization
-
-### Long Context Performance (with H2O)
-
-- Maximum sequence length: 32K tokens
-- KV cache optimization: Heavy-Hitter Oracle (H2O)
-- Memory efficiency: ~50% reduction in KV cache size
-- Performance retention: >95% with 512 window length
-
-Run long context inference:
-
-```bash
-python run.py model --enable-h2o \
-    --window-length 512 \
-    --heavy-hitters 128 \
-    --prompt "Your very long prompt here..."
+```yaml
+processing:
+  # Batch settings
+  batch_size: "auto"
+  accumulation_steps: 4
+  
+  # Optimization
+  mixed_precision: true
+  gradient_checkpointing: true
+  memory_efficient_attention: true
+  
+  # Resources
+  num_workers: "auto"
+  pin_memory: true
 ```
 
-### Needle-in-Haystack Performance
+## Best Practices
 
-Testing information retrieval at various context depths:
+1. **Memory Management**
+   - Monitor memory usage
+   - Use streaming for large datasets
+   - Enable gradient checkpointing
+   - Implement proper cleanup
 
-| Context Length | Depth | Standard | With H2O |
-|---------------|-------|-----------|----------|
-| 2000          | 10%   | 98%      | 97%      |
-| 2000          | 50%   | 95%      | 94%      |
-| 2000          | 90%   | 92%      | 91%      |
-| 8000          | 10%   | 90%      | 89%      |
-| 8000          | 50%   | 85%      | 84%      |
-| 8000          | 90%   | 80%      | 79%      |
-| 32000         | 10%   | 75%      | 85%      |
-| 32000         | 50%   | 65%      | 82%      |
-| 32000         | 90%   | 55%      | 80%      |
+2. **Data Processing**
+   - Use appropriate batch sizes
+   - Enable prefetching
+   - Implement caching
+   - Optimize I/O operations
 
-Run needle-in-haystack tests:
+3. **Resource Utilization**
+   - Monitor GPU usage
+   - Balance CPU/GPU workload
+   - Optimize cache usage
+   - Handle cleanup properly
 
-```bash
-make needle-test
+4. **Error Handling**
+   - Monitor OOM errors
+   - Implement fallbacks
+   - Log memory issues
+   - Handle cleanup
+
+## Monitoring
+
+### Memory Monitoring
+
+```python
+class MemoryMonitor:
+    """Monitor memory usage."""
+    
+    def monitor(self):
+        stats = {
+            "gpu_used": self._get_gpu_memory(),
+            "cpu_used": self._get_cpu_memory(),
+            "cache_size": self._get_cache_size()
+        }
+        self._log_stats(stats)
 ```
+
+### Performance Metrics
+
+```python
+class MetricsCollector:
+    """Collect performance metrics."""
+    
+    def collect(self):
+        return {
+            "memory_usage": self._get_memory_metrics(),
+            "compute_usage": self._get_compute_metrics(),
+            "io_stats": self._get_io_metrics()
+        }
+```
+
+## Troubleshooting
+
+1. **Memory Issues**
+   - Check memory usage
+   - Adjust batch size
+   - Enable optimizations
+   - Clear cache
+
+2. **Performance Issues**
+   - Monitor metrics
+   - Check configuration
+   - Optimize resources
+   - Update settings
+
+3. **Resource Issues**
+   - Balance workload
+   - Adjust limits
+   - Enable monitoring
+   - Implement cleanup

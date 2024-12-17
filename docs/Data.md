@@ -1,318 +1,194 @@
-# Data Management and Training
+# Training Architecture
 
-This document outlines the data management and training infrastructure in LlamaHome.
+## Design Decisions
 
-## Overview
+### Data Pipeline
 
-The data management system provides comprehensive handling of training data with:
-
-- Robust validation and metrics tracking
-- Efficient batch processing with progress monitoring
-- Train/validation split functionality
-- Early stopping and checkpointing
-- LoRA fine-tuning support
-
-## Components
-
-### TrainingData
-
-The core component for managing training data:
+The training pipeline uses a streaming approach with async processing:
 
 ```python
-class TrainingData:
-    """Manages training data processing and storage."""
-    
-    def __init__(
-        self,
-        data_dir: Union[str, Path],
-        batch_size: int = 4,
-        max_workers: int = 4,
-        config: Optional[Dict] = None
-    ) -> None:
-        """Initialize training data manager."""
+class TrainingPipeline:
+    """
+    Streaming pipeline with:
+    1. Async data loading
+    2. Prefetch queue
+    3. Dynamic batching
+    4. Resource monitoring
+    """
 ```
 
-### ProgressCallback
+Key considerations:
 
-Tracks training progress with rich progress bars:
+- Memory efficiency over processing speed
+- Disk I/O optimization
+- Resource-aware scheduling
+
+### State Management
+
+Training state persistence uses a tiered approach:
 
 ```python
-class ProgressCallback(TrainerCallback):
-    """Custom callback for training progress."""
+class TrainingState:
+    """
+    Tiered state management:
+    1. In-memory cache (active)
+    2. Disk cache (recent)
+    3. Archive (historical)
     
-    def __init__(self):
-        self.progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TimeRemainingColumn(),
-        )
+    State transitions based on:
+    - Memory pressure
+    - Access patterns
+    - Training phase
+    """
 ```
 
-### ConversationDataset
+### Integration Points
 
-Handles conversation data formatting:
+Core hooks for pipeline customization:
+
+1. Data Loading:
+   - Custom dataset formats
+   - Preprocessing plugins
+   - Validation rules
+
+2. Training Loop:
+   - Custom callbacks
+   - Metric collection
+   - Resource monitoring
+
+3. State Management:
+   - Checkpoint strategies
+   - Recovery handlers
+   - Cache policies
+
+## Performance Considerations
+
+### Memory Management
+
+Training uses a hybrid memory strategy:
+
+1. Active Memory:
+   - Current batch
+   - Model states
+   - Gradients
+
+2. Cache Memory:
+   - Recent batches
+   - Validation data
+   - Metrics
+
+3. Disk Storage:
+   - Historical data
+   - Checkpoints
+   - Archived metrics
+
+### Resource Optimization
+
+Automatic resource balancing:
 
 ```python
-class ConversationDataset(Dataset):
-    """Dataset for conversation samples."""
+class ResourceManager:
+    """
+    Balances:
+    1. GPU memory
+    2. CPU utilization
+    3. Disk I/O
+    4. Network bandwidth
     
-    def __init__(
-        self,
-        conversations: List[Dict],
-        tokenizer,
-        max_length: int = 512
-    ):
-        """Initialize dataset."""
+    Adjusts:
+    - Batch size
+    - Prefetch depth
+    - Cache policy
+    """
 ```
+
+## Error Handling
+
+Critical paths use specialized exceptions:
+
+```python
+class TrainingError(Exception):
+    """Base class for training errors."""
+    pass
+
+class DataError(TrainingError):
+    """Data pipeline errors."""
+    pass
+
+class StateError(TrainingError):
+    """State management errors."""
+    pass
+```
+
+## Testing Strategy
+
+Key test areas:
+
+1. Data Pipeline:
+
+   ```python
+   @pytest.mark.asyncio
+   async def test_streaming():
+       """Verify streaming performance."""
+   ```
+
+2. State Management:
+
+   ```python
+   def test_checkpoint_recovery():
+       """Verify state recovery."""
+   ```
+
+3. Resource Usage:
+
+   ```python
+   @pytest.mark.gpu
+   def test_memory_optimization():
+       """Verify memory efficiency."""
+   ```
 
 ## Configuration
 
-### Training Configuration
-
-Configuration is managed through `.config/training_config.yaml`:
+Training configuration focuses on critical parameters:
 
 ```yaml
 training:
-  # General settings
-  batch_size: 4
-  max_workers: 4
-  max_length: 512
-  validation_split: 0.1
+  pipeline:
+    batch_size: "auto"  # Dynamic based on resources
+    prefetch: 2         # Number of batches to prefetch
+    max_memory: 0.8     # Maximum memory utilization
 
-  # Training parameters
-  epochs: 3
-  learning_rate: 5e-5
-  warmup_steps: 100
-  weight_decay: 0.01
-  gradient_accumulation_steps: 4
-  fp16: true
-  
-  # LoRA settings
-  lora:
-    r: 8
-    alpha: 32
-    dropout: 0.1
-    target_modules: ["q_proj", "v_proj"]
-    bias: "none"
-    
-  # Early stopping
-  early_stopping:
-    enabled: true
-    patience: 3
-    min_delta: 0.01
+  optimization:
+    mixed_precision: true
+    gradient_checkpointing: true
+    compile_mode: "reduce-overhead"
+
+  resources:
+    gpu_memory_fraction: 0.9
+    cpu_workers: "auto"
+    io_queue_size: 1000
 ```
 
-### Model-Specific Overrides
+## Known Limitations
 
-Models can have specific configuration overrides:
+1. Resource Constraints:
+   - Memory scales with batch size
+   - I/O bottlenecks with large datasets
+   - GPU memory fragmentation
 
-```yaml
-model_configs:
-  llama:
-    batch_size: 2
-    max_length: 1024
-    lora:
-      r: 16
-      target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
-```
+2. Performance Tradeoffs:
+   - Streaming vs. caching
+   - Precision vs. memory
+   - Checkpoint frequency
 
-## Data Processing
+## Future Considerations
 
-### Validation Pipeline
+1. Optimizations:
+   - Improved memory mapping
+   - Better I/O scheduling
+   - Enhanced state persistence
 
-1. Sample Validation
-   - JSONL format validation
-   - Conversation structure checking
-   - Content validation
-   - Length constraints
-
-2. Dataset Validation
-   - Train/validation splitting
-   - Tokenization verification
-   - Special token handling
-   - Metrics calculation
-
-### Batch Processing
-
-Features:
-
-- Configurable batch sizes
-- Progress tracking with rich progress bars
-- Async processing
-- Resource management
-- Early stopping support
-
-Implementation:
-
-```python
-async def process_samples(
-    self,
-    model_name: str = "llama",
-    model_version: Optional[str] = None
-) -> None:
-    """Process and prepare training samples."""
-    with Progress() as progress:
-        load_task = progress.add_task(
-            "Loading samples...",
-            total=len(sample_files)
-        )
-```
-
-## Training Process
-
-### Data Preparation
-
-1. Load and validate samples
-2. Split into train/validation sets
-3. Apply tokenization
-4. Create DataLoader instances
-
-### Model Setup
-
-1. Load base model
-2. Configure LoRA parameters
-3. Prepare for training
-4. Set up callbacks
-
-### Training Loop
-
-1. Initialize progress tracking
-2. Train with validation
-3. Apply early stopping
-4. Save checkpoints
-
-### Model Saving
-
-1. Save model weights
-2. Save tokenizer
-3. Save training metrics
-4. Save configuration
-
-## Metrics and Monitoring
-
-### Training Metrics
-
-Metrics are saved in JSON format:
-
-```json
-{
-  "train_loss": 1.234,
-  "eval_loss": 1.123,
-  "learning_rate": 5e-5,
-  "epoch": 1,
-  "step": 100
-}
-```
-
-### Progress Tracking
-
-1. Overall Progress:
-   - Total epochs
-   - Total steps
-   - Time remaining
-
-2. Current Progress:
-   - Current epoch
-   - Current step
-   - Batch progress
-
-## Best Practices
-
-### Data Organization
-
-1. Directory Structure:
-
-   ```text
-   data/
-   ├── training/
-   │   ├── samples/
-   │   ├── processed/
-   │   └── checkpoints/
-   ├── models/
-   │   └── finetuned/
-   └── metrics/
-   ```
-
-### Resource Management
-
-1. Memory:
-   - Batch size optimization
-   - Gradient accumulation
-   - Mixed precision training
-   - Memory-efficient training
-
-2. Processing:
-   - Multi-worker data loading
-   - GPU utilization
-   - Progress monitoring
-   - Resource cleanup
-
-## Usage Examples
-
-### Basic Training Setup
-
-```python
-# Initialize manager
-manager = TrainingData(
-    data_dir=Path("data"),
-    batch_size=4,
-    max_workers=4
-)
-
-# Process samples
-await manager.process_samples(
-    model_name="llama",
-    model_version="3.3-7b"
-)
-
-# Train model
-await manager.train_model(
-    model_name="llama",
-    model_version="3.3-7b"
-)
-```
-
-### Custom Configuration
-
-```python
-config = {
-    "batch_size": 2,
-    "max_length": 1024,
-    "lora": {
-        "r": 16,
-        "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"]
-    }
-}
-
-manager = TrainingData(
-    data_dir=Path("data"),
-    config=config
-)
-```
-
-## Testing
-
-### Test Coverage
-
-1. Data Tests:
-   - Sample loading
-   - Validation splitting
-   - Tokenization
-   - Batch processing
-
-2. Training Tests:
-   - Configuration loading
-   - Progress tracking
-   - Early stopping
-   - Metric saving
-
-Example test:
-
-```python
-@pytest.mark.asyncio
-async def test_process_samples():
-    manager = TrainingData(tmp_path)
-    await manager.process_samples("llama", "3.3-7b")
-    assert (tmp_path / "processed").exists()
-```
+2. Integration Points:
+   - Custom data formats
+   - Pipeline plugins
+   - Monitoring hooks

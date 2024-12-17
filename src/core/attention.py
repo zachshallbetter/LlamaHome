@@ -1,4 +1,50 @@
-"""Hybrid attention mechanism implementation."""
+"""Hybrid attention mechanism implementation.
+
+This module provides an optimized attention mechanism that combines Flash Attention
+and memory-efficient attention implementations. It is designed to work seamlessly
+with the EnhancedLlamaForCausalLM model (see src/core/model.py).
+
+Key Features:
+- Dynamic switching between Flash and memory-efficient attention
+- Optimized cache management
+- Sliding window support
+- Position-aware attention patterns
+
+Performance Optimizations:
+- Automatic hardware detection for Flash Attention
+- Memory-efficient implementation for constrained environments
+- Dynamic cache sizing
+- Optimized position handling
+
+System Requirements:
+- Flash Attention requires CUDA capability >= 7.5
+- PyTorch >= 2.0 for memory-efficient attention
+- For optimal performance:
+    - NVIDIA Ampere GPU or newer
+    - CUDA 11.8 or higher
+    - 8GB+ VRAM recommended
+
+See Also:
+    - src/core/model.py: Main model implementation
+    - src/core/cache.py: Cache management system
+    - docs/Architecture.md: System architecture overview
+
+Example:
+    >>> # Basic usage with model
+    >>> from transformers import LlamaConfig
+    >>> from src.core.model import EnhancedLlamaForCausalLM
+    >>> 
+    >>> config = LlamaConfig(use_flash_attention=True)
+    >>> model = EnhancedLlamaForCausalLM(config)
+    >>> # Attention is automatically configured
+    
+    >>> # Manual attention configuration
+    >>> config = AttentionConfig(
+    ...     use_flash_attention=True,
+    ...     sliding_window=1024
+    ... )
+    >>> attention = HybridAttention(config, layer_idx=0)
+"""
 
 from typing import Any, Optional, Tuple, Union
 from dataclasses import dataclass
@@ -16,7 +62,46 @@ logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 @dataclass
 class AttentionConfig:
-    """Configuration for hybrid attention."""
+    """Configuration for hybrid attention mechanism.
+    
+    This class defines the configuration for the attention mechanism,
+    controlling how attention is computed and optimized. It works in
+    conjunction with ModelConfig (see src/core/model.py).
+
+    Memory Management:
+        The attention mechanism automatically manages memory based on:
+        1. Available GPU memory
+        2. Input sequence length
+        3. Batch size
+        4. Model size
+
+    Hardware Optimization:
+        The mechanism automatically selects the best implementation:
+        1. Flash Attention for supported GPUs
+        2. Memory-efficient attention for other cases
+        3. Fallback to standard attention if needed
+
+    Attributes:
+        use_flash_attention (bool): Use Flash Attention when available.
+        use_memory_efficient (bool): Use memory efficient implementation.
+        head_dim (int): Attention head dimension.
+        num_heads (int): Number of attention heads.
+        sliding_window (Optional[int]): Size of attention window, None for full.
+        attention_dropout (float): Dropout probability.
+
+    Related:
+        - ModelConfig in src/core/model.py
+        - Cache configuration in src/core/cache.py
+
+    Example:
+        >>> config = AttentionConfig(
+        ...     use_flash_attention=True,
+        ...     sliding_window=1024,
+        ...     head_dim=128,
+        ...     num_heads=32
+        ... )
+        >>> attention = HybridAttention(config, layer_idx=0)
+    """
     
     use_flash_attention: bool = True
     use_memory_efficient: bool = True
@@ -27,14 +112,73 @@ class AttentionConfig:
 
 
 class HybridAttention(LlamaAttention):
-    """Hybrid attention combining H2O and Flash Attention optimizations."""
+    """Hybrid attention implementation combining multiple optimizations.
+    
+    This class extends the base Llama attention with:
+    1. Flash Attention support
+    2. Memory-efficient implementation
+    3. Dynamic cache management
+    4. Position-aware attention
+    5. Sliding window support
+
+    The implementation automatically selects the best attention mechanism
+    based on hardware capabilities and memory constraints. It integrates
+    with the EnhancedLlamaForCausalLM model's caching and memory
+    management systems.
+
+    Architecture:
+        1. Attention Computation:
+            - Flash Attention for supported hardware
+            - Memory-efficient implementation as fallback
+            - Standard attention as final fallback
+        
+        2. Memory Management:
+            - Dynamic cache sizing
+            - Sliding window optimization
+            - Position-aware memory mapping
+        
+        3. Integration:
+            - Works with EnhancedLlamaForCausalLM
+            - Supports distributed training
+            - Handles gradient checkpointing
+
+    See Also:
+        - EnhancedLlamaForCausalLM in src/core/model.py
+        - Cache implementation in src/core/cache.py
+        - Training system in src/core/training.py
+
+    Example:
+        >>> # Configuration
+        >>> config = AttentionConfig(use_flash_attention=True)
+        >>> attention = HybridAttention(config, layer_idx=0)
+        >>> 
+        >>> # Forward pass
+        >>> hidden_states = torch.randn(1, 32, 512)
+        >>> output = attention(
+        ...     hidden_states,
+        ...     use_cache=True
+        ... )
+    """
 
     def __init__(self, config: Any, layer_idx: int) -> None:
         """Initialize hybrid attention layer.
         
         Args:
-            config: Model configuration
-            layer_idx: Layer index
+            config: Attention configuration with settings:
+                - use_flash_attention (bool): Use Flash Attention
+                - use_memory_efficient (bool): Use memory efficient
+                - sliding_window (int): Attention window size
+                - head_dim (int): Attention head dimension
+                - num_heads (int): Number of attention heads
+            layer_idx: Index of this attention layer
+
+        Raises:
+            RuntimeError: If Flash Attention is requested but unavailable
+            ValueError: If configuration is invalid
+
+        Note:
+            The layer automatically falls back to the best available
+            implementation if the requested one is unavailable.
         """
         super().__init__(config)
         self.layer_idx = layer_idx

@@ -5,10 +5,10 @@
 ### AI and Machine Learning
 
 - `torch`: PyTorch for deep learning operations (used in H2O implementation)
-  - Version: 2.0.1
+  - Version: 2.1.0
   - Requires: Python >=3.11,<3.13
   - GPU Support: CUDA 12.1 pre-built
-- `transformers`: Hugging Face transformers for Llama 3.3 integration (4.47.0)
+- `transformers`: Hugging Face transformers for Llama 3.3 integration (4.36.0)
 - `tokenizers`: Fast tokenization for text processing (0.21.0)
 - `h2o`: Heavy-Hitter Oracle implementation (3.46.0)
 - `rouge`: ROUGE score evaluation for model outputs (1.0.1)
@@ -43,7 +43,7 @@
 - `click`: Command line interface creation (8.1.7)
 - `python-dotenv`: Environment variable management (1.0.0)
 - `pyyaml`: YAML configuration handling (6.0.2)
-- `rich`: Rich text and formatting for CLI (13.9.4)
+- `rich`: Rich text and formatting for CLI (13.7.0)
 - `requests`: HTTP client for downloads (2.31.0)
 - `tqdm`: Progress bars (4.66.0)
 - `structlog`: Structured logging (24.4.0)
@@ -63,16 +63,12 @@
 
 ### Development Dependencies
 
-- `pytest`: Testing framework (8.0.0)
-- `pytest-asyncio`: Async test support (0.23.0)
-- `pytest-mock`: Mocking for tests (3.12.0)
-- `black`: Code formatting (24.1.0)
-- `isort`: Import sorting (5.13.0)
-- `mypy`: Type checking (1.8.0)
-- `flake8`: Code linting (7.0.0)
-- `jupyter`: Jupyter notebooks (1.0.0)
-- `notebook`: Jupyter notebook server (7.0.0)
-- `autopep8`: Code formatting (2.0.4)
+- `pytest`: Testing framework (7.4.0)
+- `pytest-asyncio`: Async test support (0.21.0)
+- `black`: Code formatting (23.7.0)
+- `isort`: Import sorting (5.12.0)
+- `mypy`: Type checking (1.4.1)
+- `ruff`: Code linting (0.0.284)
 
 ### GUI Dependencies
 

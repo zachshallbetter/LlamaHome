@@ -6,7 +6,9 @@ This document details the configuration system and available settings in LlamaHo
 
 ### Overview
 
-LlamaHome uses multiple configuration files for different aspects of the system:```text
+LlamaHome uses multiple configuration files for different aspects of the system:
+
+```text
 .config/
 ├── models.json           # Model definitions and versions
 ├── training_config.yaml  # Training parameters
@@ -203,20 +205,223 @@ ignore:
 
 ## Cache Configuration
 
-### Cache Directory Structure
+LlamaHome implements a comprehensive caching system with multiple configuration points:
+
+### 1. Environment Variables
+
+Cache-related environment variables in `.env`:
+
+```bash
+# Cache Settings
+LLAMAHOME_CACHE_DIR=.cache
+LLAMAHOME_CACHE_SIZE=1024  # MB
+LLAMAHOME_CACHE_CLEANUP_INTERVAL=3600  # seconds
+LLAMAHOME_CACHE_MAX_AGE=7  # days
+
+# Cache Type Settings
+LLAMAHOME_MODEL_CACHE_SIZE=1024  # MB
+LLAMAHOME_TRAINING_CACHE_SIZE=512  # MB
+LLAMAHOME_SYSTEM_CACHE_SIZE=256  # MB
+LLAMAHOME_PYCACHE_SIZE=128  # MB
+
+# Cache Optimization
+LLAMAHOME_CACHE_USE_MMAP=true
+LLAMAHOME_CACHE_COMPRESSION=true
+LLAMAHOME_CACHE_ASYNC_WRITES=true
+```
+
+### 2. Cache Directory Structure
+
+Hierarchical cache organization:
 
 ```text
 .cache/
-├── models/          # Model weights and parameters
-│   ├── llama/
-│   └── gpt4/
-├── training/        # Training artifacts
-│   ├── datasets/
-│   └── metrics/
-├── system/          # System-level cache
-│   ├── pytest/
-│   └── mypy/
-└── pycache/         # Python bytecode cache
+├── models/                # Model artifacts
+│   ├── llama/            # Llama model cache
+│   │   ├── weights/      # Model weights
+│   │   ├── states/       # Model states
+│   │   └── config/       # Model config
+│   └── gpt4/             # GPT-4 model cache
+│       ├── api/          # API cache
+│       └── responses/    # Response cache
+├── training/             # Training artifacts
+│   ├── datasets/         # Dataset cache
+│   │   ├── current/      # Active datasets
+│   │   └── archived/     # Archived datasets
+│   └── metrics/          # Training metrics
+│       ├── loss/         # Loss history
+│       └── progress/     # Progress tracking
+├── system/               # System cache
+│   ├── pytest/           # Test artifacts
+│   │   ├── results/      # Test results
+│   │   └── coverage/     # Coverage data
+│   ├── mypy/             # Type checking
+│   │   ├── results/      # Check results
+│   │   └── stats/        # Statistics
+│   └── temp/             # Temporary files
+└── pycache/             # Python bytecode
+    ├── src/             # Source bytecode
+    └── tests/           # Test bytecode
+```
+
+### 3. Cache Configuration Files
+
+#### training_config.yaml
+
+Training cache settings:
+
+```yaml
+cache:
+  # Memory Management
+  max_size: 1000  # Maximum items in memory
+  batch_size: 32  # Items per batch
+  prefetch: 4     # Prefetch batches
+
+  # Cleanup Policy
+  cleanup_interval: 3600  # Seconds between cleanup
+  max_age_days: 7        # Maximum item age
+  min_free_space: 1024   # MB to maintain free
+
+  # Optimization
+  use_mmap: true        # Use memory mapping
+  compression: true     # Enable compression
+  async_writes: true    # Asynchronous writes
+  
+  # Thread Safety
+  max_readers: 4        # Concurrent readers
+  max_writers: 1        # Concurrent writers
+  lock_timeout: 30      # Lock timeout seconds
+```
+
+#### models.json
+
+Model-specific cache settings:
+
+```json
+{
+  "cache_config": {
+    "llama": {
+      "max_cache_size": 1024,
+      "cache_strategy": "dynamic",
+      "growth_factor": 1.5,
+      "initial_size": 256
+    },
+    "gpt4": {
+      "max_cache_size": 512,
+      "cache_strategy": "static",
+      "response_cache_ttl": 3600
+    }
+  }
+}
+```
+
+### 4. Cache Types Configuration
+
+#### Core Cache Settings
+
+Model state caching configuration:
+
+```python
+class CacheConfig:
+    """Cache configuration settings."""
+    
+    def __init__(self):
+        # Cache directories
+        self.BASE_DIR = Path(".cache")
+        self.MODEL_CACHE = self.BASE_DIR / "models"
+        self.TRAINING_CACHE = self.BASE_DIR / "training"
+        self.SYSTEM_CACHE = self.BASE_DIR / "system"
+        self.PYCACHE = self.BASE_DIR / "pycache"
+        
+        # Size limits (bytes)
+        self.CACHE_LIMITS = {
+            "models": 1024 * 1024 * 1024,    # 1GB
+            "training": 512 * 1024 * 1024,    # 512MB
+            "system": 256 * 1024 * 1024,      # 256MB
+            "pycache": 128 * 1024 * 1024      # 128MB
+        }
+        
+        # Cleanup settings
+        self.CLEANUP_INTERVAL = 3600  # 1 hour
+        self.MAX_AGE_DAYS = 7
+        self.MIN_FREE_SPACE = 1024 * 1024 * 1024  # 1GB
+```
+
+#### Training Cache Settings
+
+Data caching configuration:
+
+```python
+class DataCacheConfig:
+    """Training data cache settings."""
+    
+    def __init__(self):
+        # Cache structure
+        self.cache_dir = Path(".cache/training")
+        self.datasets_dir = self.cache_dir / "datasets"
+        self.metrics_dir = self.cache_dir / "metrics"
+        
+        # Memory settings
+        self.max_size = 1000
+        self.batch_size = 32
+        self.prefetch = 4
+        
+        # Optimization
+        self.use_mmap = True
+        self.compression = True
+        self.async_writes = True
+```
+
+### 5. Performance Settings
+
+Cache performance configuration:
+
+```yaml
+performance:
+  cache:
+    # Memory Management
+    memory_limit: 1024    # MB maximum memory usage
+    growth_factor: 1.5    # Dynamic cache growth rate
+    shrink_factor: 0.5    # Cache reduction factor
+    
+    # I/O Settings
+    buffer_size: 8192     # Bytes per I/O operation
+    max_file_size: 1024   # MB per cache file
+    compression_level: 6   # Compression strength (0-9)
+    
+    # Threading
+    max_threads: 4        # Maximum cache threads
+    io_threads: 2         # I/O operation threads
+    cleanup_threads: 1    # Cleanup operation threads
+    
+    # Monitoring
+    stats_interval: 60    # Seconds between stats
+    alert_threshold: 0.9  # Usage alert level
+    cleanup_threshold: 0.8 # Cleanup trigger level
+```
+
+### 6. Security Settings
+
+Cache security configuration:
+
+```yaml
+security:
+  cache:
+    # Access Control
+    permissions: 0600     # Cache file permissions
+    ownership: "user"     # Cache file ownership
+    
+    # Encryption
+    encrypt_at_rest: true # Encrypt cache files
+    key_rotation: 7       # Days between key rotation
+    
+    # Validation
+    checksum: true       # Validate cache integrity
+    signature: true      # Sign cache contents
+    
+    # Cleanup
+    secure_delete: true  # Secure file deletion
+    wipe_on_clear: true  # Wipe cache on clear
 ```
 
 ## Log Configuration
@@ -276,6 +481,7 @@ class ConfigManager:
 ### Configuration Updates
 
 1. Runtime Updates:
+
    ```python
    config_manager.update_training_config({
        "batch_size": 8,
@@ -284,6 +490,7 @@ class ConfigManager:
    ```
 
 2. File Updates:
+
    ```python
    config_manager.save_training_config(updated_config)
    ```
@@ -368,5 +575,4 @@ make setup
 # Production
 export LLAMAHOME_ENV=production
 make setup
-``` 
-
+```

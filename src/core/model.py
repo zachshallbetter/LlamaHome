@@ -1,4 +1,58 @@
-"""Enhanced Llama model implementation with hybrid optimizations."""
+"""Enhanced Llama model implementation with hybrid optimizations.
+
+This module implements an enhanced version of the Llama model with comprehensive
+features for model management, training, and inference optimization.
+
+Key Features:
+- Hybrid attention mechanism (Flash Attention + Memory Efficient)
+- Dynamic cache management
+- Optimized training capabilities
+- Multi-GPU support
+- Streaming dataset support
+
+System Requirements:
+- Python 3.11 (3.12 and 3.13 not supported due to PyTorch compatibility)
+- NVIDIA CUDA toolkit 12.1 or higher for GPU support
+- NVIDIA drivers 525 or higher
+- Minimum GPU memory:
+    - 12GB for 7b model
+    - 24GB for 13b model
+    - 100GB for 70b model
+
+Memory Optimization:
+- Lazy loading
+- Memory mapping
+- Gradient checkpointing
+- Dynamic cache management
+
+GPU Optimization:
+- Multi-GPU support with DataParallel
+- Mixed precision training
+- Batch optimization
+- Resource monitoring
+
+Example:
+    >>> # Basic usage
+    >>> config = LlamaConfig(use_flash_attention=True)
+    >>> model = EnhancedLlamaForCausalLM(config)
+    >>> model.train_model("data/training.jsonl", num_epochs=3)
+    >>> output = model.generate("Hello, how are")
+    
+    >>> # Advanced training with optimizations
+    >>> model.train_model(
+    ...     "data/train.jsonl",
+    ...     batch_size=8,
+    ...     fp16=True,
+    ...     gradient_checkpointing=True,
+    ...     use_memory_efficient=True
+    ... )
+
+Note:
+    This implementation follows a modular architecture with clear separation
+    of concerns between model management, training, and inference components.
+    Error handling and logging are implemented throughout the system for
+    robust operation.
+"""
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass
@@ -25,7 +79,58 @@ logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 @dataclass
 class ModelConfig:
-    """Enhanced model configuration."""
+    """Configuration for enhanced model features.
+    
+    This class defines all configuration options for model optimization,
+    including attention mechanisms, caching strategies, and training settings.
+    It integrates with the system's configuration management through
+    .config/models.json and .config/training_config.yaml.
+
+    Memory Management:
+        - Dynamic cache sizing based on available resources
+        - Automatic memory mapping for large models
+        - Gradient checkpointing configuration
+        - Mixed precision settings
+
+    GPU Management:
+        - Multi-GPU training configuration
+        - Mixed precision settings
+        - Batch optimization parameters
+        - Resource monitoring options
+
+    Attributes:
+        use_flash_attention (bool): Whether to use Flash Attention when available.
+        use_memory_efficient (bool): Whether to use memory efficient attention.
+        sliding_window (Optional[int]): Size of attention sliding window, None for full attention.
+        initial_cache_size (int): Initial size of the cache in tokens.
+        max_cache_size (Optional[int]): Maximum cache size, None for unlimited.
+        lora_config (Optional[Dict[str, Any]]): LoRA fine-tuning configuration.
+        quantization_config (Optional[Dict[str, Any]]): Model quantization settings.
+        use_cuda_graphs (bool): Whether to use CUDA graphs for optimization.
+        use_kernel_opt (bool): Whether to use kernel optimizations.
+
+    Example:
+        >>> # Basic configuration
+        >>> config = ModelConfig(use_flash_attention=True, sliding_window=1024)
+        >>> model = EnhancedLlamaForCausalLM(LlamaConfig(**config.__dict__))
+        
+        >>> # Advanced configuration with LoRA
+        >>> config = ModelConfig(
+        ...     use_flash_attention=True,
+        ...     lora_config={
+        ...         "r": 8,
+        ...         "alpha": 32,
+        ...         "dropout": 0.1,
+        ...         "target_modules": ["q_proj", "v_proj"]
+        ...     }
+        ... )
+    
+    Note:
+        Configuration values can be overridden through environment variables:
+        - LLAMAHOME_CACHE_SIZE: Override cache size
+        - LLAMAHOME_USE_FLASH: Control Flash Attention usage
+        - LLAMAHOME_MEMORY_EFFICIENT: Control memory efficiency
+    """
     
     # Attention settings
     use_flash_attention: bool = True
@@ -62,13 +167,96 @@ class ModelConfig:
 
 
 class EnhancedLlamaForCausalLM(LlamaForCausalLM):
-    """Enhanced Llama model with hybrid optimizations."""
+    """Enhanced Llama model with hybrid optimizations.
+    
+    This class extends the base Llama model with comprehensive optimizations
+    and features for production deployment. It follows a modular architecture
+    with clear separation between model management, training, and inference.
+
+    Architecture Components:
+    1. Model Management:
+        - Version control
+        - Resource validation
+        - Configuration handling
+        - Cache management
+
+    2. Training System:
+        - Data preprocessing
+        - LoRA fine-tuning
+        - Progress tracking
+        - Metrics collection
+
+    3. Memory Management:
+        - Dynamic cache sizing
+        - Memory mapping
+        - Gradient checkpointing
+        - Resource monitoring
+
+    4. Error Handling:
+        - Comprehensive exception hierarchy
+        - Automatic retry mechanisms
+        - Graceful degradation
+        - Resource cleanup
+
+    The model automatically selects the best attention mechanism based on:
+    - Hardware capabilities (CUDA availability)
+    - Input sequence length
+    - Memory constraints
+    - Resource availability
+    
+    Attributes:
+        model_config (ModelConfig): Enhanced model configuration.
+        cache_config (Dict[str, Any]): Cache configuration settings.
+        model_name (str): Name of the model instance.
+        cuda_graphs (Dict): CUDA graphs for optimized inference.
+
+    Example:
+        >>> # Basic usage
+        >>> config = LlamaConfig(vocab_size=32000)
+        >>> model = EnhancedLlamaForCausalLM(config)
+        
+        >>> # Multi-GPU training
+        >>> model.train_model(
+        ...     ["data/part1.json", "data/part2.json"],
+        ...     batch_size=16,
+        ...     fp16=True
+        ... )
+        
+        >>> # Memory-efficient inference
+        >>> model.generate(
+        ...     "Once upon a time",
+        ...     use_cache=True,
+        ...     max_length=100
+        ... )
+
+    Note:
+        The implementation automatically handles:
+        1. Resource management (CPU, GPU, memory)
+        2. Error recovery and logging
+        3. Performance optimization
+        4. State management
+    """
 
     def __init__(self, config: LlamaConfig) -> None:
         """Initialize enhanced model.
         
         Args:
-            config: Model configuration
+            config: Model configuration with optional enhanced settings:
+                - use_flash_attention (bool): Use Flash Attention when available
+                - use_memory_efficient (bool): Use memory efficient attention
+                - sliding_window (int): Size of attention sliding window
+                - initial_cache_size (int): Initial cache size
+                - max_cache_size (int): Maximum cache size
+                - use_cuda_graphs (bool): Use CUDA graphs
+                - use_kernel_opt (bool): Use kernel optimizations
+
+        Raises:
+            RuntimeError: If required dependencies are not available.
+            ValueError: If configuration values are invalid.
+
+        Example:
+            >>> config = LlamaConfig(vocab_size=32000, use_flash_attention=True)
+            >>> model = EnhancedLlamaForCausalLM(config)
         """
         super().__init__(config)
         
@@ -105,7 +293,26 @@ class EnhancedLlamaForCausalLM(LlamaForCausalLM):
         logger.info(f"Enhanced model initialized with window length {self.cache_config['window_length']}")
 
     def _init_cuda_graphs(self) -> None:
-        """Initialize CUDA graphs for optimized inference."""
+        """Initialize CUDA graphs for optimized inference.
+        
+        Creates and caches CUDA graphs for common input shapes to optimize
+        inference performance. The graphs are created for shapes:
+        - (1, 32)
+        - (1, 64)
+        - (1, 128)
+        - (1, 256)
+
+        This optimization is only applied when:
+        1. CUDA is available
+        2. use_cuda_graphs is True in config
+        3. Input shape matches a cached graph
+
+        Raises:
+            RuntimeWarning: If CUDA graph initialization fails.
+
+        Note:
+            Falls back to standard execution if initialization fails.
+        """
         if not hasattr(self, "cuda_graphs"):
             self.cuda_graphs = {}
             
@@ -139,18 +346,39 @@ class EnhancedLlamaForCausalLM(LlamaForCausalLM):
         cache_position: Optional[LongTensor] = None,
         **kwargs: Any,
     ) -> Dict[str, Union[FloatTensor, LongTensor, Optional[List[Tuple[FloatTensor]]], Optional[Tensor]]]:
-        """Prepare inputs for generation with optimized caching.
+        """Prepare inputs for optimized text generation.
         
+        This method handles:
+        1. CUDA graph optimization for common shapes
+        2. Cache management (static and dynamic)
+        3. Position handling
+        4. Input adjustments based on attention mask
+        5. Memory optimization
+
         Args:
-            input_ids: Input token IDs
-            past_key_values: Optional cached key/value states
-            attention_mask: Optional attention mask
-            inputs_embeds: Optional input embeddings
-            cache_position: Optional cache positions
-            **kwargs: Additional arguments
-            
+            input_ids: Input token IDs of shape (batch_size, sequence_length)
+            past_key_values: Cached key/value states from previous forward passes
+            attention_mask: Mask to avoid attention on padding tokens
+            inputs_embeds: Pre-computed input embeddings
+            cache_position: Position in the cache for key/value states
+            **kwargs: Additional generation arguments
+
         Returns:
-            Dictionary of prepared inputs
+            Dictionary containing prepared inputs:
+            - input_ids or inputs_embeds
+            - attention_mask
+            - position_ids
+            - past_key_values
+            - cache_position
+            - use_cache flag
+
+        Raises:
+            ValueError: If inputs are incompatible with cache configuration.
+
+        Example:
+            >>> ids = torch.tensor([[1, 2, 3]])
+            >>> inputs = model.prepare_inputs_for_generation(ids)
+            >>> outputs = model(**inputs)
         """
         logger.debug("Preparing inputs for generation")
         
@@ -334,48 +562,63 @@ class EnhancedLlamaForCausalLM(LlamaForCausalLM):
         output_dir: Optional[str] = None,
         **kwargs: Any
     ) -> None:
-        """Train the model using various data sources.
+        """Train the model with advanced features and optimizations.
         
-        This method supports multiple data input formats:
-        1. Single file: Pass a path to a single data file
-        2. Multiple files: Pass a list of file paths
-        3. Directory: Pass a directory path containing data files
-        4. Pre-processed dataset: Pass a ConcatDataset instance
-        
-        The method automatically handles:
-        - Streaming for large datasets
-        - Batch processing for multiple files
-        - Memory-efficient data loading
-        - Distributed training when available
-        
+        This method provides a comprehensive training interface with support for:
+        1. Multiple data source types (files, directories, datasets)
+        2. Streaming for large datasets
+        3. Distributed training
+        4. Memory-efficient training
+        5. Mixed precision training
+        6. Gradient accumulation
+        7. Checkpoint management
+
         Args:
-            train_dataset: Training data source (file, directory, or dataset)
-            eval_dataset: Optional evaluation data source
-            batch_size: Training batch size
-            gradient_accumulation_steps: Steps before gradient update
+            train_dataset: Training data source, can be:
+                - Path to single file
+                - List of file paths
+                - Directory path
+                - Pre-processed ConcatDataset
+            eval_dataset: Optional evaluation data source (same types as train_dataset)
+            batch_size: Number of samples per batch
+            gradient_accumulation_steps: Number of steps before gradient update
             num_epochs: Number of training epochs
             learning_rate: Learning rate for optimization
-            warmup_steps: Number of warmup steps
-            weight_decay: Weight decay for regularization
+            warmup_steps: Number of warmup steps for learning rate
+            weight_decay: L2 regularization factor
             max_grad_norm: Maximum gradient norm for clipping
-            save_steps: Steps between model saves
-            eval_steps: Steps between evaluations
-            logging_steps: Steps between logging
-            output_dir: Directory to save model and logs
-            **kwargs: Additional training arguments
-            
+            save_steps: Save checkpoint every N steps
+            eval_steps: Run evaluation every N steps
+            logging_steps: Log metrics every N steps
+            output_dir: Directory to save checkpoints and logs
+            **kwargs: Additional training arguments:
+                - fp16 (bool): Use mixed precision training
+                - resume_from_checkpoint (str): Resume from checkpoint path
+                - gradient_checkpointing (bool): Use gradient checkpointing
+                - use_memory_efficient (bool): Use memory efficient attention
+
+        Raises:
+            FileNotFoundError: If data files don't exist
+            ValueError: If data source type is invalid
+            RuntimeError: If training fails
+
         Examples:
-            # Train from a single file
-            model.train_model("data/training.jsonl")
+            >>> # Train from single file
+            >>> model.train_model("data/train.jsonl", batch_size=8)
             
-            # Train from multiple files
-            model.train_model(["data/part1.jsonl", "data/part2.jsonl"])
+            >>> # Train from multiple files with evaluation
+            >>> model.train_model(
+            ...     ["data/part1.jsonl", "data/part2.jsonl"],
+            ...     eval_dataset="data/eval.jsonl",
+            ...     num_epochs=3
+            ... )
             
-            # Train from a directory
-            model.train_model("data/training_files/")
-            
-            # Train with a pre-processed dataset
-            model.train_model(processed_dataset)
+            >>> # Train with memory optimizations
+            >>> model.train_model(
+            ...     "data/train.jsonl",
+            ...     gradient_checkpointing=True,
+            ...     use_memory_efficient=True
+            ... )
         """
         logger.info("Starting model training")
         
@@ -424,20 +667,27 @@ class EnhancedLlamaForCausalLM(LlamaForCausalLM):
         data_source: Optional[Union[ConcatDataset, str, Path, List[Union[str, Path]]]],
         config: Dict[str, Any]
     ) -> Optional[torch.utils.data.DataLoader]:
-        """Prepare data loader for training.
+        """Prepare optimized data loader for training.
         
-        Handles different data source types:
-        1. ConcatDataset: Use directly
-        2. Single file: Load and process
-        3. Multiple files: Load and concatenate
-        4. Directory: Load all files
-        
+        This method handles:
+        1. Multiple data source types
+        2. Streaming for large files
+        3. Memory-efficient loading
+        4. Batch preparation
+
         Args:
             data_source: Data source to prepare
             config: Training configuration
-            
+
         Returns:
-            Prepared DataLoader or None
+            Configured DataLoader or None if data_source is None
+
+        Raises:
+            FileNotFoundError: If data files don't exist
+            ValueError: If data source type is invalid
+
+        Note:
+            Files larger than 1GB are automatically handled with streaming.
         """
         if data_source is None:
             return None

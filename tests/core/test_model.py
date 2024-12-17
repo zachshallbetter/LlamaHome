@@ -383,3 +383,234 @@ def test_memory_efficient_training(config):
     # Test forward pass with memory efficient attention
     outputs = model.forward(input_ids)
     assert outputs.logits.shape == (batch_size, seq_len, model.config.vocab_size)
+
+
+class TestTrainingFeatures:
+    """Test cases for enhanced training features."""
+
+    @pytest.fixture
+    def setup_data_files(self, tmp_path):
+        """Create test data files."""
+        # Create single file
+        single_file = tmp_path / "single.jsonl"
+        with open(single_file, "w") as f:
+            f.write('{"text": "Sample text 1"}\n')
+            f.write('{"text": "Sample text 2"}\n')
+
+        # Create multiple files
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        for i in range(3):
+            file_path = data_dir / f"part{i}.jsonl"
+            with open(file_path, "w") as f:
+                f.write(f'{{"text": "File {i} text 1"}}\n')
+                f.write(f'{{"text": "File {i} text 2"}}\n')
+
+        return {
+            "single_file": single_file,
+            "data_dir": data_dir,
+            "multiple_files": list(data_dir.glob("*.jsonl"))
+        }
+
+    def test_single_file_training(self, model, setup_data_files):
+        """Test training from a single file."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1
+            )
+        except Exception as e:
+            pytest.fail(f"Single file training failed: {e}")
+
+    def test_multiple_files_training(self, model, setup_data_files):
+        """Test training from multiple files."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["multiple_files"],
+                num_epochs=1,
+                batch_size=1
+            )
+        except Exception as e:
+            pytest.fail(f"Multiple files training failed: {e}")
+
+    def test_directory_training(self, model, setup_data_files):
+        """Test training from directory."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["data_dir"],
+                num_epochs=1,
+                batch_size=1
+            )
+        except Exception as e:
+            pytest.fail(f"Directory training failed: {e}")
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+    def test_distributed_training(self, model, setup_data_files):
+        """Test distributed training setup."""
+        if torch.cuda.device_count() > 1:
+            try:
+                model.train_model(
+                    train_dataset=setup_data_files["single_file"],
+                    num_epochs=1,
+                    batch_size=1
+                )
+                assert isinstance(model.model, torch.nn.DataParallel)
+            except Exception as e:
+                pytest.fail(f"Distributed training failed: {e}")
+
+    def test_streaming_dataset(self, model, tmp_path):
+        """Test streaming dataset for large files."""
+        # Create a large file (>1GB threshold)
+        large_file = tmp_path / "large.jsonl"
+        with open(large_file, "w") as f:
+            for i in range(100000):  # Write enough lines to exceed 1GB
+                f.write(f'{{"text": "Large file text {i}"}}\n')
+
+        try:
+            model.train_model(
+                train_dataset=large_file,
+                num_epochs=1,
+                batch_size=1
+            )
+        except Exception as e:
+            pytest.fail(f"Streaming dataset training failed: {e}")
+
+    def test_invalid_data_source(self, model):
+        """Test handling of invalid data source."""
+        with pytest.raises(ValueError):
+            model.train_model(train_dataset=123)  # Invalid type
+
+        with pytest.raises(FileNotFoundError):
+            model.train_model(train_dataset="nonexistent.jsonl")
+
+    def test_training_configuration(self, model, setup_data_files):
+        """Test training configuration options."""
+        custom_config = {
+            "batch_size": 2,
+            "gradient_accumulation_steps": 2,
+            "learning_rate": 1e-4,
+            "warmup_steps": 50,
+            "weight_decay": 0.1,
+            "max_grad_norm": 0.5
+        }
+
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                **custom_config
+            )
+        except Exception as e:
+            pytest.fail(f"Custom configuration training failed: {e}")
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs not available")
+    def test_multi_gpu_training(self, model, setup_data_files):
+        """Test training with multiple GPUs."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=2
+            )
+            assert isinstance(model.model, torch.nn.DataParallel)
+            assert len(model.model.device_ids) > 1
+        except Exception as e:
+            pytest.fail(f"Multi-GPU training failed: {e}")
+
+    def test_evaluation_dataset(self, model, setup_data_files):
+        """Test training with evaluation dataset."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                eval_dataset=setup_data_files["multiple_files"][0],
+                num_epochs=1,
+                batch_size=1,
+                eval_steps=10
+            )
+        except Exception as e:
+            pytest.fail(f"Training with evaluation failed: {e}")
+
+    def test_save_checkpoints(self, model, setup_data_files, tmp_path):
+        """Test checkpoint saving during training."""
+        output_dir = tmp_path / "checkpoints"
+        
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1,
+                save_steps=10,
+                output_dir=str(output_dir)
+            )
+            
+            # Check if checkpoints were saved
+            assert output_dir.exists()
+            checkpoints = list(output_dir.glob("checkpoint-*"))
+            assert len(checkpoints) > 0
+        except Exception as e:
+            pytest.fail(f"Checkpoint saving failed: {e}")
+
+    def test_resume_training(self, model, setup_data_files, tmp_path):
+        """Test resuming training from checkpoint."""
+        output_dir = tmp_path / "checkpoints"
+        
+        # Initial training
+        model.train_model(
+            train_dataset=setup_data_files["single_file"],
+            num_epochs=1,
+            batch_size=1,
+            save_steps=10,
+            output_dir=str(output_dir)
+        )
+        
+        # Get latest checkpoint
+        checkpoints = list(output_dir.glob("checkpoint-*"))
+        latest_checkpoint = str(max(checkpoints, key=lambda x: int(x.name.split("-")[1])))
+        
+        # Resume training
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1,
+                resume_from_checkpoint=latest_checkpoint
+            )
+        except Exception as e:
+            pytest.fail(f"Resume training failed: {e}")
+
+    def test_gradient_accumulation(self, model, setup_data_files):
+        """Test training with gradient accumulation."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1,
+                gradient_accumulation_steps=4
+            )
+        except Exception as e:
+            pytest.fail(f"Gradient accumulation training failed: {e}")
+
+    def test_mixed_precision_training(self, model, setup_data_files):
+        """Test mixed precision training."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1,
+                fp16=True
+            )
+        except Exception as e:
+            pytest.fail(f"Mixed precision training failed: {e}")
+
+    def test_memory_efficient_training(self, model, setup_data_files):
+        """Test memory efficient training options."""
+        try:
+            model.train_model(
+                train_dataset=setup_data_files["single_file"],
+                num_epochs=1,
+                batch_size=1,
+                gradient_checkpointing=True,
+                use_memory_efficient=True
+            )
+        except Exception as e:
+            pytest.fail(f"Memory efficient training failed: {e}")

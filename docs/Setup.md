@@ -1,57 +1,311 @@
-# LlamaHome Setup Documentation
+# LlamaHome Setup Guide
 
-LlamaHome is an AI-powered home automation system that integrates the Llama 3.3 model. This document covers the setup process, requirements, and system architecture.
+## Quick Start Guide
 
-## Prerequisites
+### First-Time Setup
 
-- Python 3.11 or 3.12 (3.13 not supported)
-- Poetry for dependency management
-- Git
-- For GPU support:
-  - NVIDIA CUDA toolkit 12.1+
-  - NVIDIA drivers 525+
-  - Minimum GPU memory:
-    - 8GB for 7B parameter models
-    - 16GB for 13B parameter models
-    - 80GB for 70B parameter models
+1. **System Requirements Check**
 
-## System Architecture
+   ```bash
+   # Check Python version (3.11 or 3.12 required)
+   python --version
+   
+   # Check GPU requirements (if using GPU)
+   nvidia-smi  # For NVIDIA GPUs
+   ```
 
-The setup system consists of several core components that work together:
+2. **Installation**
 
-### Core Components
+   ```bash
+   # Install Poetry
+   curl -sSL https://install.python-poetry.org | python3 -
 
-1. **Makefile** - The entry point that coordinates the setup process:
-   - Runs setup commands (`make setup`, `make run`, `make test`, etc.)
-   - Manages Poetry environment and dependencies
-   - Handles OS/architecture detection
-   - Controls code quality and formatting
+   # Clone and setup LlamaHome
+   git clone https://github.com/zachshallbetter/llamahome.git
+   cd llamahome
+   make setup
+   ```
 
-2. **setup.py** - The main setup orchestrator:
-   - Validates system requirements
-   - Configures environment and directories
-   - Verifies GPU/CUDA compatibility
-   - Manages dependency installation
+3. **Initial Configuration**
 
-3. **utils/setup_model.py** - Handles AI model management:
-   - Configures and downloads models
-   - Manages model registry and versioning
-   - Detects compute devices (CUDA/MPS/CPU)
-   - Provides model setup interface
+   ```bash
+   # Set up environment
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
 
-4. **utils/setup_env.py** - Manages environment configuration:
-   - Creates directories and config files
-   - Sets up environment variables
-   - Configures logging system
-   - Provides system information
+### Common Setup Scenarios
 
-5. **utils/setup_python.py** - Handles Python environment:
-   - Detects compatible Python versions
-   - Configures Poetry virtual environment
-   - Ensures correct Python version
+1. **CPU-Only Setup**
 
-### Component Interaction Flow
+   ```yaml
+   # config/model_config.yaml
+   compute:
+     device: cpu
+     threads: 8
+     batch_size: 4
+   ```
 
-1. `make setup` - Runs setup.py and installs dependencies
-2. `make model` - Runs setup_model.py and downloads the Llama 3.3 model
-3. `make run` - Runs the main application
+2. **GPU Setup (NVIDIA)**
+
+   ```yaml
+   # config/model_config.yaml
+   compute:
+     device: cuda
+     gpu_layers: 32
+     batch_size: 16
+   ```
+
+3. **Apple Silicon Setup**
+
+   ```yaml
+   # config/model_config.yaml
+   compute:
+     device: mps
+     batch_size: 8
+   ```
+
+## Detailed Configuration
+
+### Environment Configuration
+
+1. **Basic Settings**
+
+   ```env
+   PYTHON_VERSION=3.11
+   LLAMAHOME_ENV=development
+   LLAMAHOME_LOG_LEVEL=INFO
+   ```
+
+2. **Model Settings**
+
+   ```env
+   LLAMA_MODEL=llama3.3
+   LLAMA_MODEL_SIZE=13b
+   LLAMA_MODEL_VARIANT=chat
+   ```
+
+3. **Performance Settings**
+
+   ```env
+   LLAMAHOME_BATCH_SIZE=1000
+   LLAMAHOME_MAX_WORKERS=4
+   LLAMAHOME_CACHE_SIZE=1024
+   ```
+
+### Advanced Configuration
+
+1. **H2O Integration**
+
+   ```yaml
+   h2o_config:
+     enable: true
+     window_length: 512
+     heavy_hitter_tokens: 128
+     position_rolling: true
+     max_sequence_length: 32768
+   ```
+
+2. **Resource Management**
+
+   ```yaml
+   resource_config:
+     max_memory: "90%"
+     gpu_memory_fraction: 0.8
+     cpu_threads: 8
+   ```
+
+## Troubleshooting Guide
+
+### Common Issues
+
+1. **Python Version Mismatch**
+
+   ```text
+   Problem: "Python 3.13 is not supported"
+   Solution: Install Python 3.11 or 3.12
+   Command: pyenv install 3.11
+   ```
+
+2. **GPU Memory Issues**
+
+   ```text
+   Problem: "CUDA out of memory"
+   Solutions:
+   - Reduce batch size
+   - Enable gradient checkpointing
+   - Use CPU offloading
+   ```
+
+3. **Environment Setup Issues**
+
+   ```text
+   Problem: "Environment not configured"
+   Solution: 
+   1. Check .env file exists
+   2. Verify environment variables
+   3. Restart application
+   ```
+
+### System Compatibility
+
+1. **Operating System Requirements**
+   - Linux: Ubuntu 20.04+, CentOS 8+
+   - macOS: 12.0+ (Intel/Apple Silicon)
+   - Windows: 10/11 with WSL2
+
+2. **GPU Requirements**
+   - NVIDIA: CUDA 12.1+, Driver 525+
+   - Memory Requirements:
+     - 7B model: 8GB VRAM
+     - 13B model: 16GB VRAM
+     - 70B model: 80GB VRAM
+
+## Performance Optimization
+
+### Memory Management
+
+1. **GPU Memory Optimization**
+
+   ```yaml
+   optimization:
+     gpu_memory_efficient: true
+     gradient_checkpointing: true
+     attention_slicing: true
+   ```
+
+2. **CPU Memory Optimization**
+
+   ```yaml
+   optimization:
+     cpu_offload: true
+     memory_efficient_attention: true
+     pin_memory: true
+   ```
+
+### Caching Configuration
+
+1. **Model Cache**
+
+   ```yaml
+   cache_config:
+     model_cache_size: "10GB"
+     cache_format: "fp16"
+     eviction_policy: "lru"
+   ```
+
+2. **Data Cache**
+
+   ```yaml
+   cache_config:
+     data_cache_size: "5GB"
+     cache_backend: "redis"
+     compression: true
+   ```
+
+## Maintenance
+
+### Regular Maintenance Tasks
+
+1. **Cache Cleanup**
+
+   ```bash
+   make clean-cache
+   ```
+
+2. **Update Dependencies**
+
+   ```bash
+   make update-deps
+   ```
+
+3. **System Check**
+
+   ```bash
+   make system-check
+   ```
+
+### Backup and Recovery
+
+1. **Configuration Backup**
+
+   ```bash
+   make backup-config
+   ```
+
+2. **Model Backup**
+
+   ```bash
+   make backup-models
+   ```
+
+## Advanced Setup
+
+### Custom Integrations
+
+1. **API Integration**
+
+   ```python
+   from llamahome.core import LlamaHome
+   
+   llama = LlamaHome()
+   llama.start_server(port=8080)
+   ```
+
+2. **Plugin Setup**
+
+   ```python
+   from llamahome.plugins import Plugin
+   
+   class CustomPlugin(Plugin):
+       def initialize(self):
+           """Plugin initialization."""
+           pass
+   ```
+
+### Security Configuration
+
+1. **Access Control**
+
+   ```yaml
+   security:
+     authentication: true
+     token_expiry: 3600
+     rate_limit: 100
+   ```
+
+2. **Encryption**
+
+   ```yaml
+   security:
+     ssl_enabled: true
+     cert_path: "/path/to/cert"
+     key_path: "/path/to/key"
+   ```
+
+## Role-Based Setup Guide
+
+### Data Scientists
+
+- Focus on model configuration
+- Performance optimization
+- Data pipeline setup
+
+### DevOps Engineers
+
+- System deployment
+- Resource management
+- Monitoring setup
+
+### Application Developers
+
+- API integration
+- Plugin development
+- Custom workflow setup
+
+## Next Steps
+
+1. [Configure Models](docs/Models.md)
+2. [Setup Training](docs/Training.md)
+3. [API Integration](docs/API.md)
+4. [GUI Setup](docs/GUI.md)

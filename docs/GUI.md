@@ -1,281 +1,318 @@
-# LlamaHome Graphical User Interface (GUI)
+# LlamaHome GUI Guide
 
-This document outlines how to use the LlamaHome GUI to interact with the Llama 3.3 model.
-The GUI provides a modern, accessible interface for both casual users and power users.
+## Getting Started
 
-## Overview
+### Quick Start Tutorial
 
-Key Features:
+1. **Launch the Application**
 
-- Intuitive prompt input and response display
-- Real-time model parameter adjustment
+   ```bash
+   python -m llamahome.gui
+   ```
+
+2. **First-Time Setup**
+   - Click "Settings" (⚙️) in the top right
+   - Configure model path and basic settings
+   - Click "Apply" to save changes
+
+3. **Your First Prompt**
+   - Type in the prompt area: "Summarize this text: [your text]"
+   - Click "Submit" or press Ctrl+Enter
+   - View the response in the display area
+
+### Common Use Cases
+
+1. **Text Summarization**
+
+   ```text
+   Input: "Summarize this article: [paste article]"
+   Options:
+   - Length: Short/Medium/Long
+   - Style: Bullet Points/Paragraphs
+   - Focus: Key Points/Full Detail
+   ```
+
+2. **Code Generation**
+
+   ```text
+   Input: "Write a Python function that [description]"
+   Options:
+   - Language: Python/JavaScript/etc.
+   - Style: Modern/Traditional
+   - Comments: Minimal/Detailed
+   ```
+
+3. **Content Refinement**
+
+   ```text
+   Input: "Improve this text: [your text]"
+   Options:
+   - Goal: Clarity/Engagement/Technical
+   - Tone: Professional/Casual
+   - Length: Preserve/Expand/Condense
+   ```
+
+## Interface Guide
+
+### Main Components
+
+1. **Prompt Area**
+   - Multi-line text input
+   - Template selector
+   - Context length indicator
+   - Submit button
+
+2. **Response Display**
+   - Syntax highlighting
+   - Code block formatting
+   - Export options
+   - Copy button
+
+3. **Settings Panel**
+   - Model configuration
+   - Theme selection
+   - Performance tuning
+   - Keyboard shortcuts
+
+### Power User Features
+
+1. **Keyboard Shortcuts**
+
+   ```text
+   Ctrl+Enter    Submit prompt
+   Ctrl+L        Clear input
+   Ctrl+S        Save response
+   Ctrl+/        Toggle settings
+   F1            Help panel
+   Esc           Cancel operation
+   ```
+
+2. **Context Menu Options**
+   - Right-click in prompt area:
+     - Clear text
+     - Load template
+     - Insert snippet
+     - Save as template
+
+3. **Drag and Drop**
+   - Drop text files into prompt area
+   - Drop code files for analysis
+   - Drop configuration files
+
+## Configuration Guide
+
+### Basic Settings
+
+```yaml
+# config/gui_config.yaml
+appearance:
+  theme: "dark"
+  font_size: 14
+  font_family: "Segoe UI"
+  
+behavior:
+  auto_submit: false
+  save_history: true
+  max_history: 100
+```
+
+### Advanced Settings
+
+```yaml
+# config/gui_advanced.yaml
+performance:
+  hardware_acceleration: true
+  response_streaming: true
+  cache_responses: true
+  
+display:
+  code_highlight: true
+  line_numbers: true
+  word_wrap: true
+  
+accessibility:
+  high_contrast: false
+  screen_reader: false
+  reduced_motion: false
+```
+
+## User Role Guide
+
+### Novice Users
+
+- Start with templates
+- Use basic prompts
+- Follow guided workflows
+
+### Data Scientists
+
+- Access to advanced parameters
 - Batch processing capabilities
-- Theme customization
-- Accessibility features
+- Performance monitoring tools
 
-## Interface Layout
+### Developers
 
-```mermaid
-graph TD
-    A[Header] --> B[Settings]
-    A --> C[Help]
-    A --> D[Profile]
-    E[Main Area] --> F[Prompt Input]
-    E --> G[Response Display]
-    H[Footer] --> I[Status]
-    H --> J[Model Info]
-```
+- API integration tools
+- Custom plugin development
+- Debug information access
 
-### Components
+## Accessibility Features
 
-```text
-+----------------------------------+
-|           LlamaHome GUI          |
-+----------------------------------+
-|  [Settings] [Help] [Profile]     |
-+----------------------------------+
-|                                  |
-|     Prompt Input Area            |
-|     [Submit] [Clear] [History]   |
-|                                  |
-+----------------------------------+
-|                                  |
-|     Response Display             |
-|     [Copy] [Export] [Share]      |
-|                                  |
-+----------------------------------+
-|  Status: Ready | Model: Loaded   |
-+----------------------------------+
-```
+### Vision Assistance
 
-## Quick Start
+1. **High Contrast Modes**
 
-### Installation
-
-1. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
+   ```yaml
+   accessibility:
+     contrast_mode: "high"
+     theme: "light-high-contrast"
    ```
 
-2. Launch the application:
+2. **Text Scaling**
 
-   ```bash
-   python llama_home_gui.py
+   ```yaml
+   accessibility:
+     font_scale: 1.5
+     min_font_size: 16
    ```
 
-### Initial Setup
+3. **Screen Reader Support**
 
-1. Configure Model:
-   - Click Settings (⚙️)
-   - Set Model Path
-   - Click Apply
+   ```yaml
+   accessibility:
+     screen_reader: true
+     announcements: "detailed"
+   ```
 
-2. Start Using:
-   - Type prompt in input area
-   - Click Submit or press Enter
-   - View response in display area
+### Motor Assistance
 
-## Features
+1. **Keyboard Navigation**
 
-### Prompt Input
+   ```yaml
+   accessibility:
+     keyboard_focus: true
+     focus_indicators: "enhanced"
+   ```
 
-- Multi-line text input
-- Template selection
-- History browsing (↑/↓)
-- Auto-completion
-- Syntax highlighting
+2. **Input Assistance**
 
-### Response Display
-
-- Syntax highlighting
-- Code block formatting
-- Image generation preview
-- Export options (JSON, TXT, MD)
-- Search functionality
-
-### Settings Panel
-
-- Model configuration
-- Theme selection
-- Font customization
-- Keyboard shortcuts
-- Performance tuning
-
-### Batch Processing
-
-- Drag-and-drop file upload
-- Progress tracking
-- Result aggregation
-- Export formats
-- Error handling
-
-## Accessibility
-
-### Keyboard Navigation
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Submit | Ctrl+Enter | Submit current prompt |
-| Settings | Ctrl+, | Open settings panel |
-| New Session | Ctrl+N | Start new session |
-| Save | Ctrl+S | Save current session |
-| Copy | Ctrl+C | Copy selected text |
-| Help | F1 | Open help panel |
-
-### Screen Reader Support
-
-- ARIA labels
-- Role annotations
-- Focus management
-- Status announcements
-- Error notifications
-
-### Visual Adjustments
-
-- High contrast themes
-- Font scaling
-- Color blindness modes
-- Motion reduction
-- Custom styling
-
-## Customization
-
-### Themes
-
-```yaml
-theme:
-  name: "Dark Modern"
-  colors:
-    background: "#1E1E1E"
-    foreground: "#D4D4D4"
-    accent: "#007ACC"
-  fonts:
-    main: "Segoe UI"
-    code: "Cascadia Code"
-  spacing:
-    unit: 8
-```
-
-### Keyboard Shortcuts
-
-```yaml
-shortcuts:
-  submit:
-    key: "Enter"
-    modifiers: ["Ctrl"]
-  newSession:
-    key: "N"
-    modifiers: ["Ctrl"]
-```
-
-## Performance
-
-### Memory Optimization
-
-- Progressive loading
-- Response streaming
-- Limited history size
-- Resource cleanup
-- Cache management
-
-### Display Performance
-
-- Hardware acceleration
-- Minimal animations
-- Optimized rendering
-- Efficient reflows
-- Background processing
+   ```yaml
+   accessibility:
+     input_delay: 300
+     auto_complete: true
+   ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. Display Problems
+1. **Display Problems**
 
    ```text
-   Symptom: Blurry text or scaling issues
-   Solution: 
-   - Check DPI settings
-   - Update graphics drivers
-   - Adjust scaling in Settings
+   Issue: Blurry text
+   Fix: Adjust DPI scaling in Settings > Display
    ```
 
-2. Performance Issues
+2. **Performance Issues**
 
    ```text
-   Symptom: Slow response or lag
-   Solution:
-   - Enable hardware acceleration
-   - Reduce animation effects
-   - Clear application cache
+   Issue: Slow response
+   Fix: Enable hardware acceleration in Settings > Performance
    ```
 
-3. Connection Errors
+3. **Connection Issues**
 
    ```text
-   Symptom: Cannot connect to model
-   Solution:
-   - Verify model path
-   - Check network settings
-   - Restart application
+   Issue: Cannot connect to model
+   Fix: Check model path and network settings
    ```
 
-## Advanced Usage
+### Performance Optimization
 
-### Custom Plugins
+1. **Memory Usage**
 
-```python
-@plugin
-class CustomView:
-    """Custom visualization plugin."""
-    def render(self, data):
-        """Render custom view."""
-        pass
-```
+   ```yaml
+   performance:
+     cache_size: "2GB"
+     cleanup_interval: 300
+   ```
+
+2. **Response Time**
+
+   ```yaml
+   performance:
+     stream_responses: true
+     batch_size: 16
+   ```
+
+## Integration Guide
 
 ### API Integration
 
 ```python
 from llamahome.gui import GUI
+from llamahome.api import APIClient
 
+# Initialize GUI with API client
 gui = GUI()
-gui.start_server(port=8080)
+api_client = APIClient(endpoint="http://localhost:8080")
+gui.set_api_client(api_client)
+
+# Start GUI server
+gui.start_server(port=3000)
 ```
 
-### Event Handling
+### Plugin Development
 
 ```python
-@gui.on('response')
-def handle_response(data):
-    """Custom response handler."""
-    process_response(data)
+from llamahome.gui.plugins import GUIPlugin
+
+class CustomVisualizer(GUIPlugin):
+    """Custom visualization plugin."""
+    
+    def initialize(self):
+        """Set up plugin."""
+        self.register_view("custom_view")
+        self.register_handler("custom_event")
+    
+    def render_view(self, data):
+        """Render custom visualization."""
+        return self.template.render(data=data)
 ```
 
-## Security
+## Best Practices
 
-### Data Protection
+### Prompt Engineering
 
-- Secure storage of settings
-- Encrypted communication
-- Session management
-- Input validation
-- Output sanitization
+1. **Clear Instructions**
 
-### Access Control
+   ```text
+   Good: "Summarize this article in 3 paragraphs, focusing on key findings"
+   Bad: "Summarize this"
+   ```
 
-- User authentication
-- Role-based permissions
-- Session timeouts
-- Audit logging
-- Security headers
+2. **Context Provision**
 
-## Support
+   ```text
+   Good: "Given this Python code, optimize the loop for performance: [code]"
+   Bad: "Make this faster: [code]"
+   ```
 
-For assistance:
+### Resource Management
 
-- Documentation: [LlamaHome Wiki](https://wiki.llamahome.ai)
-- Support Team: <support@llamahome.ai>
-- GitHub Issues: [Report Bug](https://github.com/llamahome/issues)
+1. **Memory Optimization**
+   - Clear unused responses
+   - Limit history size
+   - Use response streaming
 
-> Note: Replace placeholder URLs with actual values for your deployment.
+2. **Performance Tuning**
+   - Enable hardware acceleration
+   - Optimize batch size
+   - Configure caching
+
+## Next Steps
+
+1. [API Documentation](docs/API.md)
+2. [Plugin Development](docs/Plugins.md)
+3. [Advanced Configuration](docs/Config.md)
+4. [Performance Tuning](docs/Performance.md)

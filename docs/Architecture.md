@@ -1,391 +1,376 @@
 # LlamaHome Architecture
 
-This document outlines the architectural design and implementation details of LlamaHome.
-
 ## System Overview
 
-LlamaHome follows a modular, layered architecture with clear separation of concerns:
+LlamaHome is designed as a modular, extensible system for training and deploying large language models. The architecture follows clean code principles with clear separation of concerns, dependency injection, and comprehensive configuration management.
 
-```text
-LlamaHome/
-├── src/
-│   ├── core/           # Core system components
-│   ├── interfaces/     # User interfaces (CLI, GUI)
-│   └── data/          # Data management and training
-├── utils/             # Utility modules
-├── tests/             # Test suite
-└── docs/              # Documentation
+```mermaid
+graph TB
+    CLI[CLI Interface] --> Core[Core System]
+    GUI[GUI Interface] --> Core
+    Core --> Training[Training Pipeline]
+    Core --> ModelMgmt[Model Management]
+    Core --> Cache[Cache System]
+    Core --> Config[Config Management]
+    
+    subgraph Training Pipeline
+        Training --> DataMgmt[Data Management]
+        Training --> ResourceMgmt[Resource Management]
+        Training --> Monitor[Monitoring]
+        Training --> Optimize[Optimization]
+    end
+    
+    subgraph Model Management
+        ModelMgmt --> Download[Download Manager]
+        ModelMgmt --> Version[Version Control]
+        ModelMgmt --> Storage[Storage Manager]
+    end
+    
+    subgraph Cache System
+        Cache --> MemCache[Memory Cache]
+        Cache --> DiskCache[Disk Cache]
+        Cache --> Invalidation[Cache Invalidation]
+    end
+    
+    subgraph Config Management
+        Config --> YAMLConfig[YAML Configs]
+        Config --> EnvConfig[Environment]
+        Config --> RuntimeConfig[Runtime Params]
+    end
 ```
 
 ## Core Components
 
-### 1. Model Management Layer
+### 1. Training Pipeline
 
-The model management layer handles model lifecycle and configuration:
-
-```python
-class ModelManager:
-    """Manages model lifecycle."""
-    def __init__(self):
-        self.config = ModelConfig()
-        self.models_dir = Path("data/models")
-```
-
-Key responsibilities:
-- Model download and removal
-- Version management
-- Configuration handling
-- Resource validation
-
-### 2. Training Layer
-
-The training system provides:
-- Data preprocessing
-- LoRA fine-tuning
-- Progress tracking
-- Metrics collection
-
-Components:
-```python
-class TrainingManager:
-    """Manages training operations."""
-    def __init__(self):
-        self.training_data = TrainingData()
-        self.config = TrainingConfig()
-```
-
-### 3. Interface Layer
-
-Multiple interface options:
-
-1. CLI Interface:
-   - Command-line interaction
-   - Progress display
-   - Rich formatting
-   - History management
-
-2. GUI Interface:
-   - PyQt6-based interface
-   - Real-time updates
-   - Resource monitoring
-   - Configuration management
-
-### 4. Cache Management
-
-Centralized caching system:
-
-```text
-.cache/
-├── models/          # Model weights and parameters
-├── training/        # Training artifacts
-├── system/          # System-level cache
-└── pycache/         # Python bytecode cache
-```
-
-Implementation:
-```python
-class CacheManager:
-    """Manages system caches."""
-    def __init__(self):
-        self.config = CacheConfig()
-        self._setup_directories()
-        self._configure_pycache()
-```
-
-## Data Flow
-
-### 1. Model Operations
-
-Model download process:
-1. Configuration validation
-2. Resource check
-3. Download initiation
-4. Validation
-5. Cache management
+The training pipeline orchestrates the entire training process through interconnected components:
 
 ```mermaid
-graph TD
-    A[User Request] --> B[ModelManager]
-    B --> C[Resource Check]
-    C --> D[Download]
-    D --> E[Validation]
-    E --> F[Cache]
+graph LR
+    Data[Data Pipeline] --> Preprocess[Preprocessing]
+    Preprocess --> Train[Training Loop]
+    Train --> Monitor[Monitoring]
+    Train --> Checkpoint[Checkpointing]
+    
+    subgraph Data Pipeline
+        Raw[Raw Data] --> Clean[Cleaning]
+        Clean --> Transform[Transformation]
+        Transform --> Batch[Batching]
+    end
+    
+    subgraph Training Loop
+        Forward[Forward Pass] --> Loss[Loss Computation]
+        Loss --> Backward[Backward Pass]
+        Backward --> Optimize[Optimization]
+    end
+    
+    subgraph Monitoring
+        Metrics[Metrics Collection] --> Log[Logging]
+        Log --> Visual[Visualization]
+    end
 ```
 
-### 2. Training Pipeline
+Directory Structure:
 
-Training workflow:
-1. Data preprocessing
-2. Model preparation
-3. LoRA configuration
-4. Training execution
-5. Metrics collection
+```text
+src/
+├── training/
+│   ├── pipeline.py       # Main training orchestration
+│   ├── data/            # Data processing and loading
+│   │   ├── loader.py    # Data loading utilities
+│   │   ├── transform.py # Data transformations
+│   │   └── validate.py  # Data validation
+│   ├── optimization/    # Training optimization
+│   │   ├── scheduler.py # Learning rate scheduling
+│   │   ├── gradient.py  # Gradient handling
+│   │   └── memory.py    # Memory optimization
+│   ├── monitoring/      # Training monitoring
+│   │   ├── metrics.py   # Metric collection
+│   │   ├── logging.py   # Logging system
+│   │   └── viz.py       # Visualization
+│   └── cache/          # Caching system
+       ├── strategy.py   # Cache strategies
+       ├── policy.py     # Cache policies
+       └── store.py      # Cache storage
+```
+
+#### Configuration System
 
 ```mermaid
-graph TD
-    A[Training Data] --> B[Preprocessing]
-    B --> C[Model Setup]
-    C --> D[LoRA Config]
-    D --> E[Training]
-    E --> F[Metrics]
+graph TB
+    BaseConfig[Base Configuration] --> EnvConfig[Environment Config]
+    EnvConfig --> RuntimeConfig[Runtime Config]
+    RuntimeConfig --> FinalConfig[Final Configuration]
+    
+    subgraph Configuration Sources
+        YAML[YAML Files]
+        ENV[Environment Variables]
+        CLI[Command Line Args]
+        Runtime[Runtime Parameters]
+    end
+    
+    YAML --> BaseConfig
+    ENV --> EnvConfig
+    CLI --> RuntimeConfig
+    Runtime --> RuntimeConfig
 ```
 
-## Configuration Management
+Configuration Hierarchy:
 
-### 1. Environment Configuration
+- Base configurations in `.config/`
+- Environment-specific overrides
+- Runtime parameters
+- Command-line arguments
 
-Environment variables managed through `.env`:
-```bash
-LLAMAHOME_ENV=development
-PYTHONPATH=./src:${PYTHONPATH}
-LLAMAHOME_CACHE_SIZE=1024
+### 2. Model Management System
+
+```mermaid
+graph TB
+    Download[Download Manager] --> Verify[Verification]
+    Verify --> Store[Storage]
+    Store --> Version[Version Control]
+    
+    subgraph Download Process
+        Request[HTTP Request] --> Progress[Progress Tracking]
+        Progress --> Checksum[Checksum Verification]
+    end
+    
+    subgraph Storage Management
+        Compress[Compression] --> Index[Indexing]
+        Index --> Catalog[Cataloging]
+    end
+    
+    subgraph Version Control
+        Tag[Version Tags] --> Meta[Metadata]
+        Meta --> Deps[Dependencies]
+    end
 ```
 
-### 2. Model Configuration
+### 3. Cache System Architecture
 
-Model settings in `.config/models.json`:
-```json
-{
-  "llama": {
-    "formats": ["meta"],
-    "versions": ["3.3-70b"],
-    "default_version": "3.3-70b"
-  }
-}
+```mermaid
+graph LR
+    Request[Cache Request] --> Policy[Cache Policy]
+    Policy --> Store[Cache Store]
+    Store --> Memory[Memory Cache]
+    Store --> Disk[Disk Cache]
+    
+    subgraph Cache Policies
+        LRU[LRU Policy]
+        Size[Size Policy]
+        TTL[TTL Policy]
+    end
+    
+    subgraph Storage Backends
+        MemStore[Memory Store]
+        DiskStore[Disk Store]
+        NetworkStore[Network Store]
+    end
 ```
 
-### 3. Training Configuration
+### 4. Resource Management
 
-Training parameters in `.config/training_config.yaml`:
-```yaml
-training:
-  batch_size: 4
-  max_workers: 4
-  lora:
-    r: 8
-    alpha: 32
+```mermaid
+graph TB
+    Resource[Resource Manager] --> Memory[Memory Manager]
+    Resource --> GPU[GPU Manager]
+    Resource --> CPU[CPU Manager]
+    
+    subgraph Memory Management
+        GC[Garbage Collection]
+        Swap[Memory Swapping]
+        Pool[Memory Pool]
+    end
+    
+    subgraph GPU Management
+        CUDA[CUDA Management]
+        Stream[Stream Management]
+        Sync[Synchronization]
+    end
 ```
 
-## Resource Management
+## System Integration
 
-### 1. Memory Management
-
-Memory optimization strategies:
-- Lazy loading
-- Memory mapping
-- Gradient checkpointing
-- Cache management
-
-Implementation:
-```python
-class MemoryManager:
-    """Manages memory resources."""
-    def __init__(self):
-        self.monitor = ResourceMonitor()
-        self.cache = CacheManager()
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Core
+    participant Training
+    participant Model
+    participant Cache
+    
+    User->>CLI: Start Training
+    CLI->>Core: Initialize System
+    Core->>Model: Load Model
+    Core->>Cache: Check Cache
+    Core->>Training: Begin Training
+    Training->>Core: Report Progress
+    Core->>CLI: Update Status
+    CLI->>User: Display Results
 ```
 
-### 2. GPU Management
+## Development Workflow
 
-GPU optimization:
-- Multi-GPU support
-- Mixed precision training
-- Batch optimization
-- Resource monitoring
-
-## Error Handling
-
-### 1. Exception Hierarchy
-
-```python
-class LlamaHomeError(Exception):
-    """Base exception class."""
-    pass
-
-class ModelError(LlamaHomeError):
-    """Model-related errors."""
-    pass
-
-class TrainingError(LlamaHomeError):
-    """Training-related errors."""
-    pass
+```mermaid
+graph LR
+    Dev[Development] --> Test[Testing]
+    Test --> Build[Build]
+    Build --> Deploy[Deployment]
+    
+    subgraph Development
+        Code[Coding]
+        Review[Code Review]
+        Lint[Linting]
+    end
+    
+    subgraph Testing
+        Unit[Unit Tests]
+        Integration[Integration Tests]
+        Performance[Performance Tests]
+    end
 ```
 
-### 2. Error Recovery
+## Security Architecture
 
-Recovery strategies:
-1. Automatic retry
-2. Graceful degradation
-3. Resource cleanup
-4. State restoration
-
-## Testing Framework
-
-### 1. Test Organization
-
-```text
-tests/
-├── unit/
-│   ├── test_model_manager.py
-│   └── test_training.py
-├── integration/
-│   └── test_system.py
-└── performance/
-    └── test_benchmarks.py
-```
-
-### 2. Test Types
-
-1. Unit Tests:
-   - Component isolation
-   - Mock dependencies
-   - Edge cases
-   - Error conditions
-
-2. Integration Tests:
-   - Component interaction
-   - End-to-end workflows
-   - Resource management
-   - Error handling
-
-3. Performance Tests:
-   - Benchmarking
-   - Resource usage
-   - Scalability
-   - Optimization
-
-## Logging and Monitoring
-
-### 1. Log Management
-
-Centralized logging:
-```python
-class LogManager:
-    """Manages system logging."""
-    def __init__(self):
-        self.config = LogConfig()
-        self._setup_handlers()
-```
-
-Log organization:
-```text
-.logs/
-├── app/
-│   ├── error.log
-│   └── access.log
-├── models/
-│   └── training.log
-└── system/
-    └── performance.log
-```
-
-### 2. Metrics Collection
-
-Performance metrics:
-- Training progress
-- Resource usage
-- Cache efficiency
-- System health
-
-## Security Considerations
-
-### 1. API Security
-
-- Token management
-- Request validation
-- Rate limiting
-- Error masking
-
-### 2. Data Security
-
-- Model file integrity
-- Training data protection
-- Cache security
-- Configuration safety
-
-## Deployment
-
-### 1. Environment Setup
-
-```makefile
-setup:
-    poetry install
-    python setup.py
-```
-
-### 2. Configuration
-
-```bash
-# Development
-make setup ENV=development
-
-# Production
-make setup ENV=production
-```
-
-### 3. Verification
-
-```bash
-# System check
-make check
-
-# Tests
-make test
+```mermaid
+graph TB
+    Auth[Authentication] --> Access[Access Control]
+    Access --> Crypto[Encryption]
+    Crypto --> Audit[Audit Logging]
+    
+    subgraph Security Layers
+        Network[Network Security]
+        Storage[Storage Security]
+        Runtime[Runtime Security]
+    end
 ```
 
 ## Performance Optimization
 
-### 1. Caching Strategy
+```mermaid
+graph TB
+    Perf[Performance] --> Memory[Memory]
+    Perf --> Compute[Computation]
+    Perf --> IO[I/O]
+    
+    subgraph Memory Optimization
+        Cache[Caching]
+        Pool[Pooling]
+        GC[GC Control]
+    end
+    
+    subgraph Compute Optimization
+        GPU[GPU Utilization]
+        Batch[Batch Processing]
+        Pipeline[Pipelining]
+    end
+```
 
-- Model caching
-- Training cache
-- System cache
-- Bytecode cache
+## Directory Structure
 
-### 2. Resource Optimization
+Complete system layout:
 
-- Memory management
-- GPU utilization
-- Disk usage
-- Network efficiency
+```text
+.
+├── src/                 # Source code
+│   ├── core/           # Core system components
+│   ├── training/       # Training system
+│   ├── interfaces/     # User interfaces
+│   └── utils/          # Utilities
+├── tests/              # Test suite
+│   ├── unit/          # Unit tests
+│   ├── integration/   # Integration tests
+│   └── performance/   # Performance tests
+├── .config/            # Configuration files
+├── .cache/             # Cache directory
+│   ├── models/        # Model cache
+│   ├── training/      # Training cache
+│   └── system/        # System cache
+├── data/               # Data directory
+│   ├── training/      # Training data
+│   ├── models/        # Model files
+│   └── metrics/       # Training metrics
+└── docs/               # Documentation
+```
 
-## Future Considerations
+## Configuration Management
 
-### 1. Scalability
+Detailed configuration hierarchy:
 
-Planned improvements:
-- Distributed training
-- Model parallelism
-- Dynamic resource allocation
-- Cloud integration
+```mermaid
+graph TB
+    Config[Configuration] --> Default[Default Config]
+    Config --> Env[Environment Config]
+    Config --> Runtime[Runtime Config]
+    Config --> CLI[CLI Arguments]
+    
+    subgraph Configuration Files
+        YAML[YAML Files]
+        JSON[JSON Files]
+        ENV[ENV Files]
+    end
+    
+    subgraph Validation
+        Schema[Schema Validation]
+        Type[Type Checking]
+        Constraint[Constraints]
+    end
+```
 
-### 2. Extensibility
+Key configuration files:
 
-Extension points:
-- Model adapters
-- Training plugins
-- Interface modules
-- Metric collectors
+- `training_config.yaml`: Training parameters
+- `models.json`: Model configurations
+- `.env`: Environment variables
 
-## Best Practices
+## Testing Strategy
 
-### 1. Development
+Comprehensive testing approach:
 
-- Code formatting
-- Documentation
-- Testing
-- Error handling
+```mermaid
+graph TB
+    Test[Testing] --> Unit[Unit Tests]
+    Test --> Integration[Integration Tests]
+    Test --> Performance[Performance Tests]
+    
+    subgraph Test Types
+        Functional[Functional Tests]
+        Stress[Stress Tests]
+        Security[Security Tests]
+    end
+    
+    subgraph Coverage
+        Code[Code Coverage]
+        Branch[Branch Coverage]
+        Path[Path Coverage]
+    end
+```
 
-### 2. Deployment
+## Future Extensibility
 
-- Environment setup
-- Configuration
-- Monitoring
-- Maintenance
+The architecture is designed for easy extension through:
 
-### 3. Performance
+```mermaid
+graph TB
+    Extend[Extensibility] --> Module[Modules]
+    Extend --> Plugin[Plugins]
+    Extend --> API[APIs]
+    
+    subgraph Extension Points
+        Interface[Interfaces]
+        Hook[Hooks]
+        Event[Events]
+    end
+    
+    subgraph Plugin System
+        Loader[Plugin Loader]
+        Registry[Plugin Registry]
+        Manager[Plugin Manager]
+    end
+```
 
-- Resource management
-- Optimization
-- Monitoring
-- Tuning
+- Modular components
+- Clear interfaces
+- Configuration-driven behavior
+- Plugin system support

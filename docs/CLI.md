@@ -62,17 +62,20 @@ Required components:
 ### Shell Features
 
 #### Command History
+
 - Up/Down arrows to navigate through previous commands
 - History persisted in `.config/history.txt`
 - Ctrl+R to search through command history
 
 #### Auto-completion
+
 - Tab completion for commands and arguments
 - Dynamic completion based on available models
 - Multi-column completion menu
 - Completion while typing
 
 #### Key Bindings
+
 - Ctrl+C: Cancel current operation
 - Ctrl+D: Exit CLI
 - Left/Right arrows: Cursor movement
@@ -83,11 +86,13 @@ Required components:
 - Ctrl+Y: Paste previously cut text
 
 #### Mouse Support
+
 - Click to position cursor
 - Click to select completion options
 - Scroll through completion menu
 
 #### Auto-suggestions
+
 - Gray text suggestions based on history
 - Right arrow to accept suggestion
 

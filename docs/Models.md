@@ -1,316 +1,245 @@
 # LlamaHome Model Configuration and Integration
 
-This document explains how to configure, integrate, and utilize models within LlamaHome.
-
 ## Overview
 
-The model integration system provides a robust framework for managing and utilizing language models with the following key features:
+LlamaHome offers a comprehensive framework for managing and utilizing language models, specifically focusing on the Llama model family. This system supports efficient model downloading, versioning, and configuration management, ensuring optimal performance and resource utilization.
 
-- Centralized model configuration management
-- LoRA fine-tuning support
-- Efficient model loading and caching
-- Progress tracking and metrics collection
-- Comprehensive error handling
-- Async operations support
+## Supported Models
 
-## Prerequisites
+The system currently supports the following models:
 
-Required Environment:
-
-- Python 3.11 (3.12 and 3.13 not supported due to PyTorch compatibility)
-- Poetry for dependency management
-- For GPU support:
-  - NVIDIA CUDA toolkit 12.1 or higher
-  - NVIDIA drivers 525 or higher
-  - Minimum GPU memory:
-    - 8GB for 3.3-7b model
-    - 16GB for 3.3-13b model
-    - 80GB for 3.3-70b model
+- Llama 3.3 7B
+- Additional versions can be configured through the `models.json` file.
 
 ## Model Configuration
 
-### Model Types
-
-Configuration is managed through `.config/models.json`:
+Models are configured through `.config/models.json`:
 
 ```json
 {
   "llama": {
-    "formats": ["meta"],
-    "versions": [
-      "3.3-70b",
-      "3.2-1b",
-      "3.2-3b",
-      "3.2-11b",
-      "3.2-90b",
-      "3.1-8b",
-      "3.1-405b"
-    ],
-    "default_version": "3.3-70b",
-    "min_gpu_memory": {
-      "3.3-70b": 40,
-      "3.2-1b": 4,
-      "3.2-3b": 6,
-      "3.2-11b": 12,
-      "3.2-90b": 48,
-      "3.1-8b": 8,
-      "3.1-405b": 128
+    "versions": {
+      "3.3-7b": {
+        "url": "https://example.com/llama-3.3-7b",
+        "size": "7B",
+        "type": "base",
+        "format": "meta"
+      }
     }
   }
 }
 ```
 
-### Training Configuration
-
-Training settings are managed through `.config/training_config.yaml`:
-
-```yaml
-training:
-  # General settings
-  batch_size: 4
-  max_workers: 4
-  max_length: 512
-  validation_split: 0.1
-
-  # LoRA settings
-  lora:
-    r: 8
-    alpha: 32
-    dropout: 0.1
-    target_modules: ["q_proj", "v_proj"]
-    bias: "none"
-```
-
-## Model Management
-
-### ModelManager
-
-The core component for managing models:
-
-```python
-class ModelManager:
-    """Manages model downloading and organization."""
-    
-    def __init__(self):
-        self.workspace_root = Path.cwd()
-        self.models_dir = self.workspace_root / "data/models"
-        self.config_file = self.workspace_root / ".config/model_config.yaml"
-```
-
-### Directory Structure
+## Directory Structure
 
 ```text
 data/
-├── models/
-│   ├── llama/
-│   │   ├── 3.3-7b/
-│   │   ├── 3.3-13b/
-│   │   └── 3.3-70b/
-│   └── finetuned/
-│       └── llama_3.3-7b_finetuned/
-└── training/
-    ├── samples/
-    ├── processed/
-    └── checkpoints/
+├── models/              # Model storage
+│   ├── base/           # Base models
+│   │   └── llama/      # Llama models
+│   └── fine-tuned/     # Fine-tuned models
+└── configs/            # Model configurations
 ```
 
-## Model Operations
+## Model Management Features
 
-### Downloading Models
-
-```python
-success = model_manager.download_model(
-    model_name="llama",
-    version="3.3-7b"
-)
-```
-
-### Model Validation
-
-```python
-is_valid = model_manager.validate_model_files(
-    model_name="llama",
-    version="3.3-7b"
-)
-```
-
-### Model Removal
-
-```python
-model_manager.cleanup_model_files(
-    model_name="llama",
-    version="3.3-7b"
-)
-```
-
-## Training Integration
-
-### LoRA Fine-tuning
-
-1. Configuration:
-   ```yaml
-   lora:
-     r: 16
-     alpha: 32
-     dropout: 0.1
-     target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
-   ```
-
-2. Training:
-   ```python
-   await training_manager.train_model(
-       model_name="llama",
-       model_version="3.3-7b",
-       num_epochs=3,
-       learning_rate=5e-5
-   )
-   ```
-
-3. Metrics:
-   ```json
-   {
-     "train_loss": 1.234,
-     "eval_loss": 1.123,
-     "learning_rate": 5e-5,
-     "epoch": 1
-   }
-   ```
-
-### Early Stopping
-
-Configuration:
-```yaml
-early_stopping:
-  enabled: true
-  patience: 3
-  min_delta: 0.01
-```
-
-## Environment Variables
-
-Key environment variables:
+### 1. Model Download
 
 ```bash
-# Core settings
-PYTHONPATH=./src:${PYTHONPATH}
-LLAMAHOME_ENV=development
+# Download base model
+llamahome download llama-3.3-7b
 
-# Llama Settings
-LLAMA_MODEL=llama3.3
-LLAMA_MODEL_SIZE=13b
-LLAMA_MODEL_VARIANT=chat
-LLAMA_MODEL_QUANT=f16
-LLAMA_NUM_GPU_LAYERS=32
-LLAMA_MAX_SEQ_LEN=32768
-LLAMA_MAX_BATCH_SIZE=8
-
-# Training Settings
-LLAMAHOME_BATCH_SIZE=1000
-LLAMAHOME_MAX_WORKERS=4
-LLAMAHOME_CACHE_SIZE=1024
+# Options
+--format FORMAT     # Model format (meta, huggingface)
+--cache CACHE      # Cache directory
+--force            # Force redownload
 ```
+
+### 2. Model Removal
+
+```bash
+# Remove model
+llamahome remove llama-3.3-7b
+
+# Options
+--keep-cache       # Keep cached files
+--force           # Force removal
+```
+
+### 3. Model Information
+
+```bash
+# Show model info
+llamahome info llama-3.3-7b
+
+# List available models
+llamahome list
+```
+
+## Storage Management
+
+### 1. Directory Structure
+
+- Base models stored in data/models/base
+- Fine-tuned models in data/models/fine-tuned
+- Cached files in .cache/models
+
+### 2. Version Management
+
+- Semantic versioning for models
+- Version-specific configurations
+- Compatibility tracking
+
+### 3. Cache Management
+
+- Efficient caching system
+- Automatic cleanup
+- Size management
+
+## Model Integration
+
+### 1. Training Integration
+
+- Seamless training setup
+- Configuration management
+- Resource optimization
+
+### 2. Inference Integration
+
+- Efficient model loading
+- Memory management
+- Batch processing
+
+## Security
+
+### 1. Download Security
+
+- Checksum verification
+- Secure downloads
+- Source validation
+
+### 2. Storage Security
+
+- Access control
+- Encryption support
+- Integrity checks
 
 ## Best Practices
 
-### Model Selection
+### 1. Model Selection
 
-1. Resource Considerations:
-   - Check GPU memory requirements
-   - Consider model size vs. performance
-   - Evaluate quantization options
-   - Monitor resource usage
+- Choose appropriate model size
+- Consider hardware requirements
+- Validate compatibility
 
-2. Training Setup:
-   - Use appropriate batch sizes
-   - Enable mixed precision training
-   - Configure gradient accumulation
-   - Monitor validation metrics
+### 2. Resource Management
 
-### Error Handling
+- Monitor disk space
+- Manage cache size
+- Clean unused models
 
-1. Download Errors:
-   - Network connectivity
-   - Disk space
-   - Checksum verification
-   - Retry mechanisms
+### 3. Version Control
 
-2. Training Errors:
-   - Out of memory
-   - Gradient issues
-   - Early stopping
-   - Checkpoint saving
+- Track model versions
+- Document changes
+- Maintain compatibility
 
-## Testing
+## Configuration Details
 
-### Test Coverage
+### Model Setup
 
-1. Model Tests:
-   - Download verification
-   - File validation
-   - Configuration loading
-   - Resource cleanup
-
-2. Training Tests:
-   - LoRA configuration
-   - Progress tracking
-   - Metric collection
-   - Early stopping
-
-Example test:
-
-```python
-@pytest.mark.asyncio
-async def test_model_download():
-    manager = ModelManager()
-    success = await manager.download_model("llama", "3.3-7b")
-    assert success
-    assert manager.validate_model_files("llama", "3.3-7b")
+```json
+{
+  "model_name": {
+    "versions": {
+      "version_id": {
+        "url": "download_url",
+        "size": "model_size",
+        "type": "model_type",
+        "format": "file_format",
+        "requires": ["dependencies"],
+        "compatibility": {
+          "python": ">=3.11",
+          "cuda": ">=11.7"
+        }
+      }
+    }
+  }
+}
 ```
 
-## CLI Integration
-
-The model management system is integrated with the CLI:
+### Environment Configuration
 
 ```bash
-# List available models
-llamahome models
-
-# Download a model
-llamahome download llama 3.3-7b
-
-# Train a model
-llamahome train llama 3.3-7b
-
-# Remove a model
-llamahome remove llama 3.3-7b
+# Required environment variables
+HUGGINGFACE_TOKEN=your_token    # For HuggingFace models
+MODEL_CACHE_DIR=.cache/models   # Cache directory
 ```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. Download Issues
+   - Check network connection
+   - Verify authentication
+   - Check disk space
+   - Validate URLs
+
+2. Storage Issues
+   - Clean cache
+   - Remove unused models
+   - Check permissions
+   - Verify paths
+
+3. Compatibility Issues
+   - Check Python version
+   - Verify CUDA version
+   - Validate dependencies
+   - Check hardware requirements
 
 ## Performance Optimization
 
-### Memory Management
+### 1. Download Optimization
 
-1. Model Loading:
-   - Lazy loading
-   - Memory mapping
-   - Quantization
-   - Device placement
+- Use appropriate cache size
+- Enable compression
+- Validate checksums
+- Monitor bandwidth
 
-2. Training:
-   - Gradient checkpointing
-   - Mixed precision
-   - Memory monitoring
-   - Cache management
+### 2. Storage Optimization
 
-### GPU Utilization
+- Regular cleanup
+- Compression
+- Deduplication
+- Cache management
 
-1. Training:
-   - Batch size optimization
-   - Gradient accumulation
-   - Multi-GPU support
-   - Memory efficiency
+### 3. Loading Optimization
 
-2. Inference:
-   - Batch processing
-   - Stream processing
-   - Memory management
-   - Resource monitoring
+- Memory mapping
+- Lazy loading
+- Batch processing
+- Resource monitoring
+
+## Future Considerations
+
+### 1. Model Support
+
+- Additional model families
+- Version updates
+- Format compatibility
+- Hardware optimization
+
+### 2. Features
+
+- Distributed storage
+- Cloud integration
+- Advanced caching
+- Automated updates
+
+### 3. Integration
+
+- Framework support
+- API integration
+- Plugin system
+- Monitoring tools

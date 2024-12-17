@@ -1,137 +1,137 @@
-.PHONY: setup run test check clean benchmark needle-test model setup-clean run-clean help code-check type-check
+# Environment and Python settings
+PYTHON := python3.11
+VENV := .venv
+BIN := $(VENV)/bin
+PYTHON_VERSION := $(shell $(PYTHON) --version | cut -d' ' -f2)
 
-# Detect OS and architecture
-UNAME_S := $(shell uname -s)
-UNAME_M := $(shell uname -m)
+# Directories
+CACHE_DIR := .cache
+DATA_DIR := data
+CONFIG_DIR := .config
+LOGS_DIR := .logs
 
-# Detect Python version
-PYTHON_VERSION := $(shell python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+# Cache subdirectories
+MODEL_CACHE := $(CACHE_DIR)/models
+TRAINING_CACHE := $(CACHE_DIR)/training
+SYSTEM_CACHE := $(CACHE_DIR)/system
+PYCACHE := $(CACHE_DIR)/pycache
 
-# Common variables
-WORKSPACE_ROOT := $(shell pwd)
-PYTHON_CACHE_PREFIX := export PYTHONPYCACHEPREFIX="$(WORKSPACE_ROOT)/.cache/pycache"
-SKIP_CHECKS := export LLAMAHOME_SKIP_MEMORY_CHECK=1 && export LLAMAHOME_SKIP_GPU_CHECK=1
+# Data subdirectories
+TRAINING_DATA := $(DATA_DIR)/training
+MODEL_DATA := $(DATA_DIR)/models
+METRICS_DATA := $(DATA_DIR)/metrics
 
-# Format code before running checks
-format:
-	@echo "Formatting code..."
-	poetry run isort src tests utils
-	poetry run black src tests utils
-	poetry run autopep8 --in-place --recursive src tests utils
+# Config files
+TRAINING_CONFIG := $(CONFIG_DIR)/training_config.yaml
+MODELS_CONFIG := $(CONFIG_DIR)/models.json
+ENV_FILE := .env
 
-# Run code quality checks
-code-check:
-	@echo "Running code quality checks..."
-	poetry run python -m utils.code_check
+# Default target
+.PHONY: all
+all: setup
 
-# Run type checks
-type-check:
-	@echo "Running type checks..."
-	poetry run mypy --config-file .config/llamahome.types.ini src tests utils
+# Directory setup
+.PHONY: setup-dirs
+setup-dirs:
+	@echo "Creating directory structure..."
+	@mkdir -p $(MODEL_CACHE) $(TRAINING_CACHE) $(SYSTEM_CACHE) $(PYCACHE)
+	@mkdir -p $(TRAINING_DATA) $(MODEL_DATA) $(METRICS_DATA)
+	@mkdir -p $(CONFIG_DIR) $(LOGS_DIR)
+	@echo "Directory structure created"
 
-# Run all checks
-check: code-check type-check
-	@echo "Running system checks..."
-	poetry run python -m utils.system_check
+# Environment setup
+.PHONY: setup-env
+setup-env:
+	@echo "Setting up Python environment..."
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(BIN)/pip install --upgrade pip
+	@$(BIN)/pip install poetry
+	@$(BIN)/poetry install
+	@echo "Python environment ready"
 
-poetry-setup:
-	@if [ "$(PYTHON_VERSION)" != "3.11" ]; then \
-		echo "ERROR: Python 3.11 is required. Current version: $(PYTHON_VERSION)"; \
-		echo "TIP: You can switch Python version with: poetry env use python3.11"; \
-		exit 1; \
-	fi
-	@if [ "$(UNAME_S)" = "Darwin" ]; then \
-		poetry lock --no-update; \
-	else \
-		poetry config repositories.pytorch https://download.pytorch.org/whl/cu121; \
-		poetry lock --no-update; \
-	fi
-	@poetry install --quiet
+# Configuration setup
+.PHONY: setup-config
+setup-config:
+	@echo "Setting up configuration..."
+	@test -f $(TRAINING_CONFIG) || cp config/training_config.yaml.example $(TRAINING_CONFIG)
+	@test -f $(MODELS_CONFIG) || cp config/models.json.example $(MODELS_CONFIG)
+	@test -f $(ENV_FILE) || cp .env.example $(ENV_FILE)
+	@echo "Configuration files ready"
 
+# Main setup
+.PHONY: setup
+setup: setup-dirs setup-env setup-config
+	@echo "Setup complete"
+
+# Clean targets
+.PHONY: clean-pycache
 clean-pycache:
 	@echo "Cleaning Python cache..."
-	find . -type d -name "__pycache__" -exec rm -r {} +
-	find . -type f -name "*.pyc" -delete
-	find . -type f -name "*.pyo" -delete
-	find . -type f -name "*.pyd" -delete
-	rm -rf .cache/pycache
+	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@find . -type f -name "*.pyc" -delete
+	@rm -rf $(PYCACHE)/*
+	@echo "Python cache cleaned"
 
-clean-all-cache: clean-pycache
-	@echo "Cleaning all caches..."
-	rm -rf .cache/*
-	rm -rf .pytest_cache
-	rm -rf .mypy_cache
-	rm -rf .ruff_cache
-	rm -rf .coverage
-	rm -rf htmlcov
-	rm -rf code_check_results.txt
+.PHONY: clean-cache
+clean-cache:
+	@echo "Cleaning cache directories..."
+	@rm -rf $(MODEL_CACHE)/* $(TRAINING_CACHE)/* $(SYSTEM_CACHE)/*
+	@echo "Cache directories cleaned"
 
-clean: clean-all-cache
-	@echo "Cleaning up..."
+.PHONY: clean-all
+clean-all: clean-pycache clean-cache
+	@echo "Cleaning all temporary files..."
+	@rm -rf $(VENV) .pytest_cache .mypy_cache .ruff_cache
+	@echo "All temporary files cleaned"
 
-setup-base: check
-	@echo "Setting up LlamaHome..."
-	$(SKIP_CHECKS) && \
-	$(PYTHON_CACHE_PREFIX) && \
-	poetry run python setup.py
-	@if [ $$? -ne 0 ]; then \
-		echo "Error: Setup failed. Check logs for details."; \
-		exit 1; \
-	fi
-	@echo "Setup complete! Run 'make run' to start LlamaHome"
+# Training targets
+.PHONY: train
+train:
+	@echo "Starting training..."
+	@$(BIN)/python -m src.interfaces.cli train $(filter-out $@,$(MAKECMDGOALS))
 
-setup: clean-pycache setup-base
+.PHONY: train-resume
+train-resume:
+	@echo "Resuming training..."
+	@$(BIN)/python -m src.interfaces.cli train-resume $(filter-out $@,$(MAKECMDGOALS))
 
-setup-clean: clean-all-cache setup-base
+.PHONY: train-eval
+train-eval:
+	@echo "Evaluating model..."
+	@$(BIN)/python -m src.interfaces.cli train-eval $(filter-out $@,$(MAKECMDGOALS))
 
-run-base:
-	@echo "Starting LlamaHome..."
-	@$(PYTHON_CACHE_PREFIX) && \
-	poetry run python run.py
-	@if [ $$? -ne 0 ]; then \
-		echo "Error: LlamaHome failed to start. Check logs for details."; \
-		exit 1; \
-	fi
-
-run: clean-pycache run-base
-
-run-clean: clean-all-cache run-base
-
+# Development targets
+.PHONY: test
 test:
 	@echo "Running tests..."
-	poetry run pytest --runslow --gpu --integration --benchmark --needle
+	@$(BIN)/pytest tests/
 
-benchmark:
-	@echo "Running performance benchmarks..."
-	poetry run pytest --benchmark
+.PHONY: lint
+lint:
+	@echo "Running linters..."
+	@$(BIN)/ruff check .
+	@$(BIN)/black --check .
+	@$(BIN)/isort --check-only .
+	@$(BIN)/mypy src/
 
-needle-test:
-	@echo "Running needle-in-haystack tests..."
-	poetry run pytest --needle
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@$(BIN)/black .
+	@$(BIN)/isort .
+	@$(BIN)/ruff --fix .
 
-model:
-	@echo "Setting up model..."
-	@poetry run python -m utils.setup_model \
-		--model $(or $(MODEL),llama) \
-		--version $(or $(VERSION),latest)
+# Run targets
+.PHONY: run
+run:
+	@echo "Starting LlamaHome..."
+	@$(BIN)/python -m src.interfaces.cli
 
-help:
-	@echo "Available commands:"
-	@echo "  make setup      - Set up LlamaHome (normal)"
-	@echo "  make setup -c   - Set up LlamaHome with clean caches"
-	@echo "  make run       - Run LlamaHome (normal)"
-	@echo "  make run -c    - Run LlamaHome with clean caches"
-	@echo "  make clean     - Clean all caches and temporary files"
-	@echo "  make test      - Run all tests"
-	@echo "  make check     - Run all code checks"
-	@echo "  make code-check - Run code quality checks"
-	@echo "  make type-check - Run type checks"
-	@echo "  make benchmark - Run performance benchmarks"
-	@echo "  make model     - Set up a specific model"
-	@echo "  make help      - Show this help message"
+.PHONY: shell
+shell:
+	@echo "Starting LlamaHome shell..."
+	@$(BIN)/python -m src.interfaces.cli shell
 
-# Handle -c flag for setup and run
-ifeq ($(findstring -c,$(MAKEFLAGS)),-c)
-setup: setup-clean
-run: run-clean
-endif
+# Allow passing arguments to targets
+%:
+	@:

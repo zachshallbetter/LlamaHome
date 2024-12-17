@@ -3,35 +3,53 @@
 [tool.poetry]
 name = "llamahome"
 version = "0.1.0"
-description = "A local LLM management and interaction tool"
+description = "LLM training and inference framework"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-torch = "^2.0.0"
-transformers = "^4.30.0"
-rich = "^13.4.2"
-peft = "^0.4.0"
-accelerate = "^0.21.0"
-bitsandbytes = "^0.41.1"
-prompt_toolkit = "^3.0.39"
-huggingface_hub = "^0.20.1"
-python-dotenv = "^1.0.0"
+python = "^3.11"
+torch = "^2.1.0"
+transformers = "^4.36.0"
+accelerate = "^0.25.0"
+bitsandbytes = "^0.41.0"
+peft = "^0.6.0"
+tensorboard = "^2.15.0"
+rich = "^13.7.0"
+prompt-toolkit = "^3.0.41"
+psutil = "^5.9.0"
 llama-recipes = "^0.0.1"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
-pytest-asyncio = "^0.23.0"
-pytest-mock = "^3.12.0"
+pytest-asyncio = "^0.21.0"
 black = "^23.7.0"
 isort = "^5.12.0"
-mypy = "^1.8.0"
-flake8 = "^6.1.0"
-jupyter = "^1.0.0"
-notebook = "^7.0.0"
+mypy = "^1.4.1"
+ruff = "^0.0.284"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+multi-line-output = 3
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.ruff]
+select = ["E", "F", "B", "I"]
+ignore = []
+line-length = 88
+target-version = "py311"

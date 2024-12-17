@@ -3,7 +3,29 @@
 max-line-length = 150
 
 # Ignore certain errors and warnings
-extend-ignore = W291,W292,W293,E302,E303,E305,ANN101,ANN102,ANN204,ANN401,D100,D101,D102,D103,D104,D105,D107,N801,N802,N803,N806,C901
+extend-ignore = 
+    W291,  # trailing whitespace
+    W292,  # no newline at end of file
+    W293,  # blank line contains whitespace
+    E302,  # expected 2 blank lines, found 1
+    E303,  # too many blank lines
+    E305,  # expected 2 blank lines after class or function definition
+    ANN101,  # missing type annotation for self in method
+    ANN102,  # missing type annotation for cls in classmethod
+    ANN204,  # missing return type annotation for special method
+    ANN401,  # any type should not be used
+    D100,  # missing docstring in public module
+    D101,  # missing docstring in public class
+    D102,  # missing docstring in public method
+    D103,  # missing docstring in public function
+    D104,  # missing docstring in public package
+    D105,  # missing docstring in magic method
+    D107,  # missing docstring in __init__
+    N801,  # class names should use CapWords convention
+    N802,  # function name should be lowercase
+    N803,  # argument name should be lowercase
+    N806,  # variable in function should be lowercase
+    C901  # function is too complex
 
 # Exclude certain directories and files
 exclude =
@@ -19,15 +41,18 @@ exclude =
     venv,
     .env,
     env,
-    docs
+    docs,
+    .mypy_cache,
+    .pytest_cache
 
 # Per-file-ignores
 per-file-ignores =
-    # Allow unused imports in __init__.py files
-    __init__.py: F401
-    # Allow long lines in configuration files
-    setup.py: E501
-    tests/*: D100,D101,D102,D103
+    # Allow unused imports and redefinitions in __init__.py files
+    __init__.py: F401,F811
+    # Allow long lines and module-level imports in setup.py
+    setup.py: E501,E402
+    # Allow missing docstrings and assert statements in tests
+    tests/*: D100,D101,D102,D103,S101
 
 # Maximum complexity for functions
-max-complexity = 15
+max-complexity = 10
