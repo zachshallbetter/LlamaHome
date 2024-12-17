@@ -89,7 +89,7 @@ Yes, LlamaHome can run on CPU-only systems, but performance will be significantl
 2. **Model Configuration**
 
    ```yaml
-   # config/model_config.yaml
+   # config/model_config.toml
    models:
      llama3.3:
        version: "3.3"
@@ -103,13 +103,13 @@ Yes, LlamaHome can run on CPU-only systems, but performance will be significantl
 
 Configuration files are stored in the `.config` directory:
 
-- `model_config.yaml`: Model settings
-- `system_config.yaml`: System settings
-- `training_config.yaml`: Training settings
+- `model_config.toml`: Model settings
+- `system_config.toml`: System settings
+- `training_config.toml`: Training settings
 
 ### How do I change model parameters?
 
-Edit the model configuration in `config/model_config.yaml`:
+Edit the model configuration in `config/model_config.toml`:
 
 ```yaml
 models:

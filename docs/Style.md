@@ -316,7 +316,7 @@
 1. **System Configuration**
 
    ```yaml
-   # system_config.yaml
+   # system_config.toml
    system:
      log_level: INFO
      cache_size: 10GB
@@ -336,7 +336,7 @@
 2. **Model Configuration**
 
    ```yaml
-   # model_config.yaml
+   # model_config.toml
    models:
      llama3.3:
        version: "3.3"

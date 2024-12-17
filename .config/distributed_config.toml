@@ -1,0 +1,66 @@
+[distributed]
+backend = "nccl"
+init_method = "env://"
+world_size = 1
+num_nodes = 1
+node_rank = 0
+rank = 0
+local_rank = 0
+master_addr = "localhost"
+master_port = "29500"
+sync_batch_norm = true
+find_unused_parameters = false
+gradient_as_bucket_view = true
+static_graph = false
+
+[resources]
+gpu_memory_fraction = 0.95
+gpu_batch_size = 16
+gpu_workers = 4
+cpu_workers = 8
+pin_memory = true
+prefetch_factor = 2
+max_memory = "90%"
+
+[optimization]
+mixed_precision = true
+gradient_checkpointing = true
+gradient_clipping = 1.0
+gradient_accumulation = 4
+dynamic_batch_size = true
+min_batch_size = 1
+max_batch_size = 32
+
+[communication]
+timeout = 1800
+broadcast_buffers = true
+bucket_cap_mb = 25
+sync_frequency = 1
+barrier_timeout = 300
+find_unused_parameters_freq = 100
+
+[monitoring]
+metrics_interval = 10
+save_interval = 100
+track_memory = true
+track_gradients = true
+track_communication = true
+tensorboard = true
+plot_metrics = true
+log_level = "INFO"
+
+[checkpointing]
+save_frequency = 1000
+keep_last = 5
+save_optimizer = true
+load_optimizer = true
+strict_loading = true
+resume_training = true
+
+[error_handling]
+max_retries = 3
+retry_delay = 30
+fallback_to_cpu = true
+save_on_error = true
+alert_on_error = true
+log_stacktrace = true

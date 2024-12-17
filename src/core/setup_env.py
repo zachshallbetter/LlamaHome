@@ -8,7 +8,7 @@ import platform
 from pathlib import Path
 from typing import Dict, Any
 
-import yaml
+import toml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -89,7 +89,7 @@ def _setup_config():
                 }
             }
         },
-        "training_config.yaml": {
+        "training_config.toml": {
             "training": {
                 "batch_size": 32,
                 "learning_rate": 1e-4,
@@ -112,7 +112,7 @@ def _setup_config():
                     import json
                     json.dump(default_config, f, indent=2)
                 else:
-                    yaml.dump(default_config, f, default_flow_style=False)
+                    toml.dump(default_config, f, default_flow_style=False)
 
 def _setup_logging():
     """Set up logging configuration."""

@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pytest
-import yaml
+import toml
 
-from src.constants import SUPPORTED_MODELS, ENV_VARS
+from src.core.model_constants import SUPPORTED_MODELS, ENV_VARS
 
 
 @pytest.fixture(scope="session")
@@ -41,9 +41,9 @@ def base_model_config() -> Dict[str, Any]:
 @pytest.fixture(scope="function")
 def model_config_file(test_config_dir: Path, base_model_config: Dict[str, Any]) -> Path:
     """Create and return a temporary model config file."""
-    config_file = test_config_dir / "model_config.yaml"
+    config_file = test_config_dir / "model_config.toml"
     with open(config_file, "w") as f:
-        yaml.dump(base_model_config, f)
+        toml.dump(base_model_config, f)
     return config_file
 
 

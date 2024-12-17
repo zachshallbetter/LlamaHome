@@ -6,19 +6,19 @@ import platform
 import pytest
 import torch
 import subprocess
-import yaml
+import toml
 from pathlib import Path
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.console import Console
 
 from utils.log_manager import LogManager, LogTemplates
-from utils.model_manager import ModelManager
+from src.managers.model_manager import ModelManager
 from utils.setup_model import ModelSetup
 from utils.cache_manager import CacheManager
 from utils.system_check import run_system_checks
 from src.data.analyzer import TextAnalyzer
 from utils.benchmark import run_benchmarks
-from utils.needle_test import run_needle_tests
+from src.testing.needle_test import run_needle_tests
 
 def __init__():
     """Initialize test module."""

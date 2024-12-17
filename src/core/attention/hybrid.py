@@ -59,7 +59,6 @@ from utils.log_manager import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
-
 @dataclass
 class AttentionConfig:
     """Configuration for hybrid attention mechanism.

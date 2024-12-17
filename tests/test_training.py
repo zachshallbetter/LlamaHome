@@ -2,7 +2,7 @@
 
 import pytest
 import torch
-import yaml
+import toml
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -50,9 +50,9 @@ def setup_test_env(tmp_path, mock_config):
     config_dir.mkdir(parents=True)
     
     # Create config file
-    config_file = config_dir / "training_config.yaml"
+    config_file = config_dir / "training_config.toml"
     with open(config_file, "w") as f:
-        yaml.dump(mock_config, f)
+        toml.dump(mock_config, f)
     
     # Create data directories
     data_dir = tmp_path / "data"

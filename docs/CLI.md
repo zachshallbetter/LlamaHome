@@ -133,7 +133,7 @@ llamahome> download llama-3.3-7b --force
 Set environment variables for customization:
 
 ```bash
-export LLAMAHOME_CONFIG=./config/custom_config.yaml
+export LLAMAHOME_CONFIG=./config/custom_config.toml
 export LLAMAHOME_CACHE=./.cache/models
 ```
 
@@ -184,7 +184,7 @@ When you run `llamahome download llama-3.3-7b`, the CLI reads these definitions 
 Extend CLI functionality with plugins that add new commands or integrations:
 
 - Install Plugins: Place them in the `plugins/` directory
-- Configure in `.config/plugins.yaml`: Enable or disable plugins
+- Configure in `.config/plugins.toml`: Enable or disable plugins
 - New Commands: Loaded automatically at CLI startup
 
 ## Troubleshooting

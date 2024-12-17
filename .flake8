@@ -1,4 +1,8 @@
 [flake8]
+# This is the flake8 configuration file for LlamaHome.
+# It is used to enforce code style and quality standards.
+# Additional knowledge can be found in the docs/Style.md and docs/Code.md files.
+
 # Line length should match black's configuration
 max-line-length = 150
 

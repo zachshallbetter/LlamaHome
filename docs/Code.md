@@ -241,7 +241,7 @@ def train_model(
         DataError: If data loading fails
         
     Example:
-        >>> config = load_config("training_config.yaml")
+        >>> config = load_config("training_config.toml")
         >>> result = train_model(config, "data/training")
         >>> print(f"Training loss: {result.metrics['loss']}")
     """

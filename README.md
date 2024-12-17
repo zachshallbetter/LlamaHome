@@ -114,12 +114,60 @@ graph TB
    - Validation system
    - Plugin support
 
+## Project Structure
+
+```
+llamahome/
+├── src/                    # Source code
+│   ├── core/              # Core functionality
+│   │   ├── models/        # Model implementations
+│   │   ├── attention/     # Attention mechanisms
+│   │   └── config/        # Configuration handling
+│   ├── data/              # Data management
+│   │   ├── processing/    # Data processing utilities
+│   │   ├── storage/       # Storage implementations
+│   │   └── validation/    # Data validation
+│   ├── interfaces/        # User interfaces
+│   │   ├── cli.py        # Command-line interface
+│   │   ├── gui.py        # Graphical interface
+│   │   └── api.py        # REST API
+│   └── utils/            # Utility functions
+├── tests/                # Test suite
+│   ├── unit/            # Unit tests
+│   ├── integration/     # Integration tests
+│   └── performance/     # Performance tests
+├── tools/               # Development tools
+├── data/               # Data directory
+│   ├── cache/          # Cache storage
+│   └── training/       # Training data
+├── docs/               # Documentation
+└── .config/            # Configuration files
+```
+
+### Directory Overview
+
+- `src/`: Main source code
+  - `core/`: Core system functionality
+  - `data/`: Data management and processing
+  - `interfaces/`: User interface implementations
+  - `utils/`: Utility functions and helpers
+
+- `tests/`: Comprehensive test suite
+  - `unit/`: Unit tests for individual components
+  - `integration/`: Integration tests for system flows
+  - `performance/`: Performance and benchmark tests
+
+- `tools/`: Development and maintenance tools
+- `data/`: Data storage and caching
+- `docs/`: Project documentation
+- `.config/`: Configuration files
+
 ## Configuration
 
 ### Basic Configuration
 
 ```yaml
-# config/model_config.yaml
+# config/model_config.toml
 models:
   llama3.3:
     version: "3.3"
@@ -136,7 +184,7 @@ models:
 ### Advanced Settings
 
 ```yaml
-# config/system_config.yaml
+# config/system_config.toml
 system:
   log_level: INFO
   cache_size: 10GB

@@ -281,7 +281,7 @@ Esc           Cancel current operation
 ### Basic Settings
 
 ```yaml
-# config/gui_config.yaml
+# config/gui_config.toml
 appearance:
   theme: "dark"
   font_size: 14
@@ -296,7 +296,7 @@ behavior:
 ### Advanced Settings
 
 ```yaml
-# config/gui_advanced.yaml
+# config/gui_advanced.toml
 performance:
   hardware_acceleration: true
   response_streaming: true
@@ -316,7 +316,7 @@ accessibility:
 ### Environment Variables
 
 ```bash
-export LLAMAHOME_CONFIG="path/to/custom_config.yaml"
+export LLAMAHOME_CONFIG="path/to/custom_config.toml"
 export LLAMAHOME_CACHE=".cache/llamahome_models"
 ```
 

@@ -1,0 +1,182 @@
+.
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTORS.md
+├── LICENSE
+├── Makefile
+├── README.md
+├── SECURITY.md
+├── data
+│   ├── cache
+│   ├── local
+│   ├── memory
+│   ├── models
+│   │   ├── claude
+│   │   ├── gpt4
+│   │   └── llama
+│   │       ├── 3.1-7b-chat
+│   │       ├── 3.1-8b-instruct
+│   │       │   └── models--meta-llama--Llama-3.1-8B-Instruct
+│   │       ├── 3.3-70b
+│   │       ├── 3.3-7b
+│   │       │   ├── LICENSE.txt
+│   │       │   ├── README.md
+│   │       │   ├── models--meta-llama--Llama-3
+│   │       │   ├── models--meta-llama--Llama-3-7b
+│   │       │   ├── models--meta-llama--Llama-3.3-70B-Instruct
+│   │       │   ├── models--meta-llama--Llama-3.3-7B
+│   │       │   └── models--meta-llama--Llama-3.3-7B-chat
+│   │       ├── 7b
+│   │       │   └── 7b.gguf
+│   │       └── latest
+│   ├── telemetry
+│   └── training
+│       └── samples
+│           ├── performance_samples.jsonl
+│           ├── sample1.jsonl
+│           └── test_samples.jsonl
+├── docs
+│   ├── API.md
+│   ├── Architecture.md
+│   ├── CLI.md
+│   ├── Code.md
+│   ├── Config.md
+│   ├── Core.md
+│   ├── Data.md
+│   ├── Dependencies.md
+│   ├── FAQ.md
+│   ├── Features.md
+│   ├── GUI.md
+│   ├── Instructions.md
+│   ├── Models.md
+│   ├── Performance.md
+│   ├── Setup.md
+│   ├── Style.md
+│   ├── Testing.md
+│   ├── Training.md
+│   └── User.md
+├── examples
+│   └── train_model.py
+├── new_structure.txt
+├── poetry.lock
+├── project_structure.txt
+├── pyproject.toml
+├── pytest.ini
+├── reorganize.py
+├── run.py
+├── setup.py
+├── src
+│   ├── __init__.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── attention
+│   │   │   └── hybrid.py
+│   │   ├── cache.py
+│   │   ├── config
+│   │   │   ├── constants.py
+│   │   │   └── manager.py
+│   │   ├── models
+│   │   │   ├── base.py
+│   │   │   └── manager.py
+│   │   └── setup_env.py
+│   ├── data
+│   │   ├── __init__.py
+│   │   ├── cache.py
+│   │   ├── processing
+│   │   │   ├── analyzer.py
+│   │   │   └── converter.py
+│   │   ├── storage
+│   │   │   ├── base.py
+│   │   │   ├── cache_manager.py
+│   │   │   └── data_manager.py
+│   │   ├── training.py
+│   │   └── validation
+│   ├── handlers
+│   │   ├── model_handler.py
+│   │   └── request_handler.py
+│   ├── interfaces
+│   │   ├── __init__.py
+│   │   ├── api.py
+│   │   ├── cli.py
+│   │   └── gui.py
+│   ├── managers
+│   │   └── setup_model.py
+│   ├── testing
+│   │   └── needle_test.py
+│   ├── training
+│   │   ├── __init__.py
+│   │   ├── cache.py
+│   │   ├── data.py
+│   │   ├── distributed.py
+│   │   ├── launch.py
+│   │   ├── manager.py
+│   │   ├── monitoring.py
+│   │   ├── optimization.py
+│   │   ├── pipeline.py
+│   │   ├── processing.py
+│   │   ├── resources.py
+│   │   └── scheduler.py
+│   └── utils
+│       ├── benchmark.py
+│       ├── constants.py
+│       └── log_manager.py
+├── test.py
+├── tests
+│   ├── __init__.py
+│   ├── artifacts
+│   ├── cache
+│   ├── fixtures
+│   ├── handlers
+│   ├── integration
+│   │   └── specialized
+│   │       └── test_runner.py
+│   ├── logs
+│   ├── managers
+│   ├── performance
+│   │   └── benchmarks
+│   ├── reporting
+│   │   ├── report_generator.py
+│   │   └── templates
+│   │       └── report_template.html
+│   ├── temp
+│   ├── test_config.yaml
+│   ├── test_constants.py
+│   ├── test_main.py
+│   ├── test_training.py
+│   ├── training
+│   │   ├── test_cache.py
+│   │   ├── test_data.py
+│   │   ├── test_distributed.py
+│   │   ├── test_monitoring.py
+│   │   ├── test_optimization.py
+│   │   ├── test_pipeline.py
+│   │   └── test_resources.py
+│   └── unit
+│       ├── core
+│       │   ├── __init__.py
+│       │   ├── test_attention.py
+│       │   ├── test_config_handler.py
+│       │   ├── test_core_integration.py
+│       │   └── test_model.py
+│       ├── data
+│       │   ├── performance
+│       │   │   └── benchmark_data.jsonl
+│       │   ├── specialized
+│       │   │   └── needle
+│       │   │       └── sample_data.jsonl
+│       │   ├── test_analyzer.py
+│       │   ├── test_cache.py
+│       │   ├── test_converter.py
+│       │   ├── test_storage.py
+│       │   └── test_training.py
+│       └── interfaces
+│           ├── test_api.py
+│           ├── test_cli.py
+│           └── test_gui.py
+├── tools
+│   ├── code_check.py
+│   ├── system_check.py
+│   └── yaml_to_toml_converter.py
+└── utils
+
+65 directories, 115 files

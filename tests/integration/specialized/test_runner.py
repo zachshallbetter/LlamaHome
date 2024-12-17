@@ -8,7 +8,7 @@ functionality for specialized test scenarios.
 
 import os
 import sys
-import yaml
+import toml
 import pytest
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from utils.log_manager import LogManager, LogTemplates
-from utils.needle_test import run_needle_tests, benchmark_search_algorithms
+from src.testing.needle_test import run_needle_tests, benchmark_search_algorithms
 from utils.system_check import check_resources
 
 console = Console()
@@ -38,11 +38,11 @@ class SpecializedTestRunner:
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """Load test configuration."""
         if config_path is None:
-            config_path = Path("tests/test_config.yaml")
+            config_path = Path("tests/test_config.toml")
             
         try:
             with open(config_path) as f:
-                return yaml.safe_load(f)
+                return toml.load(f)
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
             return {}
@@ -138,9 +138,9 @@ class SpecializedTestRunner:
             report_dir = Path(self.config["environment"]["artifacts_dir"])
             report_dir.mkdir(parents=True, exist_ok=True)
             
-            report_path = report_dir / "specialized_test_report.yaml"
+            report_path = report_dir / "specialized_test_report.toml"
             with open(report_path, "w") as f:
-                yaml.dump(results, f, default_flow_style=False)
+                toml.dump(results, f, default_flow_style=False)
                 
             self.console.print(f"[green]Report generated: {report_path}[/green]")
             

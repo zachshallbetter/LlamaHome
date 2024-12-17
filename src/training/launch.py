@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import torch
-import yaml
+import toml
 from torch.distributed.elastic.multiprocessing.errors import record
 
 from .distributed import DistributedTrainer, DistributedConfig
@@ -24,7 +24,7 @@ from .utils import save_results  # Assuming save_results is defined in utils mod
 def load_config(config_path: Path) -> Dict:
     """Load configuration from file."""
     with open(config_path) as f:
-        return yaml.safe_load(f)
+        return toml.load(f)
 
 def setup_environment(
     rank: int,

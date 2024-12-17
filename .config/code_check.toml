@@ -1,0 +1,13 @@
+basepath = "."
+throttle = 1000
+recursive = true
+ignore = [ "*.pyc", "*.pyo", "*.pyd", "*.pycache", "*.ruff_cache", ".pytest_cache", ".mypy_cache", ".cache", ".logs", ".venv", ".env", ".DS_Store", ".git", ".github", ".vscode",]
+
+[execution]
+jobs = 4
+cache = true
+
+[reporting]
+summary = true
+details = true
+save-to-file = "code_check_results.txt"

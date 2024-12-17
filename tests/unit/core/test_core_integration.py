@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 from src.core.model import HybridModel
 from src.core.attention import HybridAttention
 from src.core.config_handler import ConfigManager
-from utils.model_manager import ModelManager
+from src.managers.model_manager import ModelManager
 
 
 @pytest.fixture

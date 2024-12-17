@@ -3,12 +3,15 @@
 [tool.poetry]
 name = "llamahome"
 version = "0.1.0"
-description = "LLM training and inference framework"
-authors = ["Your Name <your.email@example.com>"]
+description = "A powerful and flexible home for your LLM projects"
+authors = ["Zach Shallbetter <zach@shallbetter.com>"]
 readme = "README.md"
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
+pyyaml = "*"
+toml = "*"
 torch = "^2.1.0"
 transformers = "^4.36.0"
 accelerate = "^0.25.0"

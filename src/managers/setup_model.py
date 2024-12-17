@@ -11,7 +11,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from dotenv import load_dotenv
 
 from utils.log_manager import LogManager, LogTemplates
-from utils.model_manager import ModelManager
+from src.managers.model_manager import ModelManager
 
 # Load environment variables
 load_dotenv()

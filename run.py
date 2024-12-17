@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from src.interfaces.cli import cli
-from utils.setup_env import setup_environment
+from src.core.setup_env import setup_environment
 from utils.setup_model import setup_model
 from utils.system_check import run_system_checks
 

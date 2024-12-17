@@ -6,10 +6,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-import yaml
+import toml
 from dotenv import load_dotenv
 
 from utils.log_manager import LogManager, LogTemplates
+from utils.constants import (
+    ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR,
+    DATA_DIR, LOCAL_DATA_DIR
+)
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -68,8 +72,9 @@ class ConfigManager:
         Args:
             config_dir: Optional custom config directory path
         """
-        self.workspace_root = Path.cwd()
-        self.config_dir = config_dir or self.workspace_root / ".config"
+        self.workspace_root = ROOT_DIR
+        self.config_dir = config_dir or CONFIG_DIR
+        self.local_config_dir = LOCAL_CONFIG_DIR
         self._config: Optional[ConfigData] = None
         self._load_environment()
 
@@ -79,6 +84,20 @@ class ConfigManager:
         missing_vars = self.REQUIRED_ENV_VARS - set(os.environ.keys())
         if missing_vars:
             logger.warning(f"Missing required environment variables: {missing_vars}")
+
+    def _get_config_path(self, filename: str) -> Path:
+        """Get configuration file path, checking local config first.
+
+        Args:
+            filename: Name of the configuration file
+
+        Returns:
+            Path to the configuration file
+        """
+        local_path = self.local_config_dir / filename
+        if local_path.exists():
+            return local_path
+        return self.config_dir / filename
 
     def load_config(self) -> ConfigData:
         """Load configuration from files.
@@ -98,10 +117,10 @@ class ConfigManager:
             model_config = self._load_json("models.json")
 
             # Load training config
-            training_config = self._load_yaml("training_config.yaml")
+            training_config = self._load_yaml("training_config.toml")
 
             # Load code check config
-            code_check = self._load_yaml("code_check.yaml")
+            code_check = self._load_yaml("code_check.toml")
 
             # Load type check config
             type_check = self._load_ini("llamahome.types.ini")
@@ -135,7 +154,7 @@ class ConfigManager:
             FileNotFoundError: If file doesn't exist
             ValueError: If file is invalid
         """
-        file_path = self.config_dir / filename
+        file_path = self._get_config_path(filename)
         if not file_path.exists():
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
@@ -158,14 +177,14 @@ class ConfigManager:
             FileNotFoundError: If file doesn't exist
             ValueError: If file is invalid
         """
-        file_path = self.config_dir / filename
+        file_path = self._get_config_path(filename)
         if not file_path.exists():
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except yaml.YAMLError as e:
+                return toml.load(f) or {}
+        except toml.TomlDecodeError as e:
             raise ValueError(f"Invalid YAML in {filename}: {e}")
 
     def _load_ini(self, filename: str) -> Dict[str, Any]:
@@ -181,7 +200,7 @@ class ConfigManager:
             FileNotFoundError: If file doesn't exist
             ValueError: If file is invalid
         """
-        file_path = self.config_dir / filename
+        file_path = self._get_config_path(filename)
         if not file_path.exists():
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
@@ -306,19 +325,17 @@ class ConfigManager:
         valid = True
 
         # Check data directories
-        data_dir = self.workspace_root / "data"
-        if not data_dir.exists():
+        if not DATA_DIR.exists():
             self._add_error("paths", "Data directory does not exist")
             valid = False
 
         # Check cache directory
-        cache_dir = self.workspace_root / ".cache"
-        if not cache_dir.exists():
+        if not CACHE_DIR.exists():
             self._add_error("paths", "Cache directory does not exist")
             valid = False
 
         # Check log directory
-        log_dir = self.workspace_root / ".logs"
+        log_dir = ROOT_DIR / ".logs"
         if not log_dir.exists():
             self._add_error("paths", "Log directory does not exist")
             valid = False
@@ -356,7 +373,7 @@ class ConfigManager:
             return False
 
         # Save updated config
-        return self._save_yaml("training_config.yaml", self._config.training_config)
+        return self._save_yaml("training_config.toml", self._config.training_config)
 
     def update_model_config(self, model_type: str, updates: Dict[str, Any]) -> bool:
         """Update model configuration.
@@ -405,7 +422,7 @@ class ConfigManager:
             True if save successful
         """
         try:
-            file_path = self.config_dir / filename
+            file_path = self._get_config_path(filename)
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
             return True
@@ -424,9 +441,9 @@ class ConfigManager:
             True if save successful
         """
         try:
-            file_path = self.config_dir / filename
+            file_path = self._get_config_path(filename)
             with open(file_path, "w", encoding="utf-8") as f:
-                yaml.dump(data, f, indent=2)
+                toml.dump(data, f, indent=2)
             return True
         except Exception as e:
             logger.error(f"Failed to save YAML config: {e}")

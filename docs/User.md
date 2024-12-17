@@ -128,7 +128,7 @@
 1. **Model Settings**
 
    ```yaml
-   # config/model_config.yaml
+   # config/model_config.toml
    models:
      llama3.3:
        optimization:
@@ -140,7 +140,7 @@
 2. **System Settings**
 
    ```yaml
-   # config/system_config.yaml
+   # config/system_config.toml
    system:
      cache_size: "10GB"
      max_memory: "90%"
@@ -150,7 +150,7 @@
 3. **Training Settings**
 
    ```yaml
-   # config/training_config.yaml
+   # config/training_config.toml
    training:
      batch_size: 32
      learning_rate: 0.001

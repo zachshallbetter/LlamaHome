@@ -11,9 +11,8 @@ import os
 
 from utils.system_check import SystemCheck
 from utils.cache_manager import CacheManager
-from utils.setup_env import EnvironmentSetup
-from utils.setup_model import ModelSetup
-from utils.model_manager import ModelManager
+from src.core.setup_env import EnvironmentSetup
+from src.managers.model_manager import ModelManager
 from utils.log_manager import LogManager, LogTemplates
 
 # Load environment variables

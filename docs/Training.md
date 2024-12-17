@@ -31,14 +31,14 @@ make evaluate MODEL=models/fine-tuned/model DATA=data/eval/test.jsonl
 
 ```bash
 # Single-node multi-GPU training
-make train-distributed WORLD_SIZE=4 CONFIG=configs/distributed.yaml
+make train-distributed WORLD_SIZE=4 CONFIG=configs/distributed.toml
 
 # Multi-node training
 make train-multi-node \
     NUM_NODES=2 \
     NODE_RANK=0 \
     MASTER_ADDR=192.168.1.100 \
-    CONFIG=configs/multi_node.yaml
+    CONFIG=configs/multi_node.toml
 ```
 
 ### Monitoring and Visualization
@@ -82,7 +82,7 @@ data/
 Training configuration is managed through YAML files in the `.config` directory:
 
 ```yaml
-# training_config.yaml
+# training_config.toml
 training:
   batch_size: 32
   learning_rate: 1e-4

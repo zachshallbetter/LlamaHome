@@ -1,0 +1,57 @@
+[cache]
+memory_size = 1000
+disk_size = 10000
+cleanup_interval = 3600
+max_age_days = 7
+use_mmap = true
+compression = true
+async_writes = true
+
+[data]
+batch_size = 4
+max_length = 512
+num_workers = 4
+shuffle = true
+validation_split = 0.1
+cache_dir = ".cache/training/data"
+
+[monitor]
+log_interval = 100
+save_interval = 1000
+tensorboard = true
+progress_bars = true
+resource_monitoring = true
+metrics_history_size = 1000
+
+[optimization]
+learning_rate = 5e-5
+weight_decay = 0.01
+warmup_steps = 100
+scheduler_type = "cosine"
+max_grad_norm = 1.0
+adam_beta1 = 0.9
+adam_beta2 = 0.999
+adam_epsilon = 1e-8
+
+[processing]
+mixed_precision = true
+gradient_checkpointing = true
+compile_mode = "reduce-overhead"
+max_batch_size = 8
+accumulation_steps = 4
+
+[resource]
+gpu_memory_fraction = 0.9
+cpu_usage_threshold = 0.8
+io_queue_size = 1000
+wait_interval = 0.1
+
+[training]
+num_epochs = 3
+save_steps = 1000
+eval_steps = 100
+logging_steps = 10
+output_dir = "output/training"
+cache_dir = ".cache/training"
+early_stopping_patience = 3
+early_stopping_threshold = 0.01

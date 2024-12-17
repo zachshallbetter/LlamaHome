@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-import yaml
+import toml
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Tuple
 import torch
@@ -28,7 +28,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRe
 
 from utils.benchmark import BenchmarkManager
 from utils.log_manager import LogManager, LogTemplates
-from utils.model_manager import ModelManager
+from src.managers.model_manager import ModelManager
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -156,10 +156,10 @@ class TrainingData:
         Returns:
             Loaded configuration
         """
-        config_path = Path(".config/training_config.yaml")
+        config_path = Path(".config/training_config.toml")
         if config_path.exists():
             with open(config_path) as f:
-                base_config = yaml.safe_load(f)["training"]
+                base_config = toml.load(f)["training"]
         else:
             base_config = {}
             

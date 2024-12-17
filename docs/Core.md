@@ -107,9 +107,9 @@
            
        def load_config(self):
            """Load system configuration."""
-           for config_file in self.config_path.glob("*.yaml"):
+           for config_file in self.config_path.glob("*.toml"):
                self.settings.update(
-                   yaml.safe_load(config_file)
+                   toml.load(config_file)
                )
                
        def get_setting(
@@ -185,7 +185,7 @@
 1. **Configuration Structure**
 
    ```yaml
-   # system_config.yaml
+   # system_config.toml
    system:
      log_level: INFO
      cache_size: 10GB
@@ -214,8 +214,8 @@
        def load_configs(self):
            """Load all configuration files."""
            configs = {}
-           for config_file in self.config_dir.glob("*.yaml"):
-               configs[config_file.stem] = yaml.safe_load(
+           for config_file in self.config_dir.glob("*.toml"):
+               configs[config_file.stem] = toml.load(
                    config_file.read_text()
                )
            return configs

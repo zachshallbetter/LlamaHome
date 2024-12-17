@@ -11,9 +11,9 @@ LlamaHome uses multiple configuration files for different aspects of the system:
 ```text
 .config/
 ├── models.json           # Model definitions and versions
-├── training_config.yaml  # Training parameters
+├── training_config.toml  # Training parameters
 ├── llamahome.types.ini  # Type checking configuration
-└── code_check.yaml      # Code quality settings
+└── code_check.toml      # Code quality settings
 ```
 
 ### Environment Variables
@@ -102,7 +102,7 @@ Defines available models and their configurations:
 }
 ```
 
-### training_config.yaml
+### training_config.toml
 
 Training-specific configuration:
 
@@ -177,7 +177,7 @@ init_forbid_untyped_decorators = False
 
 ## Code Quality Configuration
 
-### code_check.yaml
+### code_check.toml
 
 Code quality check settings:
 
@@ -266,7 +266,7 @@ Hierarchical cache organization:
 
 ### 3. Cache Configuration Files
 
-#### training_config.yaml
+#### training_config.toml
 
 Training cache settings:
 
@@ -458,7 +458,7 @@ class ConfigManager:
     def _load_configs(self):
         """Load all configuration files."""
         self.model_config = self._load_json("models.json")
-        self.training_config = self._load_yaml("training_config.yaml")
+        self.training_config = self._load_yaml("training_config.toml")
 ```
 
 ### Validation Rules

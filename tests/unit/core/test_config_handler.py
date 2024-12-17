@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import pytest
-import yaml
+import toml
 from unittest.mock import patch, mock_open
 
 from src.core.config_handler import ConfigManager
@@ -52,9 +52,9 @@ def setup_test_env(tmp_path, mock_config_data):
     config_dir.mkdir(parents=True)
     
     # Create main config file
-    config_file = config_dir / "config.yaml"
+    config_file = config_dir / "config.toml"
     with open(config_file, "w") as f:
-        yaml.dump(mock_config_data, f)
+        toml.dump(mock_config_data, f)
     
     return tmp_path
 
@@ -173,7 +173,7 @@ class TestConfigManager:
             }
         }
         
-        with patch("builtins.open", mock_open(read_data=yaml.dump(base_config))):
+        with patch("builtins.open", mock_open(read_data=toml.dump(base_config))):
             config_manager = ConfigManager(config_path=setup_test_env / ".config")
             config_manager.merge_config(override_config)
             
@@ -187,7 +187,7 @@ class TestConfigManager:
         config_manager = ConfigManager(config_path=setup_test_env / ".config")
         
         # Export configuration
-        export_path = setup_test_env / "exported_config.yaml"
+        export_path = setup_test_env / "exported_config.toml"
         config_manager.export_config(export_path)
         
         # Verify exported file
@@ -195,7 +195,7 @@ class TestConfigManager:
         
         # Load exported config and verify contents
         with open(export_path) as f:
-            exported_config = yaml.safe_load(f)
+            exported_config = toml.load(f)
             assert exported_config["models"]["llama"]["versions"]["3.3-7b"]["name"] == "Llama 3.3 7B"
     
     def test_config_validation_rules(self, setup_test_env):
@@ -229,7 +229,7 @@ class TestConfigManager:
             }
         }
         
-        with patch("builtins.open", mock_open(read_data=yaml.dump(minimal_config))):
+        with patch("builtins.open", mock_open(read_data=toml.dump(minimal_config))):
             config_manager = ConfigManager(config_path=setup_test_env / ".config")
             
             # Verify defaults are applied

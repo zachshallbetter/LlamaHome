@@ -37,7 +37,7 @@ Test data is located in `data/training/samples/`:
 - `performance_samples.jsonl`: Performance testing samples
 
 ### Test Configuration
-- Test configurations are in `.config/test_config.yaml`
+- Test configurations are in `.config/test_config.toml`
 - Environment variables for testing in `.env.test`
 
 ## Running Tests

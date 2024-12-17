@@ -4,7 +4,7 @@ import concurrent.futures
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
-import yaml
+import toml
 from rich.console import Console
 from rich.table import Table
 
@@ -16,14 +16,14 @@ class CodeChecker:
     def __init__(self):
         """Initialize code checker."""
         self.workspace_root = Path.cwd()
-        self.config_file = self.workspace_root / ".config/code_check.yaml"
+        self.config_file = self.workspace_root / ".config/code_check.toml"
         self.load_config()
         
     def load_config(self) -> None:
         """Load code check configuration."""
         if self.config_file.exists():
             with open(self.config_file) as f:
-                self.config = yaml.safe_load(f)
+                self.config = toml.load(f)
         else:
             raise FileNotFoundError(f"Code check configuration not found: {self.config_file}")
             
@@ -166,7 +166,7 @@ class CodeChecker:
             filename: Output filename
         """
         with open(filename, "w") as f:
-            yaml.dump(results, f)
+            toml.dump(results, f)
             
 def main():
     """Run code checks from command line."""

@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
     - Added checkpoint management
   
   - Training Configuration:
-    - Added `.config/distributed_config.yaml` with detailed settings
+    - Added `.config/distributed_config.toml` with detailed settings
     - Configured memory optimization parameters
     - Set up communication settings
     - Added error handling configuration
@@ -66,13 +66,21 @@ All notable changes to this project will be documented in this file.
     - Implemented resource requirement checking
     - Added support for edge cases and stress testing
   - Expanded test configuration:
-    - Added `tests/test_config.yaml` with detailed test settings
+    - Added `tests/test_config.toml` with detailed test settings
     - Configured test categories and requirements
     - Added resource management settings
   - Added test data samples:
     - Created sample data for needle search testing
     - Added performance benchmark datasets
     - Implemented structured test data format
+
+- Project structure reorganization
+  - Implemented modern project structure with clear separation of concerns
+  - Created dedicated directories for core, data, interfaces, and utils
+  - Added proper package initialization files
+  - Consolidated constants and configuration management
+  - Improved test organization with unit, integration, and performance tests
+  - Established clear documentation structure
 
 ### Changed
 

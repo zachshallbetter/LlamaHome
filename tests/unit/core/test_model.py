@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
-import yaml
+import toml
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from src.core.model import HybridModel
 from src.core.attention import HybridAttention
 from src.core.config_handler import ConfigManager
-from utils.model_manager import ModelManager
+from src.managers.model_manager import ModelManager
 
 
 @pytest.fixture(autouse=True)

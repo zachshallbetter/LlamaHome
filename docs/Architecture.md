@@ -320,7 +320,7 @@ graph TB
 
 Key configuration files:
 
-- `training_config.yaml`: Training parameters
+- `training_config.toml`: Training parameters
 - `models.json`: Model configurations
 - `.env`: Environment variables
 

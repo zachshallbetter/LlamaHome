@@ -11,7 +11,7 @@ import subprocess
 import sys
 import torch
 import click
-import yaml
+import toml
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from rich.console import Console
@@ -94,7 +94,7 @@ async def resume(checkpoint_path: str, data_path: str, eval_data: Optional[str])
         tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
         
         # Load config
-        config_path = Path(checkpoint_path) / "training_config.yaml"
+        config_path = Path(checkpoint_path) / "training_config.toml"
         training_config = _load_training_config(str(config_path))
         
         # Initialize pipeline
@@ -123,7 +123,7 @@ async def evaluate(model_path: str, eval_data: str, output: str):
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         
         # Load config
-        config_path = Path(model_path) / "training_config.yaml"
+        config_path = Path(model_path) / "training_config.toml"
         training_config = _load_training_config(str(config_path))
         training_config.output_dir = output
         
@@ -152,13 +152,13 @@ def _load_training_config(config_path: Optional[str] = None) -> TrainingConfig:
     """Load training configuration."""
     if config_path and Path(config_path).exists():
         with open(config_path) as f:
-            config_dict = yaml.safe_load(f)
+            config_dict = toml.load(f)
     else:
         # Load default config
-        config_path = Path(".config/training_config.yaml")
+        config_path = Path(".config/training_config.toml")
         if config_path.exists():
             with open(config_path) as f:
-                config_dict = yaml.safe_load(f)
+                config_dict = toml.load(f)
         else:
             config_dict = {}
     

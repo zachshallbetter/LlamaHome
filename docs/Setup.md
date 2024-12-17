@@ -39,7 +39,7 @@
 1. **CPU-Only Setup**
 
    ```yaml
-   # config/model_config.yaml
+   # config/model_config.toml
    compute:
      device: cpu
      threads: 8
@@ -49,7 +49,7 @@
 2. **GPU Setup (NVIDIA)**
 
    ```yaml
-   # config/model_config.yaml
+   # config/model_config.toml
    compute:
      device: cuda
      gpu_layers: 32
@@ -59,7 +59,7 @@
 3. **Apple Silicon Setup**
 
    ```yaml
-   # config/model_config.yaml
+   # config/model_config.toml
    compute:
      device: mps
      batch_size: 8

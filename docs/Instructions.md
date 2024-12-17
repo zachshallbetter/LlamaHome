@@ -144,7 +144,7 @@ src/
 
 2. Files
    - `.config/models.json` - Model configurations
-   - `.config/training_config.yaml` - Training parameters
+   - `.config/training_config.toml` - Training parameters
    - `.env` - Environment variables
    - `pyproject.toml` - Project settings
 
