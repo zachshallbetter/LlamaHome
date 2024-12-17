@@ -50,7 +50,7 @@ Example:
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 import torch
-from utils.log_manager import LogManager, LogTemplates
+from ..core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 

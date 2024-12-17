@@ -1,237 +1,159 @@
-"""Data storage and management module."""
+"""Base storage functionality."""
 
 import asyncio
 import json
-import shutil
-from datetime import datetime
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import aiofiles
+try:
+    import aiofiles
+    AIOFILES_AVAILABLE = True
+except ImportError:
+    AIOFILES_AVAILABLE = False
 
-from utils.log_manager import LogManager, LogTemplates
+from ...core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
-
-class DataStorage:
-    """Manages data storage and retrieval operations."""
-
-    def __init__(
-        self,
-        base_path: Optional[Union[str, Path]] = None,
-        config: Optional[Dict[str, Any]] = None
-    ):
-        """Initialize storage manager.
-
+class BaseStorage:
+    """Base class for storage implementations."""
+    
+    def __init__(self, base_path: Union[str, Path]):
+        """Initialize storage.
+        
         Args:
-            base_path: Base directory for data storage
-            config: Optional configuration dictionary
+            base_path: Base storage path
         """
-        self.base_path = Path(base_path or Path.home() / '.llamahome' / 'data')
-        self.config = config or {}
-        self.cache: Dict[str, Any] = {}
-
-        # Create storage directories
-        self.training_data = self.base_path / 'training'
-        self.cache_dir = self.base_path / 'cache'
-        self.archive_dir = self.base_path / 'archive'
-
-        for directory in [self.training_data, self.cache_dir, self.archive_dir]:
-            directory.mkdir(parents=True, exist_ok=True)
-
-    async def store_data(
-        self,
-        data: Union[str, Dict, List],
-        file_path: Union[str, Path],
-        compress: bool = False
-    ) -> Path:
-        """Store data to file system.
-
+        self.base_path = Path(base_path)
+        self.base_path.mkdir(parents=True, exist_ok=True)
+        
+        if not AIOFILES_AVAILABLE:
+            logger.warning("aiofiles not available, falling back to synchronous I/O")
+    
+    async def read_file(self, relative_path: Union[str, Path]) -> Optional[str]:
+        """Read file contents asynchronously.
+        
         Args:
-            data: Data to store
-            file_path: Target file path
-            compress: Whether to compress the data
-
+            relative_path: Path relative to base path
+            
         Returns:
-            Path to stored data
+            File contents or None if read fails
         """
-        file_path = Path(file_path)
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-
         try:
-            async with aiofiles.open(file_path, 'w') as f:
-                if isinstance(data, (dict, list)):
-                    await f.write(json.dumps(data, indent=2))
-                else:
-                    await f.write(str(data))
-
-            if compress:
-                compressed_path = file_path.with_suffix('.gz')
-                await asyncio.to_thread(
-                    shutil.make_archive,
-                    str(file_path),
-                    'gztar',
-                    str(file_path.parent),
-                    str(file_path.name)
-                )
-                return compressed_path
-
-            return file_path
-
+            full_path = self.base_path / relative_path
+            
+            if AIOFILES_AVAILABLE:
+                async with aiofiles.open(full_path, 'r') as f:
+                    return await f.read()
+            else:
+                with open(full_path, 'r') as f:
+                    return f.read()
+                    
         except Exception as e:
-            logger.error(f"Error storing data to {file_path}: {e}")
-            raise
-
-    async def load_data(
-        self,
-        file_path: Union[str, Path],
-        use_cache: bool = True
-    ) -> Union[str, Dict[Any, Any], List[Any]]:
-        """Load data from file system.
-
+            logger.error(f"Failed to read file {relative_path}: {e}")
+            return None
+    
+    async def write_file(self, relative_path: Union[str, Path], content: str) -> bool:
+        """Write file contents asynchronously.
+        
         Args:
-            file_path: Path to data file
-            use_cache: Whether to use cached data
-
+            relative_path: Path relative to base path
+            content: Content to write
+            
         Returns:
-            Loaded data
+            True if write succeeds
         """
-        file_path = Path(file_path)
-
-        if use_cache and str(file_path) in self.cache:
-            data = self.cache[str(file_path)]
-            if isinstance(data, (str, dict, list)):
-                return data
-            return str(data)
-
         try:
-            async with aiofiles.open(file_path, 'r') as f:
-                content = await f.read()
-
+            full_path = self.base_path / relative_path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if AIOFILES_AVAILABLE:
+                async with aiofiles.open(full_path, 'w') as f:
+                    await f.write(content)
+            else:
+                with open(full_path, 'w') as f:
+                    f.write(content)
+                    
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to write file {relative_path}: {e}")
+            return False
+    
+    async def read_json(self, relative_path: Union[str, Path]) -> Optional[Dict]:
+        """Read JSON file asynchronously.
+        
+        Args:
+            relative_path: Path relative to base path
+            
+        Returns:
+            Parsed JSON or None if read fails
+        """
+        content = await self.read_file(relative_path)
+        if content is not None:
             try:
-                data = json.loads(content)
-                if not isinstance(data, (dict, list)):
-                    return str(data)
-                return data
-            except json.JSONDecodeError:
-                return content
-
-            if use_cache:
-                self.cache[str(file_path)] = data
-
-            return data
-
-        except Exception as e:
-            logger.error(f"Error loading data from {file_path}: {e}")
-            raise
-
-    async def archive_data(
-        self,
-        source_path: Union[str, Path],
-        compress: bool = True
-    ) -> Path:
-        """Archive data file.
-
+                return json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from {relative_path}: {e}")
+        return None
+    
+    async def write_json(self, relative_path: Union[str, Path], data: Dict) -> bool:
+        """Write JSON file asynchronously.
+        
         Args:
-            source_path: Path to data file
-            compress: Whether to compress archive
-
+            relative_path: Path relative to base path
+            data: Data to write
+            
         Returns:
-            Path to archived data
+            True if write succeeds
         """
-        source_path = Path(source_path)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        archive_path = self.archive_dir / \
-            f"{source_path.stem}_{timestamp}{source_path.suffix}"
-
         try:
-            await asyncio.to_thread(shutil.copy2, source_path, archive_path)
-
-            if compress:
-                compressed_path = archive_path.with_suffix('.gz')
-                await asyncio.to_thread(
-                    shutil.make_archive,
-                    str(archive_path),
-                    'gztar',
-                    str(archive_path.parent),
-                    str(archive_path.name)
-                )
-                await asyncio.to_thread(archive_path.unlink)
-                return compressed_path
-
-            return archive_path
-
+            content = json.dumps(data, indent=2)
+            return await self.write_file(relative_path, content)
         except Exception as e:
-            logger.error(f"Error archiving {source_path}: {e}")
-            raise
-
-    async def clear_cache(self) -> None:
-        """Clear cached data."""
-        self.cache.clear()
-        try:
-            await asyncio.to_thread(shutil.rmtree, self.cache_dir)
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            logger.error(f"Error clearing cache: {e}")
-            raise
-
-    async def list_data(
-        self,
-        directory: Optional[Union[str, Path]] = None,
-        pattern: str = "*"
-    ) -> List[Path]:
-        """List available data files.
-
+            logger.error(f"Failed to write JSON to {relative_path}: {e}")
+            return False
+    
+    async def list_files(self, relative_path: Union[str, Path] = "") -> List[Path]:
+        """List files in directory asynchronously.
+        
         Args:
-            directory: Optional directory to list
-            pattern: Glob pattern for filtering
-
+            relative_path: Optional path relative to base path
+            
         Returns:
             List of file paths
         """
-        directory = Path(directory) if directory else self.base_path
-
         try:
-            files = list(directory.glob(pattern))
-            return sorted(files)
+            full_path = self.base_path / relative_path
+            if not full_path.exists():
+                return []
+                
+            return [
+                path.relative_to(self.base_path)
+                for path in full_path.rglob("*")
+                if path.is_file()
+            ]
+            
         except Exception as e:
-            logger.error(f"Error listing data in {directory}: {e}")
-            raise
-
-    async def get_storage_info(self) -> Dict[str, Any]:
-        """Get storage system information.
-
+            logger.error(f"Failed to list files in {relative_path}: {e}")
+            return []
+    
+    async def delete_file(self, relative_path: Union[str, Path]) -> bool:
+        """Delete file asynchronously.
+        
+        Args:
+            relative_path: Path relative to base path
+            
         Returns:
-            Dictionary with storage information
+            True if deletion succeeds
         """
         try:
-            total_size = sum(
-                f.stat().st_size for f in self.base_path.rglob('*') if f.is_file()
-            )
-
-            return {
-                "base_path": str(self.base_path),
-                "total_size_bytes": total_size,
-                "cache_entries": len(self.cache),
-                "config": self.config
-            }
+            full_path = self.base_path / relative_path
+            if full_path.exists():
+                full_path.unlink()
+            return True
+            
         except Exception as e:
-            logger.error(f"Error getting storage info: {e}")
-            raise
-
-
-def create_storage(
-    base_path: Optional[Union[str, Path]] = None,
-    config: Optional[Dict[str, Any]] = None
-) -> DataStorage:
-    """Factory function to create a DataStorage instance.
-
-    Args:
-        base_path: Optional base directory for storage
-        config: Optional configuration dictionary
-
-    Returns:
-        DataStorage instance
-    """
-    return DataStorage(base_path, config)
+            logger.error(f"Failed to delete file {relative_path}: {e}")
+            return False

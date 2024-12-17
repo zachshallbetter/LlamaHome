@@ -1,5 +1,14 @@
-"""
-Caching implementation with memory and disk tiers for training pipeline.
+"""Caching implementation with memory and disk tiers for training pipeline.
+
+This module provides a two-tier caching system optimized for training data
+and model artifacts. It implements both memory and disk caching with
+automatic eviction policies.
+
+Key Features:
+- Memory-first caching with disk fallback
+- LRU eviction policy
+- Size-based constraints
+- Automatic cleanup
 """
 
 import asyncio
@@ -12,7 +21,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-import torch
+import mmap
+
+from ..core.utils import LogManager, LogTemplates
+
+logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
+
+"""
+Caching implementation with memory and disk tiers for training pipeline.
+"""
 
 @dataclass
 class CacheConfig:
@@ -185,7 +202,6 @@ class DiskCache(Cache):
     
     def _load_mmap(self, path: Path) -> Any:
         """Load memory-mapped data."""
-        import mmap
         with open(path, "rb") as f:
             mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
             return pickle.loads(mm)

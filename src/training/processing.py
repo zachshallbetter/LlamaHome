@@ -4,7 +4,7 @@ Tensor processing implementation for training pipeline.
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union, List
 
 import torch
 import torch.nn.functional as F

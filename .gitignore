@@ -69,8 +69,6 @@ poetry.lock
 .config/*.local.yaml
 .config/*.local.toml
 .llamahome/
-models/
-logs/
 /data/
 *.log
 .cache/

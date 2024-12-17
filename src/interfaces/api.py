@@ -1,107 +1,124 @@
-"""LlamaHome REST API interface.
+"""FastAPI-based REST API interface."""
 
-This module implements the API endpoints described in docs/API.md, enabling
-communication between components and interaction with the Llama 3.3 model.
-
-@see docs/API.md
-"""
-
-import logging
+import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+try:
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
 
-from utils.log_manager import LogManager, LogTemplates
+from ..core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="LlamaHome API",
-    description="REST API for LlamaHome system",
-    version="1.0.0"
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# API Models
-class ModelConfig(BaseModel):
-    """Model configuration parameters."""
-    model_path: str
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = 100
-    top_p: Optional[float] = 0.9
-    frequency_penalty: Optional[float] = 0.0
-    presence_penalty: Optional[float] = 0.0
-
-class ProcessRequest(BaseModel):
-    """Prompt processing request."""
-    prompt: str
-    model: Optional[str] = "llama3.3"
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = 100
-    top_p: Optional[float] = 0.9
-    frequency_penalty: Optional[float] = 0.0
-    presence_penalty: Optional[float] = 0.0
-
-# API Endpoints
-@app.post("/api/load_model")
-async def load_model(config: ModelConfig) -> Dict[str, Any]:
-    """Load a specific Llama 3.3 model into memory."""
-    try:
-        # Implementation
-        return {"status": "success", "message": "Model loaded successfully"}
-    except Exception as e:
-        logger.error(f"Failed to load model: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/process_prompt")
-async def process_prompt(request: ProcessRequest) -> Dict[str, Any]:
-    """Process a user prompt and generate a response."""
-    try:
-        # Implementation
+if not FASTAPI_AVAILABLE:
+    logger.error("FastAPI not available, API interface will not be functional")
+    app = None
+else:
+    app = FastAPI(
+        title="LlamaHome API",
+        description="REST API for LlamaHome",
+        version="0.1.0"
+    )
+    
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    @app.get("/")
+    async def root():
+        """Root endpoint."""
+        return {"message": "Welcome to LlamaHome API"}
+    
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint."""
         return {
-            "response": "Generated response",
-            "tokens_used": 0,
-            "processing_time": 0.0,
-            "model_used": request.model
+            "status": "healthy",
+            "version": "0.1.0"
         }
-    except Exception as e:
-        logger.error(f"Failed to process prompt: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/health_check")
-async def health_check() -> Dict[str, Any]:
-    """Check API and model health status."""
-    try:
-        return {
-            "status": "success",
-            "message": "API is healthy",
-            "model_loaded": True,
-            "uptime": 0
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.websocket("/api/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time updates."""
-    try:
-        await websocket.accept()
-        while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Message received: {data}")
-    except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}")
-        await websocket.close()
+    
+    @app.post("/predict")
+    async def predict(request: Dict):
+        """Make a prediction.
+        
+        Args:
+            request: Request data
+            
+        Returns:
+            Prediction results
+        """
+        try:
+            # TODO: Implement prediction logic
+            return {
+                "status": "success",
+                "prediction": "Not implemented yet"
+            }
+        except Exception as e:
+            logger.error(f"Prediction failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+    
+    @app.post("/train")
+    async def train(request: Dict):
+        """Start model training.
+        
+        Args:
+            request: Training configuration
+            
+        Returns:
+            Training status
+        """
+        try:
+            # TODO: Implement training logic
+            return {
+                "status": "success",
+                "message": "Training started"
+            }
+        except Exception as e:
+            logger.error(f"Training failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+    
+    @app.get("/models")
+    async def list_models():
+        """List available models."""
+        try:
+            # TODO: Implement model listing
+            return {
+                "models": []
+            }
+        except Exception as e:
+            logger.error(f"Model listing failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+    
+    @app.get("/config")
+    async def get_config():
+        """Get current configuration."""
+        try:
+            # TODO: Implement config retrieval
+            return {
+                "config": {}
+            }
+        except Exception as e:
+            logger.error(f"Config retrieval failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )

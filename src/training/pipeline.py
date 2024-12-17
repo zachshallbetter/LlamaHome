@@ -12,12 +12,16 @@ from torch import nn
 from torch.utils.data import DataLoader
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
-from .cache import CacheConfig, CacheManager
-from .data import DataConfig, DataManager
-from .monitoring import MonitorConfig, MonitorManager
-from .optimization import OptimizationConfig, Optimizer
-from .processing import ProcessingConfig, TensorProcessor
-from .resources import ResourceConfig, ResourceManager
+from ..core.utils import LogManager, LogTemplates
+from .monitoring import TrainingMetrics
+from .optimization import OptimizerConfig
+from .data import DataConfig
+from .cache import CacheConfig
+from .monitoring import MetricsConfig
+from .processing import ProcessingConfig
+from .resource import ResourceConfig
+
+logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 @dataclass
 class TrainingConfig:
@@ -25,8 +29,8 @@ class TrainingConfig:
     # Component configs
     cache: CacheConfig = CacheConfig()
     data: DataConfig = DataConfig()
-    monitor: MonitorConfig = MonitorConfig()
-    optimization: OptimizationConfig = OptimizationConfig()
+    monitor: MetricsConfig = MetricsConfig()
+    optimization: OptimizerConfig = OptimizerConfig()
     processing: ProcessingConfig = ProcessingConfig()
     resource: ResourceConfig = ResourceConfig()
     
@@ -46,7 +50,7 @@ class TrainingConfig:
     early_stopping_threshold: float = 0.01
 
 class TrainingPipeline:
-    """Training pipeline with resource management and monitoring."""
+    """Main training pipeline implementation."""
     
     def __init__(
         self,
@@ -54,246 +58,229 @@ class TrainingPipeline:
         tokenizer: PreTrainedTokenizer,
         config: Optional[TrainingConfig] = None
     ):
+        """Initialize training pipeline.
+        
+        Args:
+            model: Model to train
+            tokenizer: Tokenizer instance
+            config: Optional training configuration
+        """
         self.model = model
         self.tokenizer = tokenizer
         self.config = config or TrainingConfig()
-        self._setup_pipeline()
-    
-    def _setup_pipeline(self) -> None:
-        """Set up pipeline components."""
-        # Set up paths
-        self.output_dir = Path(self.config.output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize components
+        self._setup_components()
+    
+    def _setup_components(self) -> None:
+        """Set up training components."""
+        # Cache manager
         self.cache_manager = CacheManager(
-            self.config.cache_dir or self.output_dir / "cache",
-            self.config.cache
+            cache_dir=self.config.cache_dir,
+            config=self.config.cache
         )
         
+        # Data manager
         self.data_manager = DataManager(
-            self.tokenizer,
-            self.config.data
+            tokenizer=self.tokenizer,
+            config=self.config.data
         )
         
+        # Monitor manager
         self.monitor_manager = MonitorManager(
-            self.config.monitor,
-            self.output_dir / "logs"
+            config=self.config.monitor,
+            model_name=self.model.__class__.__name__
         )
         
+        # Optimizer
         self.optimizer = Optimizer(
-            self.model,
-            self.config.optimization
+            config=self.config.optimization
         )
         
+        # Processor
         self.processor = TensorProcessor(
-            self.model,
-            self.config.processing
+            config=self.config.processing
         )
         
+        # Resource manager
         self.resource_manager = ResourceManager(
-            self.config.resource
+            config=self.config.resource
         )
     
     async def train(
         self,
-        train_data: Union[str, Path, DataLoader],
-        eval_data: Optional[Union[str, Path, DataLoader]] = None
+        train_data: Union[str, Path],
+        eval_data: Optional[Union[str, Path]] = None
     ) -> None:
-        """
-        Train model with monitoring and resource management.
+        """Run training pipeline.
         
         Args:
-            train_data: Training data
-            eval_data: Evaluation data
+            train_data: Training data path
+            eval_data: Optional evaluation data path
         """
-        # Prepare data
-        train_loader, eval_loader = await self._prepare_data(
-            train_data,
-            eval_data
-        )
-        
-        # Calculate steps
-        num_training_steps = self._calculate_training_steps(train_loader)
-        
-        # Set up optimization
-        self.optimizer.setup_scheduler(num_training_steps)
-        
         try:
-            # Start monitoring
-            await self.monitor_manager.start()
+            # Prepare data
+            train_dataset = await self.data_manager.prepare_dataset(train_data)
+            eval_dataset = await self.data_manager.prepare_dataset(eval_data) if eval_data else None
+            
+            # Create data loaders
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=self.config.data.batch_size,
+                shuffle=True
+            )
+            
+            eval_loader = DataLoader(
+                eval_dataset,
+                batch_size=self.config.data.batch_size
+            ) if eval_dataset else None
+            
+            # Setup training
+            self.optimizer.setup_scheduler(
+                num_training_steps=len(train_loader) * self.config.num_epochs
+            )
             
             # Training loop
-            await self._training_loop(
-                train_loader,
-                eval_loader,
-                num_training_steps
-            )
-            
-        finally:
-            # Stop monitoring
-            await self.monitor_manager.stop()
-    
-    async def _prepare_data(
-        self,
-        train_data: Union[str, Path, DataLoader],
-        eval_data: Optional[Union[str, Path, DataLoader]] = None
-    ) -> Tuple[DataLoader, Optional[DataLoader]]:
-        """Prepare training and evaluation data."""
-        if isinstance(train_data, (str, Path)):
-            train_loader, eval_loader = await self.data_manager.load_data(
-                train_data
-            )
-            if eval_data is None:
-                return train_loader, eval_loader
-        else:
-            train_loader = train_data
-        
-        if isinstance(eval_data, (str, Path)):
-            _, eval_loader = await self.data_manager.load_data(eval_data)
-        else:
-            eval_loader = eval_data
-        
-        return train_loader, eval_loader
-    
-    def _calculate_training_steps(self, train_loader: DataLoader) -> int:
-        """Calculate total training steps."""
-        if self.config.max_steps:
-            return self.config.max_steps
-            
-        return len(train_loader) * self.config.num_epochs
-    
-    async def _training_loop(
-        self,
-        train_loader: DataLoader,
-        eval_loader: Optional[DataLoader],
-        num_training_steps: int
-    ) -> None:
-        """Main training loop."""
-        step = 0
-        epoch = 0
-        best_eval_loss = float("inf")
-        no_improvement_count = 0
-        
-        while step < num_training_steps:
-            # Training epoch
-            for batch in train_loader:
-                # Check resources
-                await self.resource_manager.wait_for_resources()
+            for epoch in range(self.config.num_epochs):
+                await self._train_epoch(epoch, train_loader, eval_loader)
                 
-                try:
-                    # Process batch
-                    metrics = await self.processor.process_batch(
-                        batch,
-                        is_training=True
-                    )
-                    
-                    # Optimization step
-                    self.optimizer.step(
-                        metrics["loss"],
-                        update_scheduler=True
-                    )
-                    
-                    # Update metrics
-                    metrics["learning_rate"] = self.optimizer.get_last_lr()[0]
-                    self.monitor_manager.update(step, metrics)
-                    
-                    # Save checkpoint
-                    if step > 0 and step % self.config.save_steps == 0:
-                        await self._save_checkpoint(step, metrics)
-                    
-                    # Evaluation
-                    if (
-                        eval_loader is not None and
-                        step > 0 and
-                        step % self.config.eval_steps == 0
-                    ):
-                        eval_metrics = await self._evaluate(eval_loader)
-                        self.monitor_manager.update(step, eval_metrics)
-                        
-                        # Early stopping
-                        if eval_metrics["loss"] < best_eval_loss - self.config.early_stopping_threshold:
-                            best_eval_loss = eval_metrics["loss"]
-                            no_improvement_count = 0
-                        else:
-                            no_improvement_count += 1
-                            
-                        if no_improvement_count >= self.config.early_stopping_patience:
-                            print("Early stopping triggered")
-                            return
-                    
-                    step += 1
-                    if step >= num_training_steps:
-                        break
-                        
-                finally:
-                    # Release resources
-                    self.resource_manager.release_resources()
-            
-            epoch += 1
-            if epoch >= self.config.num_epochs:
-                break
+        except Exception as e:
+            logger.error(f"Training failed: {e}")
+            raise
+        finally:
+            # Cleanup
+            await self.cache_manager.clear()
     
-    async def _evaluate(
+    async def _train_epoch(
         self,
-        eval_loader: DataLoader
-    ) -> Dict[str, float]:
-        """Evaluate model on validation data."""
-        total_metrics = {}
-        num_batches = 0
+        epoch: int,
+        train_loader: DataLoader,
+        eval_loader: Optional[DataLoader] = None
+    ) -> None:
+        """Run single training epoch.
         
-        for batch in eval_loader:
+        Args:
+            epoch: Current epoch
+            train_loader: Training data loader
+            eval_loader: Optional evaluation data loader
+        """
+        self.model.train()
+        total_loss = 0
+        
+        for step, batch in enumerate(train_loader):
             # Process batch
-            metrics = await self.processor.process_batch(
-                batch,
-                is_training=False
-            )
+            inputs = self.processor.prepare_inputs(batch)
             
-            # Accumulate metrics
-            for key, value in metrics.items():
-                if key not in total_metrics:
-                    total_metrics[key] = 0
-                total_metrics[key] += value.item()
+            # Forward pass
+            outputs = self.model(**inputs)
+            loss = outputs.loss
+            total_loss += loss.item()
             
-            num_batches += 1
+            # Optimization step
+            self.optimizer.step(loss)
+            
+            # Logging
+            if step % self.config.logging_steps == 0:
+                await self.monitor_manager.update_metrics(
+                    step + epoch * len(train_loader),
+                    {
+                        "loss": loss.item(),
+                        "learning_rate": self.optimizer.get_last_lr()[0]
+                    },
+                    self.model
+                )
+            
+            # Evaluation
+            if eval_loader and step % self.config.eval_steps == 0:
+                eval_loss = await self._evaluate(eval_loader)
+                await self.monitor_manager.update_metrics(
+                    step + epoch * len(train_loader),
+                    {"eval_loss": eval_loss}
+                )
+            
+            # Save checkpoint
+            if step % self.config.save_steps == 0:
+                await self._save_checkpoint(
+                    epoch,
+                    step,
+                    total_loss / (step + 1)
+                )
+    
+    async def _evaluate(self, eval_loader: DataLoader) -> float:
+        """Run evaluation.
         
-        # Average metrics
-        return {
-            f"eval_{key}": value / num_batches
-            for key, value in total_metrics.items()
-        }
+        Args:
+            eval_loader: Evaluation data loader
+            
+        Returns:
+            Average evaluation loss
+        """
+        self.model.eval()
+        total_loss = 0
+        
+        with torch.no_grad():
+            for batch in eval_loader:
+                inputs = self.processor.prepare_inputs(batch)
+                outputs = self.model(**inputs)
+                total_loss += outputs.loss.item()
+        
+        return total_loss / len(eval_loader)
     
     async def _save_checkpoint(
         self,
+        epoch: int,
         step: int,
-        metrics: Dict[str, torch.Tensor]
+        loss: float
     ) -> None:
-        """Save training checkpoint."""
-        checkpoint_dir = self.output_dir / f"checkpoint-{step}"
-        checkpoint_dir.mkdir(exist_ok=True)
+        """Save training checkpoint.
+        
+        Args:
+            epoch: Current epoch
+            step: Current step
+            loss: Current loss
+        """
+        checkpoint_dir = Path(self.config.output_dir) / "checkpoints"
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        
+        checkpoint_path = checkpoint_dir / f"checkpoint-{epoch}-{step}"
         
         # Save model
-        self.model.save_pretrained(checkpoint_dir)
-        self.tokenizer.save_pretrained(checkpoint_dir)
+        self.model.save_pretrained(checkpoint_path)
+        self.tokenizer.save_pretrained(checkpoint_path)
         
-        # Save optimizer and scheduler
-        torch.save(
-            self.optimizer.state_dict(),
-            checkpoint_dir / "optimizer.pt"
-        )
-        
-        # Save metrics
+        # Save training state
         torch.save(
             {
-                "metrics": {
-                    key: value.item()
-                    for key, value in metrics.items()
-                },
-                "step": step
+                "epoch": epoch,
+                "step": step,
+                "loss": loss,
+                "optimizer": self.optimizer.state_dict(),
+                "config": self.config
             },
-            checkpoint_dir / "metrics.pt"
+            checkpoint_path / "training_state.pt"
         )
+        
+        logger.info(f"Saved checkpoint: {checkpoint_path}")
+    
+    async def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> None:
+        """Load training checkpoint.
+        
+        Args:
+            checkpoint_path: Path to checkpoint
+        """
+        checkpoint_path = Path(checkpoint_path)
+        
+        # Load model and tokenizer
+        self.model = self.model.from_pretrained(checkpoint_path)
+        self.tokenizer = self.tokenizer.from_pretrained(checkpoint_path)
+        
+        # Load training state
+        training_state = torch.load(checkpoint_path / "training_state.pt")
+        self.optimizer.load_state_dict(training_state["optimizer"])
+        self.config = training_state["config"]
+        
+        logger.info(f"Loaded checkpoint: {checkpoint_path}")
 
 class TrainingError(Exception):
     """Training pipeline error."""
-    pass 
+    pass

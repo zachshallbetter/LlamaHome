@@ -1,61 +1,19 @@
-"""Hybrid attention mechanism implementation.
+"""Hybrid attention mechanism implementation."""
 
-This module provides an optimized attention mechanism that combines Flash Attention
-and memory-efficient attention implementations. It is designed to work seamlessly
-with the EnhancedLlamaForCausalLM model (see src/core/model.py).
-
-Key Features:
-- Dynamic switching between Flash and memory-efficient attention
-- Optimized cache management
-- Sliding window support
-- Position-aware attention patterns
-
-Performance Optimizations:
-- Automatic hardware detection for Flash Attention
-- Memory-efficient implementation for constrained environments
-- Dynamic cache sizing
-- Optimized position handling
-
-System Requirements:
-- Flash Attention requires CUDA capability >= 7.5
-- PyTorch >= 2.0 for memory-efficient attention
-- For optimal performance:
-    - NVIDIA Ampere GPU or newer
-    - CUDA 11.8 or higher
-    - 8GB+ VRAM recommended
-
-See Also:
-    - src/core/model.py: Main model implementation
-    - src/core/cache.py: Cache management system
-    - docs/Architecture.md: System architecture overview
-
-Example:
-    >>> # Basic usage with model
-    >>> from transformers import LlamaConfig
-    >>> from src.core.model import EnhancedLlamaForCausalLM
-    >>> 
-    >>> config = LlamaConfig(use_flash_attention=True)
-    >>> model = EnhancedLlamaForCausalLM(config)
-    >>> # Attention is automatically configured
-    
-    >>> # Manual attention configuration
-    >>> config = AttentionConfig(
-    ...     use_flash_attention=True,
-    ...     sliding_window=1024
-    ... )
-    >>> attention = HybridAttention(config, layer_idx=0)
-"""
-
-from typing import Any, Optional, Tuple, Union
 from dataclasses import dataclass
+from typing import Any, Optional, Tuple
 
 import torch
 from torch import Tensor
 from transformers.models.llama.modeling_llama import LlamaAttention
-from flash_attn import flash_attn_func, flash_attn_varlen_func
 
-from .cache import Cache, DynamicCache
-from utils.log_manager import LogManager, LogTemplates
+try:
+    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    FLASH_ATTN_AVAILABLE = True
+except ImportError:
+    FLASH_ATTN_AVAILABLE = False
+
+from ..utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -186,13 +144,17 @@ class HybridAttention(LlamaAttention):
         
         # Configure attention settings
         self.attention_config = AttentionConfig(
-            use_flash_attention=getattr(config, "use_flash_attention", True),
+            use_flash_attention=getattr(config, "use_flash_attention", True) and FLASH_ATTN_AVAILABLE,
             use_memory_efficient=getattr(config, "use_memory_efficient", True),
             head_dim=self.head_dim,
             num_heads=self.num_heads,
             sliding_window=getattr(config, "sliding_window", None),
             attention_dropout=self.dropout
         )
+        
+        if self.attention_config.use_flash_attention and not FLASH_ATTN_AVAILABLE:
+            logger.warning("Flash Attention requested but not available, falling back to memory efficient attention")
+            self.attention_config.use_flash_attention = False
         
         self.logger = LogManager().get_logger("hybrid_attention", "models", "llama")
         self.model_name = "HybridAttention"

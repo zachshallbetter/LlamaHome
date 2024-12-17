@@ -4,15 +4,15 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import toml
 from dotenv import load_dotenv
 
-from utils.log_manager import LogManager, LogTemplates
-from utils.constants import (
+from ..utils import LogManager, LogTemplates
+from .constants import (
     ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR,
-    DATA_DIR, LOCAL_DATA_DIR
+    DATA_DIR
 )
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)

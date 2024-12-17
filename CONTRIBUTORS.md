@@ -10,8 +10,6 @@
   - Documentation system
   - Quality assurance
 
-## Contributors
-
 ### Code Contributors
 
 This project exists thanks to all the people who contribute. Here are our amazing contributors:
@@ -26,7 +24,7 @@ Contributors who have made significant contributions to the project:
   - Documentation
   - Testing
 
-#### Regular Contributors
+#### Regular Contributor Reference
 
 Contributors who regularly help improve the project:
 
@@ -233,4 +231,4 @@ We would like to thank everyone who has contributed to making this project bette
 
 Want to contribute? Check our [Contributing Guide](CONTRIBUTING.md) to get started!
 
-[This list is automatically updated by our bot. If you've contributed and don't see your name, please let us know!] 
+[This list is automatically updated by our bot. If you've contributed and don't see your name, please let us know!]

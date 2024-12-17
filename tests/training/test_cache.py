@@ -186,13 +186,14 @@ class TestMemoryManager:
     """Test suite for memory management functionality."""
     
     def test_memory_tracking(self, mock_config):
-        """Test memory usage tracking."""
+        """Test memory tracking functionality."""
         memory_manager = MemoryManager(config=mock_config)
         
         # Track memory usage
         with memory_manager.track():
-            # Allocate some tensors
-            tensors = [torch.randn(1000, 1000) for _ in range(5)]
+            # Allocate and hold reference to tensors during tracking
+            tracked_tensors = [torch.randn(1000, 1000) for _ in range(5)]
+            _ = [t.sum() for t in tracked_tensors]  # Use tensors to prevent optimization
         
         stats = memory_manager.get_stats()
         assert "peak_memory" in stats
@@ -202,11 +203,13 @@ class TestMemoryManager:
         """Test memory cleanup functionality."""
         memory_manager = MemoryManager(config=mock_config)
         
-        # Allocate memory
-        tensors = [torch.randn(1000, 1000) for _ in range(10)]
+        # Allocate and hold reference to tensors
+        held_tensors = [torch.randn(1000, 1000) for _ in range(10)]
+        _ = [t.sum() for t in held_tensors]  # Use tensors to prevent optimization
         initial_memory = memory_manager.get_current_memory()
         
-        # Trigger cleanup
+        # Clear references and trigger cleanup
+        held_tensors = None
         memory_manager.cleanup()
         final_memory = memory_manager.get_current_memory()
         
@@ -220,7 +223,7 @@ class TestMemoryManager:
         with pytest.raises(MemoryError):
             with memory_manager.enforce_limits():
                 # Try to allocate too much memory
-                huge_tensor = torch.randn(100000, 100000)
+                torch.randn(100000, 100000)
 
 
 class TestCachePersistence:

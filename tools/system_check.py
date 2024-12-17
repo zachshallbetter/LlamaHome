@@ -5,10 +5,11 @@ import psutil
 import shutil
 import subprocess
 import torch
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from utils.log_manager import LogManager, LogTemplates
+from .manager.log_manager import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -96,9 +97,12 @@ class SystemCheck:
             try:
                 test_path = Path(path)
                 if test_path.exists():
-                    if os.access(path, os.R_OK): perms.append("R")
-                    if os.access(path, os.W_OK): perms.append("W")
-                    if os.access(path, os.X_OK): perms.append("X")
+                    if os.access(path, os.R_OK):
+                        perms.append("R")
+                    if os.access(path, os.W_OK):
+                        perms.append("W")
+                    if os.access(path, os.X_OK):
+                        perms.append("X")
                     status = "+".join(perms) if perms else "No access"
                     logger.info(f"Permission check - {name}: {status}")
                     results[name] = status

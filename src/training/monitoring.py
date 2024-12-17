@@ -2,18 +2,25 @@
 Training monitoring and metrics system.
 """
 
-import asyncio
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
-from pathlib import Path
 import json
-import time
+import logging
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 import torch
-import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-import plotly.graph_objects as go
-from rich.progress import Progress, TextColumn, BarColumn, TimeElapsedColumn
+
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
+from ..core.utils import LogManager, LogTemplates
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
+
+logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 @dataclass
 class MetricsConfig:
@@ -35,9 +42,19 @@ class TrainingMetrics:
         config: Optional[MetricsConfig] = None,
         model_name: str = "model"
     ):
+        """Initialize training metrics.
+        
+        Args:
+            config: Optional metrics configuration
+            model_name: Name of the model
+        """
         self.config = config or MetricsConfig()
         self.model_name = model_name
         self._setup_tracking()
+        
+        if not PLOTLY_AVAILABLE and self.config.plot_metrics:
+            logger.warning("plotly not available, plotting will be disabled")
+            self.config.plot_metrics = False
         
     def _setup_tracking(self) -> None:
         """Set up metrics tracking systems."""
@@ -70,7 +87,13 @@ class TrainingMetrics:
         metrics: Dict[str, float],
         model: Optional[torch.nn.Module] = None
     ) -> None:
-        """Update training metrics."""
+        """Update training metrics.
+        
+        Args:
+            step: Current training step
+            metrics: Metrics to update
+            model: Optional model for additional metrics
+        """
         # Basic metrics
         for name, value in metrics.items():
             self.metrics_history[name].append(value)
@@ -98,7 +121,12 @@ class TrainingMetrics:
         model: torch.nn.Module,
         step: int
     ) -> None:
-        """Track gradient statistics."""
+        """Track gradient statistics.
+        
+        Args:
+            model: Model to track
+            step: Current training step
+        """
         for name, param in model.named_parameters():
             if param.grad is not None:
                 self.writer.add_histogram(
@@ -119,7 +147,12 @@ class TrainingMetrics:
         model: torch.nn.Module,
         step: int
     ) -> None:
-        """Track model weight statistics."""
+        """Track model weight statistics.
+        
+        Args:
+            model: Model to track
+            step: Current training step
+        """
         for name, param in model.named_parameters():
             self.writer.add_histogram(
                 f"weights/{name}",
@@ -132,7 +165,12 @@ class TrainingMetrics:
         model: torch.nn.Module,
         step: int
     ) -> None:
-        """Track attention statistics."""
+        """Track attention statistics.
+        
+        Args:
+            model: Model to track
+            step: Current training step
+        """
         if hasattr(model, "get_attention_maps"):
             attention_maps = model.get_attention_maps()
             for layer_idx, attention_map in enumerate(attention_maps):
@@ -143,7 +181,11 @@ class TrainingMetrics:
                 )
     
     def _track_memory_usage(self) -> Dict[str, float]:
-        """Track memory usage statistics."""
+        """Track memory usage statistics.
+        
+        Returns:
+            Dict containing memory statistics
+        """
         if not torch.cuda.is_available():
             return {}
             
@@ -154,8 +196,12 @@ class TrainingMetrics:
         }
     
     def plot_metrics(self, save_dir: Optional[Path] = None) -> None:
-        """Generate interactive training visualizations."""
-        if not self.config.plot_metrics:
+        """Generate interactive training visualizations.
+        
+        Args:
+            save_dir: Optional directory to save plots
+        """
+        if not self.config.plot_metrics or not PLOTLY_AVAILABLE:
             return
             
         # Create figures directory
@@ -198,7 +244,11 @@ class TrainingMetrics:
                 fig.write_html(save_dir / "memory_usage.html")
     
     def save_metrics(self, save_path: Path) -> None:
-        """Save metrics history to file."""
+        """Save metrics history to file.
+        
+        Args:
+            save_path: Path to save metrics
+        """
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -206,7 +256,11 @@ class TrainingMetrics:
             json.dump(self.metrics_history, f, indent=2)
     
     def load_metrics(self, load_path: Path) -> None:
-        """Load metrics history from file."""
+        """Load metrics history from file.
+        
+        Args:
+            load_path: Path to load metrics from
+        """
         load_path = Path(load_path)
         
         with load_path.open("r") as f:
@@ -232,6 +286,14 @@ class DistributedMetrics(TrainingMetrics):
         world_size: int = 1,
         rank: int = 0
     ):
+        """Initialize distributed metrics.
+        
+        Args:
+            config: Optional metrics configuration
+            model_name: Name of the model
+            world_size: Number of distributed processes
+            rank: Process rank
+        """
         super().__init__(config, f"{model_name}_rank_{rank}")
         self.world_size = world_size
         self.rank = rank
@@ -242,7 +304,13 @@ class DistributedMetrics(TrainingMetrics):
         metrics: Dict[str, float],
         model: Optional[torch.nn.Module] = None
     ) -> None:
-        """Update metrics with distributed training support."""
+        """Update metrics with distributed training support.
+        
+        Args:
+            step: Current training step
+            metrics: Metrics to update
+            model: Optional model for additional metrics
+        """
         # Gather metrics from all processes
         gathered_metrics = {}
         for name, value in metrics.items():
@@ -264,6 +332,11 @@ class MetricsCallback:
         self,
         metrics: Union[TrainingMetrics, DistributedMetrics]
     ):
+        """Initialize metrics callback.
+        
+        Args:
+            metrics: Metrics collector instance
+        """
         self.metrics = metrics
     
     async def on_batch_end(
@@ -272,7 +345,13 @@ class MetricsCallback:
         metrics: Dict[str, float],
         model: torch.nn.Module
     ) -> None:
-        """Update metrics after each batch."""
+        """Update metrics after each batch.
+        
+        Args:
+            step: Current training step
+            metrics: Batch metrics
+            model: Training model
+        """
         await self.metrics.update_metrics(step, metrics, model)
     
     async def on_epoch_end(
@@ -280,7 +359,12 @@ class MetricsCallback:
         epoch: int,
         metrics: Dict[str, float]
     ) -> None:
-        """Generate visualizations after each epoch."""
+        """Generate visualizations after each epoch.
+        
+        Args:
+            epoch: Current epoch
+            metrics: Epoch metrics
+        """
         if self.metrics.config.plot_metrics:
             self.metrics.plot_metrics(
                 save_dir=Path(f"figures/epoch_{epoch}")

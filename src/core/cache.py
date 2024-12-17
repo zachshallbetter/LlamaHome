@@ -45,11 +45,11 @@ Example:
     >>> cached_states = cache.get(layer_idx=0)
 """
 
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Optional, Tuple, TypeVar, Union
 
 import torch
 
-from utils.log_manager import LogManager, LogTemplates
+from .utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 

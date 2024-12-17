@@ -33,12 +33,14 @@ A comprehensive environment for running, training, and optimizing Llama models w
 ### Installation
 
 1. **Clone Repository**
+
    ```bash
    git clone https://github.com/zachshallbetter/llamahome.git
    cd llamahome
    ```
 
 2. **Setup Environment**
+
    ```bash
    # Install Poetry
    curl -sSL https://install.python-poetry.org | python3 -
@@ -48,6 +50,7 @@ A comprehensive environment for running, training, and optimizing Llama models w
    ```
 
 3. **Configure Environment**
+
    ```bash
    # Copy example configuration
    cp .env.example .env
@@ -59,11 +62,13 @@ A comprehensive environment for running, training, and optimizing Llama models w
 ### Basic Usage
 
 1. **Start CLI Interface**
+
    ```bash
    make run
    ```
 
 2. **Process Text**
+
    ```python
    from llamahome import LlamaHome
    
@@ -73,6 +78,7 @@ A comprehensive environment for running, training, and optimizing Llama models w
    ```
 
 3. **Train Model**
+
    ```bash
    make train DATA_PATH=/path/to/data
    ```
@@ -116,7 +122,7 @@ graph TB
 
 ## Project Structure
 
-```
+```text
 llamahome/
 ├── src/                    # Source code
 │   ├── core/              # Core functionality
@@ -206,16 +212,19 @@ security:
 ### Setup Development Environment
 
 1. **Install Dependencies**
+
    ```bash
    make setup-dev
    ```
 
 2. **Run Tests**
+
    ```bash
    make test
    ```
 
 3. **Check Code Style**
+
    ```bash
    make lint
    ```

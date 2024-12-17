@@ -7,24 +7,28 @@ This document outlines the testing infrastructure and practices for the LlamaHom
 ## Test Categories
 
 ### Unit Tests
+
 - Located in `tests/` directory
 - Focus on individual components and functions
 - Run with `make test-unit`
 - Marked with `@pytest.mark` without specific markers
 
 ### Integration Tests
+
 - Test interaction between components
 - Located in `tests/` with integration test files
 - Run with `make test-integration`
 - Marked with `@pytest.mark.integration`
 
 ### Performance Tests
+
 - Measure system performance and resource usage
 - Located in `tests/training/test_performance.py`
 - Run with `make test-performance`
 - Marked with `@pytest.mark.performance`
 
 ### System Tests
+
 - End-to-end testing of complete workflows
 - Included in integration tests
 - Test complete training pipelines
@@ -32,17 +36,21 @@ This document outlines the testing infrastructure and practices for the LlamaHom
 ## Test Data
 
 ### Sample Data
+
 Test data is located in `data/training/samples/`:
+
 - `test_samples.jsonl`: General test cases
 - `performance_samples.jsonl`: Performance testing samples
 
 ### Test Configuration
+
 - Test configurations are in `.config/test_config.toml`
 - Environment variables for testing in `.env.test`
 
 ## Running Tests
 
 ### Basic Test Commands
+
 ```bash
 # Run all tests
 make test
@@ -57,6 +65,7 @@ make test-coverage
 ```
 
 ### Test Coverage
+
 - Coverage reports generated in HTML and XML formats
 - View HTML report in `htmlcov/index.html`
 - Coverage requirements: minimum 80% coverage
@@ -64,6 +73,7 @@ make test-coverage
 ## Writing Tests
 
 ### Test Structure
+
 ```python
 import pytest
 
@@ -75,12 +85,14 @@ def test_feature():
 ```
 
 ### Test Fixtures
+
 - Common fixtures in `tests/conftest.py`
 - Resource management fixtures
 - Mock configurations
 - Test data setup
 
 ### Best Practices
+
 1. Use descriptive test names
 2. One assertion per test when possible
 3. Use appropriate markers
@@ -91,11 +103,13 @@ def test_feature():
 ## Continuous Integration
 
 ### GitHub Actions
+
 - Automated test runs on pull requests
 - Coverage reports uploaded as artifacts
 - Performance test results tracked
 
 ### Test Environment
+
 - Python 3.11
 - Dependencies managed through poetry
 - GPU tests skipped if no GPU available
@@ -103,6 +117,7 @@ def test_feature():
 ## Performance Testing
 
 ### Metrics Tracked
+
 - Execution time
 - Memory usage
 - GPU utilization
@@ -110,6 +125,7 @@ def test_feature():
 - Network bandwidth
 
 ### Performance Baselines
+
 - Documented in `docs/Performance.md`
 - Updated quarterly
 - Regression alerts if performance drops
@@ -117,12 +133,14 @@ def test_feature():
 ## Debugging Tests
 
 ### Common Issues
+
 1. Resource cleanup in fixtures
 2. GPU memory management
 3. Test data availability
 4. Environment configuration
 
 ### Debugging Tools
+
 - pytest-xdist for parallel testing
 - pytest-timeout for hanging tests
 - pytest-cov for coverage analysis
@@ -130,6 +148,7 @@ def test_feature():
 ## Contributing Tests
 
 ### Guidelines
+
 1. Follow existing test patterns
 2. Include documentation
 3. Add appropriate markers
@@ -137,6 +156,7 @@ def test_feature():
 5. Verify coverage
 
 ### Review Process
+
 1. Run full test suite
 2. Check coverage impact
 3. Verify performance impact
@@ -145,12 +165,14 @@ def test_feature():
 ## Test Maintenance
 
 ### Regular Tasks
+
 1. Update test data
 2. Review coverage reports
 3. Update performance baselines
 4. Clean up deprecated tests
 
 ### Quarterly Review
+
 1. Coverage analysis
 2. Performance trend analysis
 3. Test suite optimization

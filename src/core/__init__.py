@@ -6,7 +6,7 @@ from typing import Optional
 
 from rich.console import Console
 
-from utils.log_manager import LogManager, LogTemplates
+from .utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 console = Console()

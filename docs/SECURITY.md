@@ -62,6 +62,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
 ### For Developers
 
 1. **Code Security**
+
    ```python
    # Good: Input validation
    def process_input(data: str) -> str:
@@ -76,6 +77,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
    ```
 
 2. **Authentication Implementation**
+
    ```python
    # Good: Secure token validation
    def validate_token(token: str) -> bool:
@@ -92,6 +94,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
    ```
 
 3. **Error Handling**
+
    ```python
    # Good: Secure error handling
    def handle_error(error: Exception) -> Response:
@@ -109,6 +112,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
 ### Authentication
 
 1. **Token-based Authentication**
+
    ```python
    class AuthHandler:
        """Handle authentication."""
@@ -123,6 +127,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
    ```
 
 2. **Role-based Access Control**
+
    ```python
    class AccessControl:
        """Control access to resources."""
@@ -140,6 +145,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
 ### Data Protection
 
 1. **Encryption**
+
    ```python
    class DataEncryption:
        """Handle data encryption."""
@@ -154,6 +160,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
    ```
 
 2. **Secure Storage**
+
    ```python
    class SecureStorage:
        """Handle secure data storage."""
@@ -173,6 +180,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
 ### Logging
 
 1. **Security Events**
+
    ```python
    class SecurityLogger:
        """Log security events."""
@@ -190,6 +198,7 @@ We take the security of LlamaHome seriously. If you believe you have found a sec
    ```
 
 2. **Audit Trail**
+
    ```python
    class AuditTrail:
        """Maintain audit trail."""
@@ -289,4 +298,4 @@ For security concerns, contact:
 - Security Team: [INSERT CONTACT]
 - Emergency Contact: [INSERT EMERGENCY CONTACT]
 
-Remember: Security is everyone's responsibility. Stay vigilant and report any concerns promptly. 
+Remember: Security is everyone's responsibility. Stay vigilant and report any concerns promptly.

@@ -1,16 +1,16 @@
-"""
-Optimization implementation for training pipeline.
-"""
+"""Training optimization utilities."""
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import torch
-from torch import nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-from transformers import get_scheduler
+
+from ..core.utils import LogManager, LogTemplates
+
+logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 @dataclass
 class OptimizationConfig:
@@ -24,18 +24,73 @@ class OptimizationConfig:
     adam_beta2: float = 0.999
     adam_epsilon: float = 1e-8
 
+@dataclass
+class OptimizerConfig:
+    """Configuration for training optimization."""
+    
+    learning_rate: float = 5e-5
+    weight_decay: float = 0.01
+    warmup_steps: int = 100
+    max_grad_norm: float = 1.0
+    optimizer_type: str = "adamw"
+
+def get_scheduler(
+    name: str,
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    **kwargs
+) -> LRScheduler:
+    """Get learning rate scheduler.
+    
+    Args:
+        name: Scheduler name
+        optimizer: Optimizer instance
+        num_warmup_steps: Number of warmup steps
+        num_training_steps: Total number of training steps
+        **kwargs: Additional scheduler arguments
+        
+    Returns:
+        Learning rate scheduler
+        
+    Raises:
+        ValueError: If scheduler type is not supported
+    """
+    name = name.lower()
+    
+    if name == "linear":
+        return LinearScheduler(
+            optimizer,
+            num_warmup_steps,
+            num_training_steps
+        )
+    elif name == "cosine":
+        return CosineScheduler(
+            optimizer,
+            num_warmup_steps,
+            num_training_steps,
+            num_cycles=kwargs.get("num_cycles", 0.5)
+        )
+    elif name == "constant":
+        return ConstantScheduler(
+            optimizer,
+            num_warmup_steps
+        )
+    else:
+        raise ValueError(f"Unknown scheduler type: {name}")
+
 class Optimizer:
-    """Training optimization with scheduling."""
+    """Training optimizer with enhanced features."""
     
-    def __init__(
-        self,
-        model: nn.Module,
-        config: Optional[OptimizationConfig] = None
-    ):
-        self.model = model
-        self.config = config or OptimizationConfig()
-        self._setup_optimization()
-    
+    def __init__(self, config: OptimizerConfig):
+        """Initialize optimizer.
+        
+        Args:
+            config: Optimizer configuration
+        """
+        self.config = config
+        self.optimizer: Optional[Optimizer] = None
+
     def _setup_optimization(self) -> None:
         """Set up optimizer and scheduler."""
         # Create parameter groups
@@ -239,4 +294,4 @@ class ConstantScheduler(LRScheduler):
 
 class OptimizationError(Exception):
     """Optimization error."""
-    pass 
+    pass

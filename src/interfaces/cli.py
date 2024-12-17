@@ -5,19 +5,19 @@ CLI interface for LlamaHome.
 import asyncio
 import json
 from pathlib import Path
-from typing import Optional
-
 import subprocess
 import sys
-import torch
+from typing import Dict, List, Optional, Any
+
 import click
-import toml
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+import toml
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from ..core.utils import LogManager, LogTemplates
 from ..training import (
     CacheConfig,
     DataConfig,
@@ -29,6 +29,7 @@ from ..training import (
     TrainingPipeline
 )
 
+logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 console = Console()
 
 # Command groups

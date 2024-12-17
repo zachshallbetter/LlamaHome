@@ -55,6 +55,7 @@ Example:
 "Write a Python function that processes a list of transactions and returns daily totals"
 
 Response:
+
 ```python
 def calculate_daily_totals(transactions: List[Dict[str, Any]]) -> Dict[str, float]:
     """
@@ -71,7 +72,6 @@ def calculate_daily_totals(transactions: List[Dict[str, Any]]) -> Dict[str, floa
         date = transaction['date'].split()[0]  # Get date part only
         daily_totals[date] += transaction['amount']
     return dict(daily_totals)
-```
 ```
 
 ### Content Refinement
@@ -114,7 +114,6 @@ data_summary = {
         "Outliers in December"
     ]
 }
-```
 ```
 
 ### Document Processing
@@ -323,16 +322,19 @@ export LLAMAHOME_CACHE=".cache/llamahome_models"
 ## User Role Guide
 
 ### Novice Users
+
 - Start with built-in templates
 - Use the "Help" panel for guidance
 - Keep default settings initially
 
 ### Data Scientists
+
 - Utilize batch processing
 - Monitor performance metrics
 - Experiment with advanced parameters
 
 ### Developers
+
 - Integrate with API client
 - Leverage custom plugins
 - Access debug logs
@@ -403,6 +405,7 @@ export LLAMAHOME_CACHE=".cache/llamahome_models"
    - Verify environment variables
 
 ### Additional Tips
+
 - Check logs in `logs/` directory
 - Reset config to defaults if needed
 - Refer to community support channels
@@ -477,6 +480,7 @@ class CustomVisualizer(GUIPlugin):
    ```
 
 ### Resource Management
+
 - Use caching and streaming for large outputs
 - Adjust batch sizes for performance
 - Enable hardware acceleration when available

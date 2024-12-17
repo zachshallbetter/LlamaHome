@@ -97,7 +97,10 @@ async def main():
                 },
                 {
                     "role": "assistant",
-                    "content": "Machine learning is a branch of artificial intelligence that focuses on developing systems that can learn from and make decisions based on data."
+                    "content": (
+                        "Machine learning is a branch of artificial intelligence that focuses on developing "
+                        "systems that can learn from and make decisions based on data."
+                    )
                 }
             ]
         },
@@ -113,7 +116,10 @@ async def main():
                 },
                 {
                     "role": "assistant",
-                    "content": "Deep learning uses artificial neural networks with multiple layers to progressively extract higher-level features from raw input."
+                    "content": (
+                        "Deep learning uses artificial neural networks with multiple layers to progressively "
+                        "extract higher-level features from raw input."
+                    )
                 }
             ]
         }
@@ -133,7 +139,10 @@ async def main():
                 },
                 {
                     "role": "assistant",
-                    "content": "Reinforcement learning is a type of machine learning where an agent learns to make decisions by interacting with an environment and receiving rewards or penalties."
+                    "content": (
+                        "Reinforcement learning is a type of machine learning where an agent learns to make "
+                        "decisions by interacting with an environment and receiving rewards or penalties."
+                    )
                 }
             ]
         }

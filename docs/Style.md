@@ -489,13 +489,6 @@
    )
    ```
 
-## Next Steps
-
-1. [Code Review Guide](docs/Review.md)
-2. [Contributing Guide](docs/Contributing.md)
-3. [Documentation Guide](docs/Documentation.md)
-4. [Testing Guide](docs/Testing.md)
-
 # Markdown Style Guide
 
 ## Overview
@@ -526,7 +519,7 @@ This guide defines the Markdown formatting standards for LlamaHome documentation
 - Indent nested lists with 2 spaces
 - Leave one blank line before and after lists
 
-```markdown
+```text
 - First item
   - Nested item
   - Another nested item
@@ -544,11 +537,9 @@ This guide defines the Markdown formatting standards for LlamaHome documentation
 - Always specify the language
 - Leave one blank line before and after code blocks
 
-```markdown
 ```python
 def example():
     return "This is a code block"
-```
 ```
 
 ### Emphasis and Strong Emphasis
@@ -600,6 +591,7 @@ This is **strong** text
 ## HTML Elements
 
 Allowed HTML elements:
+
 - `<br>` - Line breaks
 - `<details>` - Collapsible sections
 - `<summary>` - Details summary
@@ -612,6 +604,7 @@ Allowed HTML elements:
 The following names must be capitalized correctly:
 
 ### Project Names
+
 - LlamaHome
 - H2O
 - TensorBoard
@@ -621,6 +614,7 @@ The following names must be capitalized correctly:
 - LoRA
 
 ### Languages and Frameworks
+
 - Python
 - JavaScript
 - TypeScript
@@ -630,6 +624,7 @@ The following names must be capitalized correctly:
 - Django
 
 ### Tools and Platforms
+
 - GitHub
 - GitLab
 - Docker
@@ -639,6 +634,7 @@ The following names must be capitalized correctly:
 - Jupyter
 
 ### Technologies
+
 - CUDA
 - GPU
 - CPU
@@ -651,6 +647,7 @@ The following names must be capitalized correctly:
 - LLM
 
 ### Operating Systems
+
 - Linux
 - macOS
 - Windows
@@ -711,16 +708,16 @@ def process_data(input: str) -> Dict[str, Any]:
 ```
 
 Key features:
+
 - Input validation
 - Error handling
 - Return type specification
-```
 
 ## Common Issues
 
 ### Avoid
 
-- Mixing emphasis styles (*asterisk* and _underscore_)
+- Mixing emphasis styles (*asterisk* and *underscore*)
 - Skipping heading levels (# then ###)
 - Empty links or images
 - Inconsistent list marker spacing

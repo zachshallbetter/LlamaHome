@@ -1,37 +1,8 @@
 [flake8]
-# This is the flake8 configuration file for LlamaHome.
-# It is used to enforce code style and quality standards.
-# Additional knowledge can be found in the docs/Style.md and docs/Code.md files.
+# Configuration for Flake8 to enforce code style and quality standards in LlamaHome.
+# Additional guidelines can be found in docs/Style.md and docs/Code.md.
 
-# Line length should match black's configuration
-max-line-length = 150
-
-# Ignore certain errors and warnings
-extend-ignore = 
-    W291,  # trailing whitespace
-    W292,  # no newline at end of file
-    W293,  # blank line contains whitespace
-    E302,  # expected 2 blank lines, found 1
-    E303,  # too many blank lines
-    E305,  # expected 2 blank lines after class or function definition
-    ANN101,  # missing type annotation for self in method
-    ANN102,  # missing type annotation for cls in classmethod
-    ANN204,  # missing return type annotation for special method
-    ANN401,  # any type should not be used
-    D100,  # missing docstring in public module
-    D101,  # missing docstring in public class
-    D102,  # missing docstring in public method
-    D103,  # missing docstring in public function
-    D104,  # missing docstring in public package
-    D105,  # missing docstring in magic method
-    D107,  # missing docstring in __init__
-    N801,  # class names should use CapWords convention
-    N802,  # function name should be lowercase
-    N803,  # argument name should be lowercase
-    N806,  # variable in function should be lowercase
-    C901  # function is too complex
-
-# Exclude certain directories and files
+# Exclude specific directories and files from linting
 exclude =
     .git,
     __pycache__,
@@ -49,14 +20,16 @@ exclude =
     .mypy_cache,
     .pytest_cache
 
-# Per-file-ignores
+# Per-file ignores to accommodate specific file requirements
 per-file-ignores =
-    # Allow unused imports and redefinitions in __init__.py files
-    __init__.py: F401,F811
+    # Allow unused imports and redefinitions in __init__.py
+    __init__.py: F401, F811
     # Allow long lines and module-level imports in setup.py
-    setup.py: E501,E402
+    setup.py: E501, E402
     # Allow missing docstrings and assert statements in tests
-    tests/*: D100,D101,D102,D103,S101
+    tests/*: D100, D101, D102, D103, S101
+    # Apply max line length to all Python files
+    *.py: E501
 
-# Maximum complexity for functions
+# Set the maximum McCabe complexity for functions
 max-complexity = 10

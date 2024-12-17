@@ -1,10 +1,10 @@
 """Training manager utilities."""
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
-from utils.log_manager import LogManager, LogTemplates
-from src.data.training import TrainingData
+from ..core.utils import LogManager, LogTemplates
+from ..data.training import TrainingData
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 

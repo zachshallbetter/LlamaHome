@@ -16,7 +16,7 @@ import pytest
 from rich.console import Console
 
 from src.data.analyzer import TextAnalyzer, AnalysisConfig, create_analyzer
-from utils.log_manager import LogManager, LogConfig, LogTemplates
+from src.core.utils import LogManager, LogTemplates
 
 # Set up console for test output
 console = Console()

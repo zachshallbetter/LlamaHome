@@ -280,7 +280,7 @@ class TestDataAugmenter:
         input_ids = torch.randint(0, 1000, (100,))
         masked_ids = augmenter.random_mask(input_ids)
         
-        assert torch.equal(input_ids, masked_ids) == False
+        assert not torch.equal(input_ids, masked_ids)
         assert (masked_ids == augmenter.mask_token_id).sum() > 0
     
     def test_token_replacement(self, mock_config):
@@ -291,7 +291,7 @@ class TestDataAugmenter:
         input_ids = torch.randint(0, 1000, (100,))
         augmented_ids = augmenter.token_replacement(input_ids)
         
-        assert torch.equal(input_ids, augmented_ids) == False
+        assert not torch.equal(input_ids, augmented_ids)
     
     def test_augmentation_pipeline(self, mock_config):
         """Test complete augmentation pipeline."""

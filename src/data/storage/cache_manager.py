@@ -53,7 +53,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Optional, Any, Union
 
-from utils.log_manager import LogManager, LogTemplates
+from ...core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
