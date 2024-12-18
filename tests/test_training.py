@@ -1,14 +1,12 @@
-"""Tests for comprehensive training pipeline."""
+"""Training pipeline tests."""
 
 import pytest
 import torch
-import toml
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from typing import Dict, Any
 
 from src.training.pipeline import TrainingPipeline
-from src.training.monitoring import MetricsCollector
-from src.training.distributed import DistributedTrainer
+from src.training.monitoring import TrainingMetrics
+from src.training.data import DataManager
 from src.training.optimization import Optimizer
 from src.core.config_handler import ConfigManager
 
@@ -70,19 +68,16 @@ def setup_test_env(tmp_path, mock_config):
 class TestTrainingPipeline:
     """Test suite for training pipeline."""
     
-    def test_pipeline_initialization(self, setup_test_env, mock_config):
-        """Test training pipeline initialization."""
-        config_manager = ConfigManager(config_path=setup_test_env / ".config")
-        
-        pipeline = TrainingPipeline(
-            model_name="llama",
-            model_version="3.3-7b",
-            config_manager=config_manager
-        )
-        
-        assert pipeline.config == mock_config["training"]
-        assert pipeline.batch_size == 32
-        assert pipeline.learning_rate == 1e-4
+    def test_pipeline_initialization(self):
+        """Test pipeline initialization."""
+        config = {
+            "batch_size": 32,
+            "learning_rate": 0.001,
+            "epochs": 10
+        }
+        pipeline = TrainingPipeline(config)
+        assert pipeline.config == config
+        assert pipeline.current_epoch == 0
     
     def test_data_loading(self, setup_test_env, mock_config):
         """Test training data loading and preprocessing."""

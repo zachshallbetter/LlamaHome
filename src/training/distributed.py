@@ -3,7 +3,6 @@ Distributed training implementation.
 """
 
 import os
-import asyncio
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 from pathlib import Path
@@ -18,7 +17,11 @@ from .monitoring import DistributedMetrics
 from .data import StreamingDataset, DataConfig
 from .processing import ProcessingConfig, TensorProcessor
 
+
+
 @dataclass
+
+
 class DistributedConfig:
     """Distributed training configuration."""
     backend: str = "nccl"
@@ -35,9 +38,11 @@ class DistributedConfig:
     num_nodes: int = 1
     node_rank: int = 0
 
+
 class DistributedTrainer:
     """Distributed training implementation."""
-    
+
+
     def __init__(
         self,
         model: torch.nn.Module,
@@ -50,14 +55,15 @@ class DistributedTrainer:
         self.data_config = data_config or DataConfig()
         self.processing_config = processing_config or ProcessingConfig()
         self._setup_distributed()
-    
+
+
     def _setup_distributed(self) -> None:
         """Set up distributed training environment."""
         os.environ["MASTER_ADDR"] = self.config.master_addr
         os.environ["MASTER_PORT"] = self.config.master_port
         os.environ["WORLD_SIZE"] = str(self.config.world_size)
         os.environ["RANK"] = str(self.config.rank)
-        
+
         if not dist.is_initialized():
             dist.init_process_group(
                 backend=self.config.backend,
@@ -65,12 +71,13 @@ class DistributedTrainer:
                 world_size=self.config.world_size,
                 rank=self.config.rank
             )
-    
+
+
     def _setup_model(self) -> None:
         """Set up distributed model."""
         if self.config.sync_batch_norm:
             self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
-            
+
         self.model = DistributedDataParallel(
             self.model,
             device_ids=[self.config.local_rank],
@@ -79,7 +86,7 @@ class DistributedTrainer:
             gradient_as_bucket_view=self.config.gradient_as_bucket_view,
             static_graph=self.config.static_graph
         )
-    
+
     async def _setup_data(
         self,
         dataset: StreamingDataset
@@ -91,7 +98,7 @@ class DistributedTrainer:
             rank=self.config.rank,
             shuffle=self.data_config.shuffle
         )
-        
+
         return torch.utils.data.DataLoader(
             dataset,
             batch_size=self.data_config.batch_size,
@@ -100,7 +107,7 @@ class DistributedTrainer:
             pin_memory=self.data_config.pin_memory,
             prefetch_factor=self.data_config.prefetch_factor
         )
-    
+
     async def train(
         self,
         dataset: StreamingDataset,
@@ -114,14 +121,14 @@ class DistributedTrainer:
         self._setup_model()
         dataloader = await self._setup_data(dataset)
         processor = TensorProcessor(self.model, self.processing_config)
-        
+
         # Set up metrics
         metrics = DistributedMetrics(
             model_name=self.model.__class__.__name__,
             world_size=self.config.world_size,
             rank=self.config.rank
         )
-        
+
         # Training loop
         for epoch in range(num_epochs):
             dataloader.sampler.set_epoch(epoch)
@@ -132,7 +139,7 @@ class DistributedTrainer:
                 scheduler,
                 metrics
             )
-            
+
             # Save checkpoint on main process
             if self.config.rank == 0 and checkpoint_dir:
                 await self._save_checkpoint(
@@ -140,12 +147,12 @@ class DistributedTrainer:
                     epoch,
                     epoch_metrics
                 )
-            
+
             # Synchronize processes
             dist.barrier()
-        
+
         return metrics.metrics_history
-    
+
     async def _train_epoch(
         self,
         dataloader: torch.utils.data.DataLoader,
@@ -157,15 +164,15 @@ class DistributedTrainer:
         """Train single epoch with distributed support."""
         epoch_metrics = {}
         self.model.train()
-        
+
         for step, batch in enumerate(dataloader):
             # Process batch
             optimizer.zero_grad()
             batch_metrics = await processor.process_batch(batch, is_training=True)
-            
+
             # Backward pass
             batch_metrics["loss"].backward()
-            
+
             # Gradient synchronization
             if self.config.gradient_as_bucket_view:
                 optimizer.step()
@@ -175,30 +182,30 @@ class DistributedTrainer:
                         dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
                         param.grad.data /= self.config.world_size
                 optimizer.step()
-            
+
             # Update learning rate
             if scheduler is not None:
                 scheduler.step()
-            
+
             # Update metrics
             await metrics.update_metrics(
                 step + len(dataloader) * epoch,
                 batch_metrics,
                 self.model
             )
-            
+
             # Accumulate epoch metrics
             for key, value in batch_metrics.items():
                 if key not in epoch_metrics:
                     epoch_metrics[key] = 0
                 epoch_metrics[key] += value.item() if torch.is_tensor(value) else value
-        
+
         # Average epoch metrics
         for key in epoch_metrics:
             epoch_metrics[key] /= len(dataloader)
-        
+
         return epoch_metrics
-    
+
     async def _save_checkpoint(
         self,
         path: Path,
@@ -207,7 +214,7 @@ class DistributedTrainer:
     ) -> None:
         """Save training checkpoint."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         state = {
             "epoch": epoch,
             "model_state": self.model.module.state_dict(),
@@ -218,29 +225,31 @@ class DistributedTrainer:
                 "processing": self.processing_config
             }
         }
-        
+
         torch.save(state, path)
-    
+
     async def load_checkpoint(
         self,
         path: Path
     ) -> Dict:
         """Load training checkpoint."""
         state = torch.load(path, map_location=f"cuda:{self.config.local_rank}")
-        
+
         # Load model state
         self.model.module.load_state_dict(state["model_state"])
-        
+
         # Synchronize model parameters
         for param in self.model.parameters():
             dist.broadcast(param.data, src=0)
-        
+
         return state
-    
+
+
     def cleanup(self) -> None:
         """Clean up distributed training resources."""
         if dist.is_initialized():
             dist.destroy_process_group()
+
 
 def launch_distributed(
     fn,
@@ -258,6 +267,7 @@ def launch_distributed(
         join=True
     )
 
+
 class DistributedError(Exception):
     """Distributed training error."""
-    pass 
+    pass

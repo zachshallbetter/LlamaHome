@@ -3,13 +3,11 @@ Test result reporting and visualization system.
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import matplotlib.pyplot as plt
-import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
 class TestReportGenerator:
@@ -25,7 +23,7 @@ class TestReportGenerator:
         with open(results_file) as f:
             results = json.load(f)
             
-        processed_results = {
+        return {
             "total_tests": len(results),
             "passed": sum(1 for r in results if r["status"] == "passed"),
             "failed": sum(1 for r in results if r["status"] == "failed"),
@@ -34,7 +32,6 @@ class TestReportGenerator:
             "timestamp": datetime.now().isoformat(),
             "details": results
         }
-        return processed_results
         
     def generate_visualizations(self, results: Dict) -> List[str]:
         """Generate visualization plots for test results."""
@@ -104,6 +101,28 @@ class TestReportGenerator:
             json.dump(summary, f, indent=2)
             
         return report_path
+
+    def generate_report_from_results(self, results: Dict) -> str:
+        """Generate complete test report including visualizations."""
+        plot_files = self.generate_visualizations(results)
+        return self.generate_html_report(results, plot_files)
+
+    def generate_report_from_results_file(self, results_file: Path) -> str:
+        """Generate complete test report including visualizations."""
+        results = self.process_test_results(results_file)
+        return self.generate_report_from_results(results)
+
+    def generate_report_from_results_dict(self, results: Dict) -> str:
+        """Generate complete test report including visualizations."""
+        return self.generate_report_from_results(results)
+
+    def generate_report_from_results_list(self, results: List) -> str:
+        """Generate complete test report including visualizations."""
+        return self.generate_report_from_results(results)
+
+    def generate_report_from_results_dict_list(self, results: List[Dict]) -> str:
+        """Generate complete test report including visualizations."""
+        return self.generate_report_from_results(results)
 
 if __name__ == "__main__":
     import argparse

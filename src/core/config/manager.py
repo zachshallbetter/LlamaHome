@@ -11,8 +11,7 @@ from dotenv import load_dotenv
 
 from ..utils import LogManager, LogTemplates
 from .constants import (
-    ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR,
-    DATA_DIR
+    ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR, DATA_DIR
 )
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
@@ -21,7 +20,7 @@ logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 @dataclass
 class ConfigValidationError:
     """Configuration validation error."""
-    
+
     path: str
     message: str
     value: Any = None
@@ -206,6 +205,7 @@ class ConfigManager:
 
         try:
             import configparser
+
             parser = configparser.ConfigParser()
             parser.read(file_path)
             return {section: dict(parser[section]) for section in parser.sections()}

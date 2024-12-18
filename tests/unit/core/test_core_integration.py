@@ -244,3 +244,22 @@ class TestCoreIntegration:
                 
                 # Test cache cleanup
                 assert not model.attention.has_cache()
+    
+    @pytest.mark.integration
+    def test_model_config_integration(self):
+        """Test model and config integration."""
+        config_manager = ConfigManager()
+        model_manager = ModelManager(config_manager.get_model_config())
+        
+        assert model_manager.config is not None
+        assert "model_type" in model_manager.config
+    
+    @pytest.mark.integration
+    def test_model_loading(self):
+        """Test model loading functionality."""
+        config = {"model_type": "llama", "version": "7b"}
+        model = ModelManager(config).load_model("test_model")
+        
+        assert model is not None
+        assert hasattr(model, "forward")
+        assert model.config == config

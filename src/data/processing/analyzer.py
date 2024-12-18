@@ -1,7 +1,7 @@
 """
 @module text_analyzer
 @description Advanced text analysis system for LlamaHome that performs linguistic analysis,
-readability scoring, and text quality assessment. Optimized for local AI model 
+readability scoring, and text quality assessment. Optimized for local AI model
 compatibility including Llama and Stable Diffusion.
 
 @since 1.0.0
@@ -14,8 +14,12 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+
+
 try:
     import nltk
+
+
     nltk.download('punkt', quiet=True)
     nltk.download('averaged_perceptron_tagger', quiet=True)
     nltk.download('maxent_ne_chunker', quiet=True)
@@ -26,11 +30,14 @@ except ImportError:
 
 from ...core.utils import LogManager, LogTemplates
 
+
+
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 
 class AnalysisConfig:
     """Configuration for text analysis."""
+
 
     def __init__(
         self,
@@ -56,6 +63,7 @@ class AnalysisConfig:
 class TextAnalyzer:
     """Text analysis system."""
 
+
     def __init__(self, config: Optional[AnalysisConfig] = None) -> None:
         """Initialize analyzer.
 
@@ -71,6 +79,7 @@ class TextAnalyzer:
         except LookupError:
             nltk.download('punkt')
             nltk.download('averaged_perceptron_tagger')
+
 
     def process_document(self, filepath: str) -> Dict[str, Any]:
         """Process document with improved error handling and validation.
@@ -91,6 +100,7 @@ class TextAnalyzer:
         processed_content = self.extract_and_clean_text(filepath, validation_result)
         return {'validation': validation_result, 'content': processed_content}
 
+
     def validate_document_format(self, filepath: str) -> Dict[str, Any]:
         """Validate document format.
 
@@ -107,6 +117,7 @@ class TextAnalyzer:
             'extension': os.path.splitext(filepath)[1].lower()
         }
         return validation
+
 
     def extract_and_clean_text(self, filepath: str, validation: Dict[str, Any]) -> str:
         """Extract and clean text from document.
@@ -129,6 +140,7 @@ class TextAnalyzer:
             logger.warning(f"Error extracting text from {filepath}: {e}")
             return ""
 
+
     def calculate_readability_metrics(self, text: str) -> Dict[str, float]:
         """Calculate readability metrics for text.
 
@@ -146,6 +158,7 @@ class TextAnalyzer:
         metrics['cli'] = self._calculate_cli(text)
         metrics['pos_distribution'] = self._calculate_pos_distribution(text)
         return metrics
+
 
     def _calculate_pos_distribution(self, text: str) -> float:
         """Calculate part of speech distribution score.
@@ -172,6 +185,7 @@ class TextAnalyzer:
         except Exception as e:
             logger.warning(f"Error calculating POS distribution: {e}")
             return 0.0
+
 
     def _calculate_ari(self, text: str) -> float:
         """Calculate Automated Readability Index.
@@ -209,6 +223,7 @@ class TextAnalyzer:
         except Exception as e:
             logger.warning(f"Error calculating ARI: {e}")
             return 0.0
+
 
     def _calculate_cli(self, text: str) -> float:
         """Calculate Coleman-Liau Index.
@@ -248,6 +263,7 @@ class TextAnalyzer:
         except Exception as e:
             logger.warning(f"Error calculating CLI: {e}")
             return 0.0
+
 
     def _get_semantic_features(self, text: str) -> Dict[str, Any]:
         """Extract semantic features from text.

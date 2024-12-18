@@ -3,7 +3,7 @@
 import json
 import toml
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from transformers import (
@@ -12,24 +12,21 @@ from transformers import (
     TrainingArguments,
     Trainer,
     DataCollatorForLanguageModeling,
-    EarlyStoppingCallback
+    EarlyStoppingCallback,
+    TrainerCallback
 )
-from peft import (
-    LoraConfig,
-    get_peft_model,
-    prepare_model_for_kbit_training,
-    TaskType
-)
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
-
-from ..core.utils import LogManager, LogTemplates
+from src.core.models import BenchmarkManager, ModelManager
+from src.core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 
 class ProgressCallback(TrainerCallback):
     """Custom callback for training progress."""
-    
+
+
     def __init__(self):
         """Initialize progress callback."""
         self.progress = Progress(
@@ -41,7 +38,8 @@ class ProgressCallback(TrainerCallback):
         )
         self.task = None
         self.epoch_task = None
-        
+
+
     def on_train_begin(self, args, state, control, **kwargs):
         """Handle training start."""
         self.progress.start()
@@ -53,16 +51,19 @@ class ProgressCallback(TrainerCallback):
             "Current epoch",
             total=state.max_steps
         )
-        
+
+
     def on_step_end(self, args, state, control, **kwargs):
         """Handle step end."""
         self.progress.update(self.task, advance=1)
         self.progress.update(self.epoch_task, advance=1)
-        
+
+
     def on_epoch_begin(self, args, state, control, **kwargs):
         """Handle epoch start."""
         self.progress.reset(self.epoch_task)
-        
+
+
     def on_train_end(self, args, state, control, **kwargs):
         """Handle training end."""
         self.progress.stop()
@@ -71,9 +72,10 @@ class ProgressCallback(TrainerCallback):
 class ConversationDataset(Dataset):
     """Dataset for conversation samples."""
 
+
     def __init__(self, conversations: List[Dict], tokenizer, max_length: int = 512):
         """Initialize dataset.
-        
+
         Args:
             conversations: List of conversation dictionaries
             tokenizer: Tokenizer to use
@@ -83,8 +85,10 @@ class ConversationDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_length = max_length
 
+
     def __len__(self):
         return len(self.conversations)
+
 
     def __getitem__(self, idx):
         conv = self.conversations[idx]
@@ -117,6 +121,7 @@ class ConversationDataset(Dataset):
 class TrainingData:
     """Manages training data processing and storage."""
 
+
     def __init__(
         self,
         data_dir: Union[str, Path],
@@ -141,12 +146,13 @@ class TrainingData:
         self.model_manager = ModelManager()
         logger.info(f"Initialized training manager with data dir: {self.data_dir}")
 
+
     def _load_config(self, config: Optional[Dict] = None) -> Dict:
         """Load training configuration.
-        
+
         Args:
             config: Optional configuration override
-            
+
         Returns:
             Loaded configuration
         """
@@ -156,7 +162,7 @@ class TrainingData:
                 base_config = toml.load(f)["training"]
         else:
             base_config = {}
-            
+
         if config:
             # Deep merge configurations
             for key, value in config.items():
@@ -164,15 +170,16 @@ class TrainingData:
                     base_config[key].update(value)
                 else:
                     base_config[key] = value
-                    
+
         return base_config
+
 
     def _get_model_config(self, model_name: str) -> Dict:
         """Get model-specific configuration.
-        
+
         Args:
             model_name: Name of model
-            
+
         Returns:
             Model configuration
         """
@@ -201,13 +208,13 @@ class TrainingData:
         # Load samples from JSONL files
         samples = []
         sample_files = list(self.data_dir.glob("samples/*.jsonl"))
-        
+
         if not sample_files:
             logger.warning(f"No sample files found in {self.data_dir}/samples/")
             return
 
         logger.info(f"Found {len(sample_files)} sample files")
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -215,7 +222,7 @@ class TrainingData:
             TimeRemainingColumn(),
         ) as progress:
             load_task = progress.add_task("Loading samples...", total=len(sample_files))
-            
+
             for file in sample_files:
                 with open(file) as f:
                     for line in f:
@@ -240,7 +247,7 @@ class TrainingData:
             return
 
         tokenizer = AutoTokenizer.from_pretrained(str(model_path))
-        
+
         # Add special tokens for conversation format
         special_tokens = {
             "additional_special_tokens": [
@@ -249,28 +256,28 @@ class TrainingData:
             ]
         }
         tokenizer.add_special_tokens(special_tokens)
-        
+
         # Get model-specific config
         model_config = self._get_model_config(model_name)
-        
+
         # Create dataset
         dataset = ConversationDataset(
             samples,
             tokenizer,
             max_length=model_config.get("max_length", 512)
         )
-        
+
         # Split into train/validation
         val_split = model_config.get("validation_split", 0.1)
         val_size = int(len(dataset) * val_split)
         train_size = len(dataset) - val_size
-        
+
         train_dataset, val_dataset = random_split(
             dataset,
             [train_size, val_size],
             generator=torch.Generator().manual_seed(42)
         )
-        
+
         # Create dataloaders
         train_loader = DataLoader(
             train_dataset,
@@ -278,7 +285,7 @@ class TrainingData:
             shuffle=True,
             num_workers=self.max_workers
         )
-        
+
         val_loader = DataLoader(
             val_dataset,
             batch_size=model_config.get("batch_size", 4),
@@ -287,11 +294,11 @@ class TrainingData:
         )
 
         logger.info(f"Created datasets - Train: {len(train_dataset)}, Val: {len(val_dataset)}")
-        
+
         # Save processed data
         processed_dir = self.data_dir / "processed"
         processed_dir.mkdir(exist_ok=True)
-        
+
         torch.save(
             {
                 "train_samples": [train_dataset[i] for i in range(len(train_dataset))],
@@ -342,7 +349,7 @@ class TrainingData:
 
         # Get model-specific config
         model_config = self._get_model_config(model_name)
-        
+
         # Override with provided parameters
         if num_epochs is not None:
             model_config["epochs"] = num_epochs
@@ -368,7 +375,7 @@ class TrainingData:
             device_map="auto"
         )
         tokenizer = AutoTokenizer.from_pretrained(str(model_path))
-        
+
         # Add special tokens
         if "special_tokens" in config:
             tokenizer.add_special_tokens(config["special_tokens"])
@@ -389,20 +396,20 @@ class TrainingData:
 
         # Get PEFT model
         model = get_peft_model(model, lora_config)
-        
+
         # Create datasets
         train_dataset = ConversationDataset(
             train_samples,
             tokenizer,
             max_length=model_config.get("max_length", 512)
         )
-        
+
         val_dataset = ConversationDataset(
             val_samples,
             tokenizer,
             max_length=model_config.get("max_length", 512)
         )
-        
+
         # Training arguments
         training_args = TrainingArguments(
             output_dir=str(self.data_dir / "checkpoints" / f"{model_name}_{model_version}"),
@@ -444,22 +451,39 @@ class TrainingData:
 
         logger.info(f"Starting training for {model_name} {model_version}")
         logger.info(f"Training parameters: {model_config}")
-        
+
         # Train the model
         trainer.train()
-        
+
         # Save the trained model
         output_dir = self.data_dir / "models" / f"{model_name}_{model_version}_finetuned"
         trainer.save_model(str(output_dir))
         tokenizer.save_pretrained(str(output_dir))
-        
+
         # Save training metrics
         metrics = trainer.state.log_history
         metrics_file = output_dir / "training_metrics.json"
         with open(metrics_file, "w") as f:
             json.dump(metrics, f, indent=2)
-        
+
         logger.info(f"Training complete. Model and metrics saved to {output_dir}")
+
+    async def load_data(self) -> Tuple[Optional[DataLoader], Optional[DataLoader]]:
+        train_loader = DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.max_workers
+        ) if self.train_dataset else None
+
+        val_loader = DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.max_workers
+        ) if self.val_dataset else None
+
+        return train_loader, val_loader
 
 
 def create_training(

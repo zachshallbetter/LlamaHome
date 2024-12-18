@@ -69,7 +69,7 @@ poetry.lock
 .config/*.local.yaml
 .config/*.local.toml
 .llamahome/
-/data/
+.data/
 *.log
 .cache/
 benchmark_results/

@@ -1,19 +1,12 @@
-"""Tests for training cache management system."""
+"""Tests for training cache functionality."""
 
 import pytest
 import torch
-import os
-import shutil
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from typing import Dict, Any
 
-from src.training.cache import (
-    TrainingCache,
-    CachePolicy,
-    MemoryManager,
-    CachePersistence,
-    DatasetCache
-)
+from src.training.cache import TrainingCache
+from src.training.data import DataManager
+from src.core.config_handler import ConfigManager
 
 
 @pytest.fixture

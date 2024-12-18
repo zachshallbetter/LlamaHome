@@ -1,17 +1,11 @@
-"""Tests for training monitoring and visualization system."""
+"""Tests for training monitoring functionality."""
 
 import pytest
 import torch
-import numpy as np
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from typing import Dict, Any
 
-from src.training.monitoring import (
-    MetricsCollector,
-    PerformanceMonitor,
-    Visualizer,
-    DistributedMetricsAggregator
-)
+from src.training.monitoring import TrainingMetrics, MetricsConfig
+from src.core.config_handler import ConfigManager
 
 
 @pytest.fixture
@@ -125,6 +119,18 @@ class TestMetricsCollector:
         loaded_metrics = new_collector.get_metrics()
         assert loaded_metrics["train_loss"] == 0.5
         assert loaded_metrics["val_loss"] == 0.3
+    
+    def test_gradient_tracking(self):
+        """Test gradient tracking functionality."""
+        metrics = TrainingMetrics(MetricsConfig(track_gradients=True))
+        model = torch.nn.Linear(10, 2)
+        
+        # Create sample tensors and track them
+        tensors = [torch.randn(5, 10) for _ in range(3)]
+        metrics.track_gradients(model, step=0)
+        
+        assert len(metrics.get_results()) > 0
+        assert "gradient_norm" in metrics.get_results()[0].metrics
 
 
 class TestPerformanceMonitor:

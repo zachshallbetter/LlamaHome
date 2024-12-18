@@ -1,25 +1,22 @@
 """Unit tests for LlamaHome."""
 
-import os
 import sys
 import platform
 import pytest
 import torch
 import subprocess
-import toml
 from pathlib import Path
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.console import Console
 
-from src.core.utils import LogManager, LogTemplates
-from src.managers.model_manager import ModelManager
-from utils.setup_model import ModelSetup
-from utils.cache_manager import CacheManager
-from utils.system_check import run_system_checks
+from src.core.utils.system import (
+    setup_model as ModelSetup,
+    check_system_requirements as run_system_checks,
+    BenchmarkManager as run_benchmarks
+)
+from src.core.models.manager import ModelManager
 from src.data.analyzer import TextAnalyzer
-from utils.benchmark import run_benchmarks
-from src.testing.needle_test import run_needle_tests
-from tests.specialized.test_runner import SpecializedTestRunner
+from src.core.utils.cache import CacheManager
 
 # Test Categories
 CATEGORIES = {

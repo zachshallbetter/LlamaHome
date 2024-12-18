@@ -4,14 +4,15 @@ import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from ...core.utils import LogManager, LogTemplates
-from ...core.utils.cache import CacheManager
+from src.core.utils import LogManager, LogTemplates
+from src.core.cache import CacheManager
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 
 class DataManager:
     """Coordinates data operations across components."""
+
 
     def __init__(
         self,
@@ -24,10 +25,12 @@ class DataManager:
             base_path: Base directory for data operations
             config: Optional configuration dictionary
         """
-        from ..converter import FormatConverter
-        from . import StorageManager
-        from ..analyzer import TextAnalyzer
-        from ..training import TrainingDataManager
+        from src.data.processing.converter import FormatConverter
+        from src.data.storage.base import StorageManager
+        from src.data.processing.analyzer import TextAnalyzer
+        from src.data.training import TrainingDataManager
+
+
 
         self.base_path = Path(base_path) if base_path else Path.home() / '.llamahome'
         self.config = config or {}

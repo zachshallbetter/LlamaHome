@@ -8,9 +8,10 @@ from ..utils import LogManager, LogTemplates
 class BaseModel:
     """Base class for all models."""
 
+
     def __init__(self, config: Optional[Dict] = None):
         """Initialize base model.
-        
+
         Args:
             config: Optional configuration dictionary
         """

@@ -254,3 +254,13 @@ class TestHybridAttention:
         
         assert attention.has_cache()
         assert output2.shape == (batch_size, seq_len, 1024) 
+    
+    def test_attention_output_shape(self):
+        """Test attention output shape."""
+        model = HybridAttention(dim=512, num_heads=8)
+        x = torch.randn(2, 10, 512)
+        output = model(x)
+        
+        assert output.shape == x.shape
+        assert isinstance(output, torch.Tensor)
+  

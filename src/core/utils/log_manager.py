@@ -4,12 +4,12 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 
 class LogTemplates(Enum):
     """Common logging templates."""
-    
+
     SYSTEM_STARTUP = auto()
     MODEL_INIT = auto()
     TRAINING = auto()
@@ -19,9 +19,11 @@ class LogTemplates(Enum):
 
 
 @dataclass
+
+
 class LogConfig:
     """Logging configuration."""
-    
+
     level: int = logging.INFO
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: Optional[Path] = None
@@ -30,9 +32,10 @@ class LogConfig:
 class LogManager:
     """Manages logging configuration and setup."""
 
+
     def __init__(self, template: LogTemplates, config: Optional[LogConfig] = None):
         """Initialize log manager.
-        
+
         Args:
             template: Logging template to use
             config: Optional custom configuration
@@ -41,18 +44,20 @@ class LogManager:
         self.config = config or LogConfig()
         self._configure_logging()
 
+
     def get_logger(self, name: str) -> logging.Logger:
         """Get a logger instance.
-        
+
         Args:
             name: Logger name
-            
+
         Returns:
             Configured logger instance
         """
         logger = logging.getLogger(name)
         logger.setLevel(self.config.level)
         return logger
+
 
     def _configure_logging(self) -> None:
         """Configure logging based on template and config."""

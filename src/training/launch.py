@@ -3,7 +3,6 @@ Distributed training launcher.
 """
 
 import os
-import sys
 import argparse
 from pathlib import Path
 from typing import Dict, Optional
@@ -15,16 +14,16 @@ from torch.distributed.elastic.multiprocessing.errors import record
 from .distributed import DistributedTrainer, DistributedConfig
 from .data import DataConfig, StreamingDataset
 from .processing import ProcessingConfig
-from .monitoring import MetricsConfig, save_results  # Moving save_results to monitoring module
 from .model import create_model  # Assuming create_model is defined in model module
 from .optimization import create_optimizer  # Assuming create_optimizer is defined in optimizer module
 from .scheduler import create_scheduler  # Assuming create_scheduler is defined in scheduler module
-from ..core.utils import LogManager, LogTemplates
+
 
 def load_config(config_path: Path) -> Dict:
     """Load configuration from file."""
     with open(config_path) as f:
         return toml.load(f)
+
 
 def setup_environment(
     rank: int,
@@ -40,6 +39,8 @@ def setup_environment(
     os.environ["LOCAL_RANK"] = str(rank % torch.cuda.device_count())
 
 @record
+
+
 def train_worker(
     rank: int,
     world_size: int,
@@ -55,7 +56,7 @@ def train_worker(
     """Worker process for distributed training."""
     # Load configuration
     config = load_config(config_path)
-    
+
     # Set up environment
     setup_environment(
         rank + node_rank * (world_size // num_nodes),
@@ -63,7 +64,7 @@ def train_worker(
         master_addr,
         master_port
     )
-    
+
     # Create configurations
     distributed_config = DistributedConfig(
         world_size=world_size,
@@ -75,14 +76,14 @@ def train_worker(
         node_rank=node_rank,
         **config["distributed"]
     )
-    
+
     data_config = DataConfig(**config["resources"])
     processing_config = ProcessingConfig(**config["optimization"])
-    
+
     # Initialize model and move to device
     model = create_model()  # Implement based on your model
     model.to(f"cuda:{rank}")
-    
+
     # Create trainer
     trainer = DistributedTrainer(
         model,
@@ -90,7 +91,7 @@ def train_worker(
         data_config,
         processing_config
     )
-    
+
     try:
         # Load dataset
         dataset = StreamingDataset(
@@ -98,11 +99,11 @@ def train_worker(
             buffer_size=config["resources"]["prefetch_factor"],
             memory_limit=config["resources"]["max_memory"]
         )
-        
+
         # Create optimizer and scheduler
         optimizer = create_optimizer(model, config)  # Implement based on your needs
         scheduler = create_scheduler(optimizer, config)  # Implement based on your needs
-        
+
         # Train model
         metrics = trainer.train(
             dataset,
@@ -111,16 +112,17 @@ def train_worker(
             scheduler,
             output_dir / "checkpoints"
         )
-        
+
         # Save final results on main process
         if rank == 0:
             save_results(output_dir, metrics)
-            
+
     except Exception as e:
         print(f"Error in worker {rank}: {e}")
         raise
     finally:
         trainer.cleanup()
+
 
 def launch_distributed(
     config_path: Path,
@@ -137,11 +139,11 @@ def launch_distributed(
     # Determine world size if not specified
     if world_size is None:
         world_size = torch.cuda.device_count() * num_nodes
-    
+
     # Create output directory
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Launch processes
     if num_nodes > 1:
         # Multi-node training
@@ -179,6 +181,7 @@ def launch_distributed(
             nprocs=world_size
         )
 
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Distributed training launcher")
@@ -191,9 +194,9 @@ def main():
     parser.add_argument("--node-rank", type=int, default=0, help="Current node rank")
     parser.add_argument("--master-addr", default="localhost", help="Master node address")
     parser.add_argument("--master-port", default="29500", help="Master node port")
-    
+
     args = parser.parse_args()
-    
+
     launch_distributed(
         args.config,
         args.data,
@@ -207,4 +210,4 @@ def main():
     )
 
 if __name__ == "__main__":
-    main() 
+    main()

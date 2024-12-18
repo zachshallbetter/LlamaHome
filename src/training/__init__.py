@@ -16,7 +16,19 @@ from .data import (
     DataError,
     DataManager
 )
+from .distributed import (
+    DistributedConfig,
+    DistributedError,
+    DistributedMetrics,
+    DistributedTrainer,
+    launch_distributed
+)
+from .manager import (
+    TrainingManager,
+    create_training_manager
+)
 from .monitoring import (
+    MetricsCallback,
     Monitor,
     MonitorConfig,
     MonitorError,
@@ -60,14 +72,26 @@ __all__ = [
     "CacheManager",
     "DiskCache",
     "MemoryCache",
-    
+
     # Data
     "ConversationDataset",
     "DataConfig",
     "DataError",
     "DataManager",
-    
+
+    # Distributed
+    "DistributedConfig",
+    "DistributedError",
+    "DistributedMetrics",
+    "DistributedTrainer",
+    "launch_distributed",
+
+    # Manager
+    "TrainingManager",
+    "create_training_manager",
+
     # Monitoring
+    "MetricsCallback",
     "Monitor",
     "MonitorConfig",
     "MonitorError",
@@ -75,7 +99,7 @@ __all__ = [
     "ProgressMonitor",
     "ResourceMonitor",
     "TensorboardMonitor",
-    
+
     # Optimization
     "ConstantScheduler",
     "CosineScheduler",
@@ -83,7 +107,7 @@ __all__ = [
     "OptimizationConfig",
     "OptimizationError",
     "Optimizer",
-    
+
     # Pipeline
     "ProcessingConfig",
     "ProcessingError",
@@ -91,7 +115,7 @@ __all__ = [
     "TrainingConfig",
     "TrainingError",
     "TrainingPipeline",
-    
+
     # Resources
     "CPUResource",
     "GPUResource",
@@ -101,4 +125,4 @@ __all__ = [
     "ResourceError",
     "ResourceManager",
     "ResourceMonitor"
-] 
+]

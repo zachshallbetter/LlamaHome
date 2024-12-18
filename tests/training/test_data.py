@@ -1,18 +1,11 @@
-"""Tests for training data management system."""
+"""Tests for training data management."""
 
 import pytest
 import torch
-import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from typing import Dict, Any
 
-from src.training.data import (
-    DataManager,
-    DatasetProcessor,
-    CacheManager,
-    BatchGenerator,
-    DataAugmenter
-)
+from src.training.data import DataManager, DataConfig
+from src.core.config_handler import ConfigManager
 
 
 @pytest.fixture

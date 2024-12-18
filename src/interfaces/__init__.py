@@ -2,7 +2,7 @@
 
 This package contains the user interface components:
 - CLI: Command-line interface for text-based interaction
-- GUI: Graphical user interface for visual interaction 
+- GUI: Graphical user interface for visual interaction
 - API: REST API interface for programmatic interaction
 
 Each interface provides:
@@ -14,7 +14,6 @@ Each interface provides:
 
 from typing import Type, Union
 
-from .api import app
 from .cli import CLIInterface
 from .gui import GUI
 
@@ -28,6 +27,6 @@ __all__ = [
     "GUI",
     "app",
     # Type aliases
-    "Interface", 
+    "Interface",
     "InterfaceType",
 ]

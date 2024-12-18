@@ -1,19 +1,11 @@
-"""Tests for training resource management system."""
+"""Tests for training resource management."""
 
 import pytest
 import torch
-import psutil
-import os
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from typing import Dict, Any
 
-from src.training.resources import (
-    ResourceManager,
-    GPUManager,
-    CPUManager,
-    DiskManager,
-    ResourceMonitor
-)
+from src.training.resources import ResourceManager, ResourceConfig
+from src.core.config_handler import ConfigManager
 
 
 @pytest.fixture
@@ -116,6 +108,29 @@ class TestResourceManager:
         # Verify cleanup
         if torch.cuda.is_available():
             assert torch.cuda.memory_allocated() == 0
+    
+    def test_memory_limit_handling(self):
+        """Test handling of memory limits."""
+        manager = ResourceManager(ResourceConfig(memory_limit_gb=1))
+        
+        # Create a tensor that exceeds memory limit
+        huge_tensor = torch.randn(1000, 1000, 1000)  # ~4GB
+        
+        with pytest.raises(RuntimeError, match="Memory limit exceeded"):
+            manager.allocate_tensor(huge_tensor.size())
+    
+    def test_memory_tracking(self):
+        """Test memory usage tracking."""
+        manager = ResourceManager()
+        
+        # Create and track tensors
+        tensors = [torch.randn(1000, 1000) for _ in range(5)]
+        memory_stats = manager.get_memory_stats()
+        
+        assert "ram_used_gb" in memory_stats
+        assert "ram_percent" in memory_stats
+        if torch.cuda.is_available():
+            assert "gpu_0_allocated_gb" in memory_stats
 
 
 class TestGPUManager:

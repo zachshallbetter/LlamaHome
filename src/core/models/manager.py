@@ -1,6 +1,5 @@
 """Model management and coordination."""
 
-import json
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -11,9 +10,10 @@ from .base import BaseModel
 class ModelManager:
     """Manages model loading, saving, and coordination."""
 
+
     def __init__(self, config: Optional[Dict] = None):
         """Initialize model manager.
-        
+
         Args:
             config: Optional configuration dictionary
         """
@@ -21,13 +21,14 @@ class ModelManager:
         self.config = config or {}
         self.models: Dict[str, BaseModel] = {}
 
+
     def load_model(self, model_name: str, model_path: Union[str, Path]) -> BaseModel:
         """Load a model from disk.
-        
+
         Args:
             model_name: Name of the model
             model_path: Path to model files
-            
+
         Returns:
             Loaded model instance
         """
@@ -40,9 +41,10 @@ class ModelManager:
         self.models[model_name] = model
         return model
 
+
     def save_model(self, model_name: str, model_path: Union[str, Path]) -> None:
         """Save a model to disk.
-        
+
         Args:
             model_name: Name of the model to save
             model_path: Path to save model files
@@ -55,22 +57,24 @@ class ModelManager:
 
         self.logger.info(f"Saving model {model_name} to {model_path}")
         model = self.models[model_name]
-        # Add actual model saving logic here
+        model.save_pretrained(model_path)
+
 
     def list_models(self) -> List[str]:
         """List all loaded models.
-        
+
         Returns:
             List of model names
         """
         return list(self.models.keys())
 
+
     def get_model(self, model_name: str) -> BaseModel:
         """Get a loaded model by name.
-        
+
         Args:
             model_name: Name of the model to get
-            
+
         Returns:
             Model instance
         """
@@ -78,9 +82,10 @@ class ModelManager:
             raise KeyError(f"Model not found: {model_name}")
         return self.models[model_name]
 
+
     def unload_model(self, model_name: str) -> None:
         """Unload a model from memory.
-        
+
         Args:
             model_name: Name of the model to unload
         """
@@ -89,13 +94,14 @@ class ModelManager:
         del self.models[model_name]
         self.logger.info(f"Unloaded model: {model_name}")
 
+
     def download_model(self, model_name: str, model_url: str) -> Path:
         """Download a model from a URL.
-        
+
         Args:
             model_name: Name to give the downloaded model
             model_url: URL to download from
-            
+
         Returns:
             Path where model was downloaded
         """

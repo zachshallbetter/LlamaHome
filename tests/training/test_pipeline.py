@@ -1,18 +1,56 @@
-"""Tests for training pipeline system."""
+"""Tests for training pipeline functionality."""
 
+import os
 import pytest
 import torch
+from typing import Dict, Any
 import torch.nn as nn
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.training.pipeline import (
-    TrainingPipeline,
-    TrainingState,
-    EvaluationManager,
-    CheckpointManager,
-    MetricsManager
-)
+from src.training.pipeline import TrainingPipeline, TrainingConfig
+from src.training.data import DataManager
+from src.training.monitoring import MonitorManager
+from src.training.optimization import Optimizer
+from src.core.config.manager import ConfigManager
+
+
+class TrainingState:
+    """Represents the state of model training."""
+    
+    def __init__(self, epoch: int, step: int, best_metric: float, 
+                 model_state: Dict[str, Any], optimizer_state: Dict[str, Any]):
+        self.epoch = epoch
+        self.step = step
+        self.best_metric = best_metric
+        self.model_state = model_state
+        self.optimizer_state = optimizer_state
+    
+    def update(self, **kwargs):
+        """Update state attributes."""
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+    
+    def to_dict(self):
+        """Convert state to dictionary."""
+        return {
+            'epoch': self.epoch,
+            'step': self.step,
+            'best_metric': self.best_metric,
+            'model_state': self.model_state,
+            'optimizer_state': self.optimizer_state
+        }
+    
+    @classmethod
+    def from_dict(cls, state_dict):
+        """Create state from dictionary."""
+        return cls(
+            epoch=state_dict['epoch'],
+            step=state_dict['step'],
+            best_metric=state_dict['best_metric'],
+            model_state=state_dict['model_state'],
+            optimizer_state=state_dict['optimizer_state']
+        )
 
 
 @pytest.fixture
@@ -68,19 +106,21 @@ class TestTrainingPipeline:
     def test_pipeline_initialization(self, mock_config, setup_test_env):
         """Test pipeline initialization and setup."""
         pipeline = TrainingPipeline(
-            config=mock_config,
-            output_dir=setup_test_env
+            model=MagicMock(),
+            tokenizer=MagicMock(),
+            config=TrainingConfig(**mock_config)
         )
         
-        assert pipeline.batch_size == mock_config["training"]["batch_size"]
-        assert pipeline.num_epochs == mock_config["training"]["num_epochs"]
-        assert pipeline.model_name == mock_config["model"]["name"]
+        assert pipeline.config.data.batch_size == mock_config["training"]["batch_size"]
+        assert pipeline.config.num_epochs == mock_config["training"]["num_epochs"]
+        assert pipeline.model.__class__.__name__ == mock_config["model"]["name"]
     
     def test_training_workflow(self, mock_config, setup_test_env):
         """Test complete training workflow."""
         pipeline = TrainingPipeline(
-            config=mock_config,
-            output_dir=setup_test_env
+            model=MagicMock(),
+            tokenizer=MagicMock(),
+            config=TrainingConfig(**mock_config)
         )
         
         # Create mock model and datasets
@@ -98,9 +138,8 @@ class TestTrainingPipeline:
         with patch.object(pipeline, '_train_epoch') as mock_train:
             with patch.object(pipeline, '_evaluate') as mock_eval:
                 pipeline.train(
-                    model=model,
-                    train_dataset=train_dataset,
-                    val_dataset=val_dataset
+                    train_data=train_dataset,
+                    eval_data=val_dataset
                 )
                 
                 assert mock_train.call_count == mock_config["training"]["num_epochs"]
@@ -130,8 +169,9 @@ class TestTrainingPipeline:
     def test_training_hooks(self, mock_config, setup_test_env):
         """Test training hook system."""
         pipeline = TrainingPipeline(
-            config=mock_config,
-            output_dir=setup_test_env
+            model=MagicMock(),
+            tokenizer=MagicMock(),
+            config=TrainingConfig(**mock_config)
         )
         
         # Define test hooks
@@ -154,7 +194,7 @@ class TestTrainingPipeline:
         model = nn.Linear(10, 2)
         dataset = [{"input_ids": torch.randn(10), "label": 0}]
         
-        pipeline.train(model=model, train_dataset=dataset)
+        pipeline.train(train_data=dataset)
         
         assert pre_training_called
         assert post_epoch_called

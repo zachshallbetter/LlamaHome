@@ -6,11 +6,14 @@ from typing import Dict, Optional, Union
 from ..core.utils import LogManager, LogTemplates
 from ..data.training import TrainingData
 
+
+
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 
 class TrainingManager:
     """Manages training data processing and configuration."""
+
 
     def __init__(
         self,
@@ -23,7 +26,7 @@ class TrainingManager:
 
         Args:
             data_dir: Directory for training data
-            batch_size: Size of training batches 
+            batch_size: Size of training batches
             max_workers: Maximum number of worker processes
             config: Optional configuration dictionary
         """

@@ -1,18 +1,11 @@
-"""Tests for training optimization system."""
+"""Tests for training optimization functionality."""
 
 import pytest
 import torch
-import torch.nn as nn
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+import torch.nn as nn  # Added import for nn
+from typing import Dict, Any
 
-from src.training.optimization import (
-    Optimizer,
-    GradientHandler,
-    MemoryOptimizer,
-    SchedulerManager,
-    PerformanceOptimizer
-)
+from src.training.optimization import Optimizer, GradientHandler, MemoryOptimizer, SchedulerManager, PerformanceOptimizer
 
 
 @pytest.fixture

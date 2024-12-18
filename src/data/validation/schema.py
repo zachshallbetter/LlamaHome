@@ -2,13 +2,19 @@
 
 from typing import Dict
 
+
+
 try:
     import jsonschema
+
+
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
 
 from ...core.utils import LogManager, LogTemplates
+
+
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -81,20 +87,21 @@ DATA_CONFIG_SCHEMA = {
     "required": ["format", "max_length"]
 }
 
+
 def validate_schema(data: Dict, schema: Dict) -> bool:
     """Validate data against schema.
-    
+
     Args:
         data: Data to validate
         schema: JSON schema
-        
+
     Returns:
         True if validation succeeds
     """
     if not JSONSCHEMA_AVAILABLE:
         logger.warning("jsonschema not available, skipping validation")
         return True
-        
+
     try:
         jsonschema.validate(instance=data, schema=schema)
         return True
