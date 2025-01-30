@@ -78,18 +78,18 @@ from .utils.log_manager import LogManager
 ```python
 class ConfigManager:
     """Manages configuration across the system.
-    
+
     Implements a singleton pattern for centralized config management
     with support for multiple config sources and validation.
     """
-    
+
     _instance = None
-    
+
     def __new__(cls) -> 'ConfigManager':
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self) -> None:
         if not hasattr(self, 'initialized'):
             self.initialized = True
@@ -105,15 +105,15 @@ async def process_model_input(
     cache_manager: Optional[CacheManager] = None
 ) -> str:
     """Process input text through the model with caching support.
-    
+
     Args:
         text: The input text to process
         config: Model configuration dictionary
         cache_manager: Optional cache manager instance
-        
+
     Returns:
         Processed text output
-        
+
     Raises:
         ModelError: If model processing fails
         ConfigError: If configuration is invalid
@@ -121,12 +121,12 @@ async def process_model_input(
     try:
         if cache_manager and cache_manager.has_cached_result(text):
             return cache_manager.get_cached_result(text)
-            
+
         result = await model.process(text, config)
-        
+
         if cache_manager:
             cache_manager.cache_result(text, result)
-            
+
         return result
     except Exception as e:
         logger.error(f"Error processing model input: {e}")
@@ -140,7 +140,7 @@ async def process_model_input(
 ```python
 class TestConfigManager:
     """Test configuration management functionality."""
-    
+
     def setup_method(self):
         """Set up test environment."""
         self.config_manager = ConfigManager()
@@ -148,7 +148,7 @@ class TestConfigManager:
             "model_path": "/path/to/model",
             "cache_enabled": True
         }
-    
+
     def test_config_validation(self):
         """Test configuration validation logic."""
         result = self.config_manager.validate_config(self.test_config)
@@ -162,14 +162,14 @@ class TestConfigManager:
 @pytest.mark.integration
 class TestModelIntegration:
     """Test model integration with training pipeline."""
-    
+
     async def test_training_pipeline(self):
         """Test end-to-end training pipeline."""
         config = self.load_test_config()
         pipeline = TrainingPipeline(config)
-        
+
         result = await pipeline.run_training()
-        
+
         assert result.status == "success"
         assert result.metrics["loss"] < 0.1
 ```
@@ -224,22 +224,22 @@ def train_model(
     cache_enabled: bool = True
 ) -> TrainingResult:
     """Train model with specified configuration and data.
-    
+
     Implements hybrid training approach combining llama-recipes
     and H2O features for optimal performance.
-    
+
     Args:
         config: Training configuration dictionary
         data_path: Path to training data
         cache_enabled: Whether to enable training cache
-        
+
     Returns:
         TrainingResult object containing metrics and model state
-        
+
     Raises:
         TrainingError: If training fails
         DataError: If data loading fails
-        
+
     Example:
         >>> config = load_config("training_config.toml")
         >>> result = train_model(config, "data/training")
@@ -257,7 +257,7 @@ T = TypeVar('T')
 
 class CacheManager(Generic[T]):
     """Generic cache manager supporting different value types."""
-    
+
     def get_cached_value(
         self,
         key: str,
@@ -333,3 +333,11 @@ perf/optimize-cache
 - Implement proper access controls
 - Use secure communication channels
 - Regular security audits
+
+### Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request

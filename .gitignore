@@ -66,8 +66,6 @@ nosetests.xml
 
 # Project Specific
 poetry.lock
-.config/*.local.yaml
-.config/*.local.toml
 .llamahome/
 .data/
 *.log
@@ -84,3 +82,24 @@ site/
 *.temp
 .DS_Store
 Thumbs.db
+
+# Cache directories
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/

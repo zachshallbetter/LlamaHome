@@ -4,8 +4,7 @@ from typing import Any, Dict, Optional, Tuple, TypeVar
 
 import torch
 
-from .utils import LogManager, LogTemplates
-
+from src.core.utils.log_manager import LogManager, LogTemplates
 
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
@@ -16,7 +15,6 @@ T = TypeVar("T")  # For generic type hints
 class BaseCache:
     """Base class for all cache implementations."""
 
-
     def __init__(self, max_length: int):
         """Initialize base cache.
 
@@ -25,7 +23,6 @@ class BaseCache:
         """
         self.max_length = max_length
         self.cache: Dict[int, Dict[str, torch.Tensor]] = {}
-
 
     def get(self, layer_idx: int) -> Optional[Tuple[torch.Tensor, ...]]:
         """Get cached states for layer.
@@ -39,7 +36,6 @@ class BaseCache:
         if layer_idx not in self.cache:
             return None
         return (self.cache[layer_idx]["keys"], self.cache[layer_idx]["values"])
-
 
     def update(
         self,
@@ -59,7 +55,7 @@ class BaseCache:
         if layer_idx not in self.cache:
             self.cache[layer_idx] = {
                 "keys": states[0].detach(),
-                "values": states[1].detach()
+                "values": states[1].detach(),
             }
         else:
             if position is not None:
@@ -75,7 +71,6 @@ class BaseCache:
                     [self.cache[layer_idx]["values"], states[1]], dim=-2
                 )
 
-
     def clear(self, layer_idx: Optional[int] = None) -> None:
         """Clear cache for layer or all layers.
 
@@ -87,7 +82,6 @@ class BaseCache:
                 del self.cache[layer_idx]
         else:
             self.cache.clear()
-
 
     def get_seq_length(self, layer_idx: int) -> int:
         """Get sequence length for layer.
@@ -106,7 +100,6 @@ class BaseCache:
 class DynamicCache(BaseCache):
     """Dynamic cache implementation."""
 
-
     def __init__(self, initial_length: int = 1024):
         """Initialize dynamic cache.
 
@@ -114,7 +107,6 @@ class DynamicCache(BaseCache):
             initial_length: Initial cache length
         """
         super().__init__(initial_length)
-
 
     def update(
         self,
@@ -142,7 +134,6 @@ class DynamicCache(BaseCache):
 class StaticCache(BaseCache):
     """Static cache with fixed length."""
 
-
     def __init__(self, length: int):
         """Initialize static cache.
 
@@ -150,7 +141,6 @@ class StaticCache(BaseCache):
             length: Fixed maximum cache length
         """
         super().__init__(length)
-
 
     def update(
         self,
@@ -172,5 +162,9 @@ class StaticCache(BaseCache):
         # Ensure we don't exceed fixed length
         current_length = self.get_seq_length(layer_idx)
         if current_length > self.max_length:
-            self.cache[layer_idx]["keys"] = self.cache[layer_idx]["keys"][:, :, -self.max_length:]
-            self.cache[layer_idx]["values"] = self.cache[layer_idx]["values"][:, :, -self.max_length:]
+            self.cache[layer_idx]["keys"] = self.cache[layer_idx]["keys"][
+                :, :, -self.max_length :
+            ]
+            self.cache[layer_idx]["values"] = self.cache[layer_idx]["values"][
+                :, :, -self.max_length :
+            ]

@@ -1,12 +1,9 @@
 """LlamaHome core module."""
 
 from pathlib import Path
-
 from rich.console import Console
 
-from .utils import LogManager, LogTemplates
-
-
+from .utils.log_manager import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 console = Console()
@@ -29,7 +26,7 @@ def initialize_core() -> None:
         logger.info("Core initialization complete")
 
     except Exception as e:
-        logger.error(f"Core initialization error: {e}")
+        logger.error("Core initialization error: %s", str(e))
         raise
 
 

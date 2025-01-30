@@ -3,7 +3,6 @@ Distributed training launcher.
 """
 
 import os
-import argparse
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -15,8 +14,12 @@ from .distributed import DistributedTrainer, DistributedConfig
 from .data import DataConfig, StreamingDataset
 from .processing import ProcessingConfig
 from .model import create_model  # Assuming create_model is defined in model module
-from .optimization import create_optimizer  # Assuming create_optimizer is defined in optimizer module
-from .scheduler import create_scheduler  # Assuming create_scheduler is defined in scheduler module
+from .optimization import (
+    create_optimizer,
+)  # Assuming create_optimizer is defined in optimizer module
+from .scheduler import (
+    create_scheduler,
+)  # Assuming create_scheduler is defined in scheduler module
 
 
 def load_config(config_path: Path) -> Dict:
@@ -26,10 +29,7 @@ def load_config(config_path: Path) -> Dict:
 
 
 def setup_environment(
-    rank: int,
-    world_size: int,
-    master_addr: str,
-    master_port: str
+    rank: int, world_size: int, master_addr: str, master_port: str
 ) -> None:
     """Set up distributed environment."""
     os.environ["MASTER_ADDR"] = master_addr
@@ -38,9 +38,8 @@ def setup_environment(
     os.environ["RANK"] = str(rank)
     os.environ["LOCAL_RANK"] = str(rank % torch.cuda.device_count())
 
+
 @record
-
-
 def train_worker(
     rank: int,
     world_size: int,
@@ -51,7 +50,7 @@ def train_worker(
     master_addr: str = "localhost",
     master_port: str = "29500",
     node_rank: int = 0,
-    num_nodes: int = 1
+    num_nodes: int = 1,
 ) -> None:
     """Worker process for distributed training."""
     # Load configuration
@@ -62,7 +61,7 @@ def train_worker(
         rank + node_rank * (world_size // num_nodes),
         world_size,
         master_addr,
-        master_port
+        master_port,
     )
 
     # Create configurations
@@ -74,7 +73,7 @@ def train_worker(
         master_port=master_port,
         num_nodes=num_nodes,
         node_rank=node_rank,
-        **config["distributed"]
+        **config["distributed"],
     )
 
     data_config = DataConfig(**config["resources"])
@@ -86,10 +85,7 @@ def train_worker(
 
     # Create trainer
     trainer = DistributedTrainer(
-        model,
-        distributed_config,
-        data_config,
-        processing_config
+        model, distributed_config, data_config, processing_config
     )
 
     try:
@@ -97,7 +93,7 @@ def train_worker(
         dataset = StreamingDataset(
             data_path,
             buffer_size=config["resources"]["prefetch_factor"],
-            memory_limit=config["resources"]["max_memory"]
+            memory_limit=config["resources"]["max_memory"],
         )
 
         # Create optimizer and scheduler
@@ -106,11 +102,7 @@ def train_worker(
 
         # Train model
         metrics = trainer.train(
-            dataset,
-            num_epochs,
-            optimizer,
-            scheduler,
-            output_dir / "checkpoints"
+            dataset, num_epochs, optimizer, scheduler, output_dir / "checkpoints"
         )
 
         # Save final results on main process
@@ -133,7 +125,7 @@ def launch_distributed(
     num_nodes: int = 1,
     node_rank: int = 0,
     master_addr: str = "localhost",
-    master_port: str = "29500"
+    master_port: str = "29500",
 ) -> None:
     """Launch distributed training."""
     # Determine world size if not specified
@@ -159,9 +151,9 @@ def launch_distributed(
                 master_addr,
                 master_port,
                 node_rank,
-                num_nodes
+                num_nodes,
             ),
-            nprocs=local_world_size
+            nprocs=local_world_size,
         )
     else:
         # Single-node training
@@ -176,38 +168,21 @@ def launch_distributed(
                 master_addr,
                 master_port,
                 0,
-                1
+                1,
             ),
-            nprocs=world_size
+            nprocs=world_size,
         )
 
 
 def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(description="Distributed training launcher")
-    parser.add_argument("--config", type=Path, required=True, help="Path to config file")
-    parser.add_argument("--data", type=Path, required=True, help="Path to data")
-    parser.add_argument("--output", type=Path, required=True, help="Output directory")
-    parser.add_argument("--epochs", type=int, required=True, help="Number of epochs")
-    parser.add_argument("--world-size", type=int, help="Total number of processes")
-    parser.add_argument("--num-nodes", type=int, default=1, help="Number of nodes")
-    parser.add_argument("--node-rank", type=int, default=0, help="Current node rank")
-    parser.add_argument("--master-addr", default="localhost", help="Master node address")
-    parser.add_argument("--master-port", default="29500", help="Master node port")
+    """Main training launch entry point."""
+    try:
+        launcher = TrainingLauncher()
+        launcher.run()
+    except Exception as e:
+        logger.error("Training launch error: %s", str(e))
+        sys.exit(1)
 
-    args = parser.parse_args()
-
-    launch_distributed(
-        args.config,
-        args.data,
-        args.output,
-        args.epochs,
-        args.world_size,
-        args.num_nodes,
-        args.node_rank,
-        args.master_addr,
-        args.master_port
-    )
 
 if __name__ == "__main__":
     main()

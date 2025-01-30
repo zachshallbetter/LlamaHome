@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from typing import Optional
 
 import click
 from prompt_toolkit import PromptSession
@@ -18,8 +19,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ..core.utils import LogManager, LogTemplates
 from ..training import (
-
-
     CacheConfig,
     DataConfig,
     MonitorConfig,
@@ -27,35 +26,40 @@ from ..training import (
     ProcessingConfig,
     ResourceConfig,
     TrainingConfig,
-    TrainingPipeline
+    TrainingPipeline,
 )
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 console = Console()
 
+
 # Command groups
 @click.group()
-
-
 def cli():
     """LlamaHome CLI interface."""
     pass
 
+
 # Training commands
 @cli.group()
-
-
 def train():
     """Training commands."""
     pass
 
+
 @train.command()
-@click.argument('data_path', type=click.Path(exists=True))
-@click.option('--model', '-m', help='Model name/path', required=True)
-@click.option('--output', '-o', help='Output directory', default='output/training')
-@click.option('--config', '-c', help='Training config file', default=None)
-@click.option('--eval-data', '-e', help='Evaluation data path', default=None)
-async def start(data_path: str, model: str, output: str, config: Optional[str], eval_data: Optional[str]):
+@click.argument("data_path", type=click.Path(exists=True))
+@click.option("--model", "-m", help="Model name/path", required=True)
+@click.option("--output", "-o", help="Output directory", default="output/training")
+@click.option("--config", "-c", help="Training config file", default=None)
+@click.option("--eval-data", "-e", help="Evaluation data path", default=None)
+async def start(
+    data_path: str,
+    model: str,
+    output: str,
+    config: Optional[str],
+    eval_data: Optional[str],
+):
     """Start training a model."""
     try:
         # Load config
@@ -65,14 +69,9 @@ async def start(data_path: str, model: str, output: str, config: Optional[str], 
         # Load model and tokenizer
         console.print("Loading model and tokenizer...")
         model = AutoModelForCausalLM.from_pretrained(
-            model,
-            torch_dtype=torch.float16,
-            device_map="auto"
+            model, torch_dtype=torch.float16, device_map="auto"
         )
-        tokenizer = AutoTokenizer.from_pretrained(
-            model,
-            padding_side="left"
-        )
+        tokenizer = AutoTokenizer.from_pretrained(model, padding_side="left")
 
         # Initialize pipeline
         console.print("Initializing training pipeline...")
@@ -87,10 +86,11 @@ async def start(data_path: str, model: str, output: str, config: Optional[str], 
         console.print(f"[red]Training failed: {e}[/red]")
         raise click.Abort()
 
+
 @train.command()
-@click.argument('checkpoint_path', type=click.Path(exists=True))
-@click.option('--data-path', '-d', help='Training data path', required=True)
-@click.option('--eval-data', '-e', help='Evaluation data path', default=None)
+@click.argument("checkpoint_path", type=click.Path(exists=True))
+@click.option("--data-path", "-d", help="Training data path", required=True)
+@click.option("--eval-data", "-e", help="Evaluation data path", default=None)
 async def resume(checkpoint_path: str, data_path: str, eval_data: Optional[str]):
     """Resume training from a checkpoint."""
     try:
@@ -116,10 +116,11 @@ async def resume(checkpoint_path: str, data_path: str, eval_data: Optional[str])
         console.print(f"[red]Training failed: {e}[/red]")
         raise click.Abort()
 
+
 @train.command()
-@click.argument('model_path', type=click.Path(exists=True))
-@click.argument('eval_data', type=click.Path(exists=True))
-@click.option('--output', '-o', help='Output directory', default='output/eval')
+@click.argument("model_path", type=click.Path(exists=True))
+@click.argument("eval_data", type=click.Path(exists=True))
+@click.option("--output", "-o", help="Output directory", default="output/eval")
 async def evaluate(model_path: str, eval_data: str, output: str):
     """Evaluate a trained model."""
     try:
@@ -177,20 +178,18 @@ def _load_training_config(config_path: Optional[str] = None) -> TrainingConfig:
         optimization=OptimizationConfig(**config_dict.get("optimization", {})),
         processing=ProcessingConfig(**config_dict.get("processing", {})),
         resource=ResourceConfig(**config_dict.get("resource", {})),
-        **config_dict.get("training", {})
+        **config_dict.get("training", {}),
     )
+
 
 # Shell interface
 @cli.command()
-
-
 def shell():
     """Start interactive shell."""
     # Command completion
-    commands = WordCompleter([
-        'train', 'train-resume', 'train-eval',
-        'help', 'exit', 'quit'
-    ])
+    commands = WordCompleter(
+        ["train", "train-resume", "train-eval", "help", "exit", "quit"]
+    )
 
     # Create session
     session = PromptSession(completer=commands)
@@ -199,14 +198,14 @@ def shell():
         while True:
             try:
                 # Get command
-                text = await session.prompt_async('llamahome> ')
+                text = await session.prompt_async("llamahome> ")
                 command = text.strip()
 
-                if command in ['exit', 'quit']:
+                if command in ["exit", "quit"]:
                     console.print("Goodbye!")
                     break
 
-                elif command == 'help':
+                elif command == "help":
                     console.print("Available commands:")
                     console.print("  train <data_path> - Start training")
                     console.print("  train-resume <checkpoint> - Resume training")
@@ -214,26 +213,30 @@ def shell():
                     console.print("  help - Show this help message")
                     console.print("  exit/quit - Exit shell")
 
-                elif command.startswith('train '):
+                elif command.startswith("train "):
                     args = command.split()[1:]
                     if len(args) < 1:
                         console.print("[red]Error: Missing data path[/red]")
                         continue
                     await start(args[0], args[1] if len(args) > 1 else None)
 
-                elif command.startswith('train-resume '):
+                elif command.startswith("train-resume "):
                     args = command.split()[1:]
                     if len(args) < 2:
-                        console.print("[red]Error: Missing checkpoint or data path[/red]")
+                        console.print(
+                            "[red]Error: Missing checkpoint or data path[/red]"
+                        )
                         continue
                     await resume(args[0], args[1], args[2] if len(args) > 2 else None)
 
-                elif command.startswith('train-eval '):
+                elif command.startswith("train-eval "):
                     args = command.split()[1:]
                     if len(args) < 2:
                         console.print("[red]Error: Missing model or data path[/red]")
                         continue
-                    await evaluate(args[0], args[1], args[2] if len(args) > 2 else 'output/eval')
+                    await evaluate(
+                        args[0], args[1], args[2] if len(args) > 2 else "output/eval"
+                    )
 
                 else:
                     console.print(f"[red]Unknown command: {command}[/red]")
@@ -246,53 +249,65 @@ def shell():
     # Run shell
     asyncio.run(run_shell())
 
+
 @cli.group()
-
-
 def test():
     """Testing commands."""
     pass
 
+
 @test.command()
-@click.option('--unit', is_flag=True, help='Run unit tests')
-@click.option('--integration', is_flag=True, help='Run integration tests')
-@click.option('--performance', is_flag=True, help='Run performance tests')
-@click.option('--specialized', is_flag=True, help='Run specialized tests')
-@click.option('--distributed', is_flag=True, help='Run distributed tests')
-@click.option('--coverage', is_flag=True, help='Generate coverage report')
-@click.option('--gpu', is_flag=True, help='Run GPU tests')
-@click.option('--all', is_flag=True, help='Run all tests')
-
-
+@click.option("--unit", is_flag=True, help="Run unit tests")
+@click.option("--integration", is_flag=True, help="Run integration tests")
+@click.option("--performance", is_flag=True, help="Run performance tests")
+@click.option("--specialized", is_flag=True, help="Run specialized tests")
+@click.option("--distributed", is_flag=True, help="Run distributed tests")
+@click.option("--coverage", is_flag=True, help="Generate coverage report")
+@click.option("--gpu", is_flag=True, help="Run GPU tests")
+@click.option("--all", is_flag=True, help="Run all tests")
 def run(unit, integration, performance, specialized, distributed, coverage, gpu, all):
     """Run tests."""
     try:
         args = []
 
         if all:
-            args.extend(['tests/', '-v'])
+            args.extend(["tests/", "-v"])
         else:
             if unit:
-                args.extend(['tests/', '-v', '-m', 'not integration and not performance and not specialized'])
+                args.extend(
+                    [
+                        "tests/",
+                        "-v",
+                        "-m",
+                        "not integration and not performance and not specialized",
+                    ]
+                )
             if integration:
-                args.extend(['tests/', '-v', '-m', 'integration'])
+                args.extend(["tests/", "-v", "-m", "integration"])
             if performance:
-                args.extend(['tests/performance/', '-v', '-m', 'performance'])
+                args.extend(["tests/performance/", "-v", "-m", "performance"])
             if specialized:
-                args.extend(['tests/specialized/', '-v', '-m', 'specialized'])
+                args.extend(["tests/specialized/", "-v", "-m", "specialized"])
             if distributed:
-                args.extend(['tests/distributed/', '-v', '-m', 'distributed'])
+                args.extend(["tests/distributed/", "-v", "-m", "distributed"])
 
         if gpu:
-            args.append('--gpu')
+            args.append("--gpu")
 
         if coverage:
-            args.extend(['--cov=src', '--cov-report=html', '--cov-report=xml'])
+            args.extend(["--cov=src", "--cov-report=html", "--cov-report=xml"])
 
         if not args:
-            args.extend(['tests/', '-v', '-m', 'not integration and not performance and not specialized'])
+            args.extend(
+                [
+                    "tests/",
+                    "-v",
+                    "-m",
+                    "not integration and not performance and not specialized",
+                ]
+            )
 
-        result = subprocess.run(['pytest'] + args, check=True)
+        result = subprocess.run(["pytest"] + args, check=True)
         if result.returncode != 0:
             console.print("[red]Tests failed[/red]")
             sys.exit(1)
@@ -301,5 +316,15 @@ def run(unit, integration, performance, specialized, distributed, coverage, gpu,
         console.print(f"[red]Error running tests: {e}[/red]")
         sys.exit(1)
 
-if __name__ == '__main__':
-    cli()
+
+def main() -> None:
+    """Main CLI entry point."""
+    try:
+        cli()
+    except Exception as e:
+        logger.error("CLI error: %s", str(e))
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

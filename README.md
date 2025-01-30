@@ -29,6 +29,9 @@ A comprehensive environment for running, training, and optimizing Llama models w
 - CUDA-capable GPU (for GPU acceleration)
 - 16GB+ RAM (32GB+ recommended)
 - 50GB+ storage space
+- Trunk CLI
+- Poetry
+- Git
 
 ### Installation
 
@@ -49,12 +52,18 @@ A comprehensive environment for running, training, and optimizing Llama models w
    make setup
    ```
 
-3. **Configure Environment**
+3. **Initialize Trunk**
+
+   ```bash
+   trunk init
+   ```
+
+4. **Configure Environment**
 
    ```bash
    # Copy example configuration
    cp .env.example .env
-   
+
    # Edit configuration
    nano .env
    ```
@@ -71,7 +80,7 @@ A comprehensive environment for running, training, and optimizing Llama models w
 
    ```python
    from llamahome import LlamaHome
-   
+
    app = LlamaHome()
    result = await app.process("Summarize this text")
    print(result)
@@ -103,12 +112,14 @@ graph TB
 ### Key Components
 
 1. **Core System**
+
    - Central orchestration
    - Request handling
    - Resource management
    - Error handling
 
 2. **Model Management**
+
    - Model lifecycle
    - Resource optimization
    - Performance monitoring
@@ -153,12 +164,14 @@ llamahome/
 ### Directory Overview
 
 - `src/`: Main source code
+
   - `core/`: Core system functionality
   - `data/`: Data management and processing
   - `interfaces/`: User interface implementations
   - `utils/`: Utility functions and helpers
 
 - `tests/`: Comprehensive test suite
+
   - `unit/`: Unit tests for individual components
   - `integration/`: Integration tests for system flows
   - `performance/`: Performance and benchmark tests
@@ -229,14 +242,6 @@ security:
    make lint
    ```
 
-### Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
 ## Documentation
 
 ### Core Documentation
@@ -258,12 +263,14 @@ security:
 ### Hardware Requirements
 
 1. **Minimum Requirements**
+
    - CPU: 4 cores, 2.5GHz+
    - RAM: 16GB
    - Storage: 50GB SSD
    - GPU: 8GB VRAM (for 7B model)
 
 2. **Recommended Requirements**
+
    - CPU: 8+ cores, 3.5GHz+
    - RAM: 32GB
    - Storage: 100GB NVMe SSD
@@ -278,6 +285,7 @@ security:
 ### Optimization Features
 
 1. **Memory Optimization**
+
    - Smart caching
    - Resource pooling
    - Memory-mapped files
@@ -294,6 +302,7 @@ security:
 ### Security Features
 
 1. **Authentication**
+
    - Token-based auth
    - Role-based access
    - Session management
@@ -310,6 +319,7 @@ security:
 ### Getting Help
 
 1. **Documentation**
+
    - [User Guide](docs/User.md)
    - [FAQ](docs/FAQ.md)
    - [Troubleshooting](docs/Troubleshooting.md)
@@ -333,6 +343,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Upcoming Features
 
 1. **Short Term**
+
    - Enhanced GPU optimization
    - Improved cache management
    - Extended API capabilities

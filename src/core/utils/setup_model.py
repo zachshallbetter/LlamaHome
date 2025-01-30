@@ -5,20 +5,20 @@ from typing import Optional
 
 import torch
 
-from ..utils import LogManager, LogTemplates
+from src.core.utils.log_manager import LogManager, LogTemplates
 
 
 class ModelSetup:
     """Handles model setup and initialization."""
 
-
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize model setup."""
         self.logger = LogManager(LogTemplates.MODEL_INIT).get_logger(__name__)
         self.device = self._get_device()
 
-
-    def setup_model(self, model_name: str, version: str, device: Optional[str] = None) -> bool:
+    def setup_model(
+        self, model_name: str, version: str, device: Optional[str] = None
+    ) -> bool:
         """Set up a model for use.
 
         Args:
@@ -39,7 +39,6 @@ class ModelSetup:
         except Exception as e:
             self.logger.error(f"Error setting up model: {e}")
             return False
-
 
     def _get_device(self) -> str:
         """Get the best available compute device.

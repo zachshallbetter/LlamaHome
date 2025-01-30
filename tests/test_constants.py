@@ -7,13 +7,13 @@ from typing import Any, Dict
 import pytest
 import toml
 
-from src.core.model_constants import SUPPORTED_MODELS, ENV_VARS
+from src.core.constants import ENV_VARS, SUPPORTED_MODELS
 
 
 @pytest.fixture(scope="session")
 def test_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Create and return a temporary test data directory."""
-    return tmp_path_factory.mktemp("test_data")
+    return Path(tmp_path_factory.mktemp("test_data"))
 
 
 @pytest.fixture(scope="session")
@@ -53,12 +53,12 @@ def clean_env() -> None:
     # Store original environment
     original_env = dict(os.environ)
 
-    # Clear relevant environment variables
-    for var in ENV_VARS:
-        os.environ.pop(var, None)
-
-    yield
-
-    # Restore original environment
-    os.environ.clear()
-    os.environ.update(original_env)
+    try:
+        # Clear relevant environment variables
+        for var in ENV_VARS:
+            os.environ.pop(var, None)
+        yield
+    finally:
+        # Restore original environment
+        os.environ.clear()
+        os.environ.update(original_env)

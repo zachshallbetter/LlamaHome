@@ -1,0 +1,45 @@
+version: 0.1
+cli:
+  version: 1.17.1
+
+plugins:
+  sources:
+    - id: trunk
+      ref: v1.2.6
+      uri: https://github.com/trunk-io/plugins
+      
+lint:
+  enabled:
+    - black@23.9.1:
+        line-length: 120
+    - ruff@0.1.6:
+        line-length: 120
+        select: ["E", "F", "B"]
+        ignore: ["E501"]
+    - mypy@1.13.0:
+        python-version: "3.11"
+        disallow-untyped-defs: false
+        check-untyped-defs: true
+        warn-return-any: false
+        ignore-missing-imports: true
+        follow-imports: "silent"
+
+  ignore:
+    - linters: [ALL]
+      paths:
+        - .cache/
+        - .data/
+        - .trunk/
+        - .logs/
+        - .github/
+        - "*.pyc"
+        - "*.pyo"
+        - "*.pyd"
+        - "*.so"
+
+actions:
+  enabled:
+    - trunk-announce
+    - trunk-check-pre-push
+    - trunk-fmt-pre-commit
+    - trunk-upgrade-available

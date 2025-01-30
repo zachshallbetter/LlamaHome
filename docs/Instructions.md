@@ -5,17 +5,21 @@
 LlamaHome is a hybrid implementation combining llama-recipes and H2O features for optimal performance. The system follows these key principles:
 
 1. Architecture Pattern
+
    - Modular core components with clear separation of concerns
    - Hybrid attention mechanisms combining multiple approaches
    - Comprehensive caching and resource management
    - Asynchronous operations for optimal performance
 
 2. Implementation Standards
+
    - Python 3.11 (3.13 not supported)
    - Async/await for I/O operations
    - Type hints and comprehensive docstrings
    - Singleton pattern for managers
    - Dependency injection where appropriate
+   - Code quality enforced via Trunk
+   - Consistent formatting with black and ruff
 
 3. Core Components
    - Model management with hybrid features
@@ -26,6 +30,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
 ## Current State
 
 1. Implemented Features
+
    - Core model management system
    - Basic training pipeline
    - Configuration management
@@ -34,6 +39,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
    - CLI interface
 
 2. In Progress
+
    - Advanced attention mechanisms
    - Resource optimization
    - Performance monitoring
@@ -52,12 +58,12 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
    ```python
    class ModelManager:
        _instance = None
-       
+
        def __new__(cls) -> 'ModelManager':
            if cls._instance is None:
                cls._instance = super().__new__(cls)
            return cls._instance
-       
+
        async def initialize_model(self, config: Dict[str, Any]) -> Model:
            """Initialize model with hybrid features."""
            pass
@@ -68,7 +74,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
    ```python
    class HybridAttention:
        """Combines llama-recipes and H2O attention features."""
-       
+
        async def compute_attention(
            self,
            input_tensor: torch.Tensor,
@@ -82,7 +88,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
    ```python
    class TrainingPipeline:
        """Implements hybrid training approach."""
-       
+
        async def train(
            self,
            data: Dataset,
@@ -94,6 +100,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
 ## Key Considerations
 
 1. Performance
+
    - Use async/await for I/O operations
    - Implement proper caching strategies
    - Monitor resource utilization
@@ -101,6 +108,7 @@ LlamaHome is a hybrid implementation combining llama-recipes and H2O features fo
    - Handle large datasets efficiently
 
 2. Error Handling
+
    - Use specific exception types
    - Implement proper cleanup
    - Log errors with context
@@ -137,6 +145,7 @@ src/
 ## Configuration System
 
 1. Hierarchy
+
    - Base configurations in `.config/`
    - Environment-specific overrides
    - Runtime parameters
@@ -151,6 +160,7 @@ src/
 ## Testing Strategy
 
 1. Test Types
+
    - Unit tests for components
    - Integration tests for workflows
    - Performance benchmarks
@@ -164,10 +174,13 @@ src/
 ## Documentation Requirements
 
 1. Code Documentation
+
    - Comprehensive docstrings
    - Type hints
    - Implementation notes
    - Performance considerations
+   - Trunk configuration (.trunk/trunk.yaml)
+   - Linting rules and standards
 
 2. Architecture Documentation
    - Component interactions
@@ -178,20 +191,47 @@ src/
 ## Development Workflow
 
 1. Branch Strategy
-   - feature/* for new features
-   - bugfix/* for bug fixes
-   - perf/* for optimizations
-   - docs/* for documentation
+
+   - feature/\* for new features
+   - bugfix/\* for bug fixes
+   - perf/\* for optimizations
+   - docs/\* for documentation
 
 2. Commit Messages
 
    ```text
    type(scope): concise description
-   
+
    - Implementation details
    - Design decisions
    - Performance implications
    ```
+
+3. Code Quality
+
+   ```bash
+   # Before committing:
+   trunk check
+
+   # To auto-fix issues:
+   trunk check --fix
+   ```
+
+## Development Setup
+
+1. Required Tools
+
+   - Python 3.11+
+   - Poetry for dependency management
+   - Trunk for code quality
+
+     ```bash
+     # Install Trunk
+     curl https://get.trunk.io -fsSL | bash
+
+     # Initialize in repository
+     trunk init
+     ```
 
 ## Critical Paths
 
@@ -233,12 +273,14 @@ src/
 ## Integration Points
 
 1. Model Integration
+
    - llama-recipes model management
    - H2O optimization features
    - Custom attention mechanisms
    - Resource monitoring
 
 2. Training Integration
+
    - Data pipeline
    - Optimization strategies
    - Progress monitoring
@@ -253,12 +295,14 @@ src/
 ## Next Actions
 
 1. Immediate Tasks
+
    - Complete hybrid attention implementation
    - Enhance training pipeline
    - Implement advanced caching
    - Add comprehensive monitoring
 
 2. Upcoming Features
+
    - Advanced resource optimization
    - Enhanced security controls
    - Extended monitoring capabilities
@@ -273,12 +317,14 @@ src/
 ## Handoff Notes
 
 1. Current Focus
+
    - Implementing hybrid attention mechanisms
    - Optimizing training pipeline
    - Enhancing resource management
    - Improving monitoring system
 
 2. Known Issues
+
    - Memory optimization needed
    - Cache invalidation refinement
    - Resource cleanup enhancement

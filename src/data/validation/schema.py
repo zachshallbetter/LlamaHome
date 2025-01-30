@@ -2,19 +2,14 @@
 
 from typing import Dict
 
-
-
 try:
     import jsonschema
-
 
     JSONSCHEMA_AVAILABLE = True
 except ImportError:
     JSONSCHEMA_AVAILABLE = False
 
 from ...core.utils import LogManager, LogTemplates
-
-
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -27,9 +22,9 @@ TRAINING_CONFIG_SCHEMA = {
             "properties": {
                 "name": {"type": "string"},
                 "type": {"type": "string"},
-                "path": {"type": "string"}
+                "path": {"type": "string"},
             },
-            "required": ["name", "type"]
+            "required": ["name", "type"],
         },
         "training": {
             "type": "object",
@@ -38,21 +33,21 @@ TRAINING_CONFIG_SCHEMA = {
                 "epochs": {"type": "integer", "minimum": 1},
                 "learning_rate": {"type": "number", "minimum": 0},
                 "optimizer": {"type": "string"},
-                "scheduler": {"type": "string"}
+                "scheduler": {"type": "string"},
             },
-            "required": ["batch_size", "epochs", "learning_rate"]
+            "required": ["batch_size", "epochs", "learning_rate"],
         },
         "data": {
             "type": "object",
             "properties": {
                 "train_path": {"type": "string"},
                 "val_path": {"type": "string"},
-                "test_path": {"type": "string"}
+                "test_path": {"type": "string"},
             },
-            "required": ["train_path"]
-        }
+            "required": ["train_path"],
+        },
     },
-    "required": ["model", "training", "data"]
+    "required": ["model", "training", "data"],
 }
 
 # Model configuration schema
@@ -64,9 +59,9 @@ MODEL_CONFIG_SCHEMA = {
         "num_layers": {"type": "integer", "minimum": 1},
         "num_heads": {"type": "integer", "minimum": 1},
         "dropout": {"type": "number", "minimum": 0, "maximum": 1},
-        "activation": {"type": "string"}
+        "activation": {"type": "string"},
     },
-    "required": ["architecture", "hidden_size", "num_layers", "num_heads"]
+    "required": ["architecture", "hidden_size", "num_layers", "num_heads"],
 }
 
 # Data configuration schema
@@ -75,16 +70,10 @@ DATA_CONFIG_SCHEMA = {
     "properties": {
         "format": {"type": "string"},
         "max_length": {"type": "integer", "minimum": 1},
-        "preprocessing": {
-            "type": "array",
-            "items": {"type": "string"}
-        },
-        "augmentation": {
-            "type": "array",
-            "items": {"type": "string"}
-        }
+        "preprocessing": {"type": "array", "items": {"type": "string"}},
+        "augmentation": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["format", "max_length"]
+    "required": ["format", "max_length"],
 }
 
 

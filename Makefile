@@ -22,7 +22,7 @@ MODEL_DATA := $(DATA_DIR)/models
 METRICS_DATA := $(DATA_DIR)/metrics
 
 # Config files
-TRAINING_CONFIG := $(CONFIG_DIR)/training_config.yaml
+TRAINING_CONFIG := $(CONFIG_DIR)/training_config.toml
 MODELS_CONFIG := $(CONFIG_DIR)/models.json
 ENV_FILE := .env
 
@@ -53,7 +53,7 @@ setup-env:
 .PHONY: setup-config
 setup-config:
 	@echo "Setting up configuration..."
-	@test -f $(TRAINING_CONFIG) || cp config/training_config.yaml.example $(TRAINING_CONFIG)
+	@test -f $(TRAINING_CONFIG) || cp config/training_config.toml.example $(TRAINING_CONFIG)
 	@test -f $(MODELS_CONFIG) || cp config/models.json.example $(MODELS_CONFIG)
 	@test -f $(ENV_FILE) || cp .env.example $(ENV_FILE)
 	@echo "Configuration files ready"

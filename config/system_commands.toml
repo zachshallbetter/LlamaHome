@@ -10,29 +10,46 @@ cleanup_temp = true
 
 [security]
 sandbox_mode = true
-restricted_paths = [ "/etc", "/usr", "/var", "/root", "/home", "/opt", "/srv",]
+restricted_paths = ["/etc", "/usr", "/var", "/root", "/home", "/opt", "/srv"]
 require_authentication = true
 audit_logging = true
 max_concurrent_commands = 5
-allowed_env_vars = [ "PATH", "PYTHONPATH", "VIRTUAL_ENV", "HOME", "USER", "SHELL", "LOGNAME", "HOSTNAME", "LANG", "LC_ALL",]
+allowed_env_vars = [
+  "PATH",
+  "PYTHONPATH",
+  "VIRTUAL_ENV",
+  "HOME",
+  "USER",
+  "SHELL",
+  "LOGNAME",
+  "HOSTNAME",
+  "LANG",
+  "LC_ALL",
+]
 checksum_verification = true
 
 [commands.shell_execute]
 enabled = false
 require_approval = true
-allowed_commands = [ "ls", "pwd", "echo", "cat", "head", "tail", "grep",]
+allowed_commands = ["ls", "pwd", "echo", "cat", "head", "tail", "grep"]
 timeout = 30
 max_output_size = 2097152
-restricted_paths = [ "/", "/root", "/home", "/etc", "/usr", "/var",]
+restricted_paths = ["/", "/root", "/home", "/etc", "/usr", "/var"]
 block_redirects = true
-env_whitelist = [ "PATH", "PWD", "USER", "HOME", "SHELL", "LANG", "LC_ALL",]
-env_blacklist = [ "PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE", "LD_LIBRARY_PATH", "LD_PRELOAD",]
+env_whitelist = ["PATH", "PWD", "USER", "HOME", "SHELL", "LANG", "LC_ALL"]
+env_blacklist = [
+  "PYTHONPATH",
+  "PYTHONHOME",
+  "PYTHONUSERBASE",
+  "LD_LIBRARY_PATH",
+  "LD_PRELOAD",
+]
 max_command_length = 256
 
 [commands.shell_pipe]
 enabled = false
 require_approval = true
-allowed_pipes = [ "grep", "sort", "head", "tail", "wc", "cut", "sed", "awk",]
+allowed_pipes = ["grep", "sort", "head", "tail", "wc", "cut", "sed", "awk"]
 max_pipe_length = 3
 timeout = 60
 max_output_size = 1048576
@@ -41,7 +58,7 @@ max_output_size = 1048576
 enabled = false
 require_approval = true
 max_background_jobs = 2
-allowed_commands = [ "pytest", "black", "ruff", "mypy", "isort",]
+allowed_commands = ["pytest", "black", "ruff", "mypy", "isort"]
 job_timeout = 300
 monitor_resources = true
 max_memory = "512MB"

@@ -6,33 +6,32 @@ version = "0.1.0"
 description = "A powerful and flexible home for your LLM projects"
 authors = ["Zach Shallbetter <zach@shallbetter.com>"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{ include = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pyyaml = "*"
-toml = "*"
-torch = "^2.1.0"
-transformers = "^4.36.0"
-accelerate = "^0.25.0"
-bitsandbytes = "^0.41.0"
-peft = "^0.6.0"
-tensorboard = "^2.15.0"
-rich = "^13.7.0"
-prompt-toolkit = "^3.0.41"
-psutil = "^5.9.0"
-llama-recipes = "^0.0.1"
+python = ">=3.11,<3.12"
+torch = "^2.1.1"
+torchvision = "^0.16.1"
+torchaudio = "^2.1.1"
+einops = "^0.7.0"
+pydantic = "^2.0.0"
+PyYAML = "^6.0"
+fire = "^0.5.0"
+httpx = "^0.25.0"
+huggingface-hub = ">=0.24.0"
+prompt-toolkit = "^3.0.0"
 python-dotenv = "^1.0.0"
-flash-attn = "^2.3.3"
-nltk = "^3.8.1"
-pymupdf = "^1.23.6"
-aiofiles = "^23.2.1"
-jsonschema = "^4.20.0"
-fastapi = "^0.104.1"
-pyqt6 = "^6.6.0"
-plotly = "^5.18.0"
-matplotlib = "^3.8.2"
-pylint = "^3.0.3"
+requests = "^2.31.0"
+rich = "^13.0.0"
+termcolor = "^2.3.0"
+toml = "^0.10.2"
+transformers = ">=4.47.1"
+
+[tool.poetry.group.cuda]
+optional = true
+
+[tool.poetry.group.cuda.dependencies]
+flash-attn = "^2.3.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

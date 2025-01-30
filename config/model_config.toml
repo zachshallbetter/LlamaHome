@@ -1,26 +1,26 @@
 [models."llama3.3"]
 name = "Llama 3.3"
-versions = [ "7b", "13b", "70b",]
-variants = [ "base", "chat",]
+versions = ["7b", "13b", "70b"]
+variants = ["base", "chat"]
 requires_gpu = true
 max_tokens = 32768
 context_window = 8192
-temperature_range = [ 0.1, 2.0,]
+temperature_range = [0.1, 2.0]
 
 [models.gpt4]
 name = "GPT-4 Turbo"
 requires_key = true
 max_tokens = 128000
 context_window = 128000
-temperature_range = [ 0.0, 2.0,]
-env_vars = [ "LLAMAHOME_GPT4_API_KEY", "LLAMAHOME_GPT4_ORG_ID",]
+temperature_range = [0.0, 2.0]
+env_vars = ["LLAMAHOME_GPT4_API_KEY", "LLAMAHOME_GPT4_ORG_ID"]
 
 [models.claude]
 name = "Claude 3"
 requires_key = true
-model_variants = [ "opus", "sonnet", "haiku",]
-temperature_range = [ 0.0, 1.0,]
-env_vars = [ "LLAMAHOME_CLAUDE_API_KEY", "LLAMAHOME_CLAUDE_ORG_ID",]
+model_variants = ["opus", "sonnet", "haiku"]
+temperature_range = [0.0, 1.0]
+env_vars = ["LLAMAHOME_CLAUDE_API_KEY", "LLAMAHOME_CLAUDE_ORG_ID"]
 
 [models."llama3.3".min_gpu_memory]
 7b = 8

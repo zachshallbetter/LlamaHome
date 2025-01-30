@@ -121,17 +121,20 @@ monitoring:
 The training pipeline consists of several integrated components:
 
 1. **Data Management**
+
    - Efficient data loading and preprocessing
    - Dynamic batching and caching
    - Distributed data sampling
 
 2. **Model Optimization**
+
    - Hybrid attention mechanism
    - Gradient accumulation and clipping
    - Memory-efficient training
    - Automatic mixed precision
 
 3. **Monitoring System**
+
    - Real-time metrics collection
    - Performance monitoring
    - Resource tracking
@@ -183,7 +186,7 @@ sampler = trainer.create_distributed_sampler(dataset)
 trainer.train(model, dataset, sampler)
 ```
 
-### Monitoring and Visualization
+### Performance Monitoring and Visualization Setup
 
 ```python
 from src.training.monitoring import MetricsCollector, Visualizer
@@ -203,18 +206,21 @@ visualizer.plot_losses(
 ## Best Practices
 
 1. **Resource Management**
+
    - Monitor GPU memory usage
    - Use gradient accumulation for large models
    - Enable automatic mixed precision
    - Implement proper cleanup
 
 2. **Distributed Training**
+
    - Use NCCL backend for GPU training
    - Implement proper error handling
    - Synchronize gradients correctly
    - Handle process coordination
 
 3. **Monitoring**
+
    - Track essential metrics
    - Set up proper logging
    - Use interactive visualizations
@@ -231,12 +237,14 @@ visualizer.plot_losses(
 Common issues and solutions:
 
 1. **Memory Issues**
+
    - Reduce batch size
    - Enable gradient accumulation
    - Use memory-efficient attention
    - Monitor GPU memory usage
 
 2. **Distributed Training**
+
    - Check network connectivity
    - Verify NCCL installation
    - Monitor process synchronization
