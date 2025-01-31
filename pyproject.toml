@@ -125,7 +125,10 @@ platform_specific = [
 ]
 
 [tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["tests*", "docs*"]
 
 # Code formatting
 [tool.black]
