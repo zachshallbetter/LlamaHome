@@ -9,23 +9,20 @@ on:
 jobs:
   trunk-check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, "3.10"]
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pre-commit
+          pip install -e ".[dev]"
 
       - name: Run pre-commit checks
         run: |
@@ -33,7 +30,4 @@ jobs:
 
       - name: Run linters
         run: |
-          $(BIN)/ruff check .
-          $(BIN)/black --check .
-          $(BIN)/isort --check-only .
-          $(BIN)/mypy src/
+          make lint

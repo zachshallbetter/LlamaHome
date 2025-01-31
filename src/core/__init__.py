@@ -42,10 +42,13 @@ def initialize_core() -> None:
 
 __all__ = [
     "GPUConfig",
-    "MemoryConfig",
+    "MemoryConfig", 
     "MonitorConfig",
     "ResourceConfig",
     "PerformanceMonitor",
     "DeviceAllocator",
     "MultiGPUManager",
+    "initialize_core",
+    "console",
+    "logger"
 ]

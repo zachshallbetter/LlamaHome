@@ -9,35 +9,24 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, "3.10"]
 
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-xdist
+        pip install -e ".[test]"
         
-    - name: Run unit tests
+    - name: Run tests
       run: |
-        pytest tests/ -v -n auto --cov=src --cov-report=xml
-        
-    - name: Run specialized tests
-      run: |
-        python -m pytest tests/specialized/ -v --cov=src --cov-append
-        
-    - name: Performance baseline tests
-      run: |
-        python tests/performance/run_benchmarks.py
+        make test-coverage
         
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -45,6 +34,7 @@ jobs:
         name: test-results
         path: |
           coverage.xml
+          htmlcov/
           test-results/
           performance-results/
         
@@ -61,19 +51,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: "3.10"
+        python-version: "3.11"
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -e ".[test]"
         
-    - name: Run distributed training tests
+    - name: Run distributed tests
       run: |
-        python tests/distributed/test_training.py
+        make test-distributed
         
     - name: Upload distributed test results
       uses: actions/upload-artifact@v3
