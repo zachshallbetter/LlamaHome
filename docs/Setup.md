@@ -1,5 +1,47 @@
 # LlamaHome Setup Guide
 
+## Table of Contents
+
+- [Quick Start Guide](#quick-start-guide)
+- [Detailed Configuration](#detailed-configuration)
+- [Common Setup Scenarios](#common-setup-scenarios)
+- [Troubleshooting Guide](#troubleshooting-guide)
+- [Performance Optimization](#performance-optimization)
+- [Maintenance](#maintenance)
+- [Advanced Setup](#advanced-setup)
+- [Role-Based Setup Guide](#role-based-setup-guide)
+- [Next Steps](#next-steps)
+
+## System Requirements
+
+### Core Requirements
+
+```yaml
+python:
+  version: ">=3.11,<3.13"  # Python 3.11 required, 3.13 not yet supported
+  packages: "requirements.txt"
+
+cuda:
+  version: ">=11.7,<=12.1"
+  toolkit: "required for GPU support"
+  drivers: ">=470.63.01"
+
+os:
+  linux: "Ubuntu 20.04+ / CentOS 8+"
+  macos: "11.0+ (Big Sur)"
+  windows: "10/11 with WSL2"
+```
+
+### Hardware Requirements
+
+```yaml
+hardware:
+  cpu: "4+ cores recommended"
+  ram: "16GB minimum"
+  gpu: "CUDA-capable (optional)"
+  storage: "50GB+ recommended"
+```
+
 ## Quick Start Guide
 
 ### First-Time Setup
@@ -11,7 +53,7 @@
    python --version
    
    # Check GPU requirements (if using GPU)
-   nvidia-smi  # For NVIDIA GPUs
+   nvidia-smi  # For NVIDIA GPUs (optional)
    ```
 
 2. **Installation**

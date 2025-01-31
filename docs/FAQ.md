@@ -12,6 +12,10 @@
 - [Security](#security)
 - [Community](#community)
 
+## Overview
+
+This document provides answers to frequently asked questions about LlamaHome, including installation, configuration, model management, performance, troubleshooting, development, security, and community.
+
 ## General Questions
 
 ### What is LlamaHome?

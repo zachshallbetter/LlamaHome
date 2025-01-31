@@ -1,6 +1,55 @@
 # LlamaHome Configuration Guide
 
-This document details the configuration system and available settings in LlamaHome.
+## Table of Contents
+
+- [Configuration Files](#configuration-files)
+- [Environment Variables](#environment-variables)
+- [Model Configuration](#model-configuration)
+- [Type Checking Configuration](#type-checking-configuration)
+- [Code Quality Configuration](#code-quality-configuration)
+- [Cache Configuration](#cache-configuration)
+- [Log Configuration](#log-configuration)
+- [Configuration Management](#configuration-management)
+- [Best Practices](#best-practices)
+- [Usage Examples](#usage-examples)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's configuration system, including configuration files, environment variables, model configuration, type checking configuration, code quality configuration, cache configuration, log configuration, configuration management, best practices, and usage examples.
+
+```mermaid
+graph TB
+    Config[Configuration Manager] --> Files[Config Files]
+    Config --> Env[Environment Variables]
+    Config --> Runtime[Runtime Config]
+    Config --> Validation[Config Validation]
+
+    subgraph Config Files
+        Files --> YAML[YAML Files]
+        Files --> JSON[JSON Files]
+        Files --> TOML[TOML Files]
+        Files --> INI[INI Files]
+    end
+
+    subgraph Environment Variables
+        Env --> Core[Core Settings]
+        Env --> Model[Model Settings] 
+        Env --> System[System Settings]
+        Env --> API[API Settings]
+    end
+
+    subgraph Runtime Configuration
+        Runtime --> CLI[CLI Parameters]
+        Runtime --> API[API Parameters]
+        Runtime --> Dynamic[Dynamic Settings]
+    end
+
+    subgraph Validation Layer
+        Validation --> Schema[Schema Validation]
+        Validation --> Types[Type Checking]
+        Validation --> Required[Required Fields]
+    end
+```
 
 ## Configuration Files
 
@@ -18,7 +67,7 @@ LlamaHome uses multiple configuration files for different aspects of the system:
 
 ### Environment Variables
 
-Primary configuration through `.env`:
+Adding standardized environment variables section:
 
 ```bash
 # Core settings
@@ -52,6 +101,10 @@ LLAMAHOME_CACHE_SIZE=1024
 LLAMAHOME_API_HOST=localhost
 LLAMAHOME_API_PORT=8000
 LLAMAHOME_API_TIMEOUT=30
+
+# Security
+LLAMAHOME_API_KEY=${YOUR_API_KEY}
+LLAMAHOME_SECRET_KEY=${YOUR_SECRET_KEY}
 
 # Document Processing
 LLAMAHOME_MAX_FILE_SIZE=10485760  # 10MB
@@ -575,4 +628,97 @@ make setup
 # Production
 export LLAMAHOME_ENV=production
 make setup
+```
+
+## Configuration Validation
+
+Adding validation section:
+
+```python
+from pydantic import BaseModel, Field
+
+class LlamaConfig(BaseModel):
+    """Validation model for Llama configuration."""
+    model: str = Field(..., description="Model identifier")
+    model_size: str = Field(..., description="Model size (e.g., '13b')")
+    model_variant: str = Field("chat", description="Model variant")
+    model_quant: str = Field("f16", description="Quantization format")
+    num_gpu_layers: int = Field(32, ge=0, description="Number of GPU layers")
+    max_seq_len: int = Field(32768, ge=0, description="Maximum sequence length")
+    max_batch_size: int = Field(8, ge=1, description="Maximum batch size")
+
+class H2OConfig(BaseModel):
+    """Validation model for H2O configuration."""
+    enabled: bool = Field(True, description="Enable H2O optimization")
+    window_length: int = Field(512, ge=0, description="Window length")
+    heavy_hitters: int = Field(128, ge=0, description="Number of heavy hitters")
+```
+
+## Common Configurations
+
+Adding standardized configurations section:
+
+```yaml
+# Development configuration
+development:
+  debug: true
+  logging_level: DEBUG
+  monitoring:
+    enabled: true
+    update_frequency: 10
+  cache:
+    memory_size: 1000
+    disk_size: 5000
+
+# Production configuration
+production:
+  debug: false
+  logging_level: INFO
+  monitoring:
+    enabled: true
+    update_frequency: 100
+  security:
+    authentication: true
+    ssl_enabled: true
+  cache:
+    memory_size: 10000
+    disk_size: 50000
+```
+
+## Cache Configuration Standards
+
+### Memory Units
+All cache sizes should be specified in MB (megabytes):
+
+```yaml
+cache:
+  memory:
+    size: 1000  # MB (1 GB)
+    min_size: 100  # MB
+    max_size: 10000  # MB
+  disk:
+    size: 10000  # MB (10 GB)
+    min_size: 1000  # MB
+    max_size: 100000  # MB
+```
+
+### Cache Types
+```yaml
+model_cache:
+  size: 1024  # MB
+  format: "safetensors"
+  compression: true
+  cleanup_policy: "lru"
+
+training_cache:
+  size: 512  # MB
+  batch_buffer: 32
+  prefetch: 4
+  cleanup_policy: "fifo"
+
+system_cache:
+  size: 256  # MB
+  temp_dir: ".cache/temp"
+  max_age: 86400  # seconds
+  cleanup_policy: "time"
 ```

@@ -1,5 +1,15 @@
 # LlamaHome Features
 
+## Table of Contents
+
+- [Current Features](#current-features)
+- [Upcoming Features](#upcoming-features)
+- [H2O Integration Details](#h2o-integration-details)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's current and upcoming features, including core features, long context processing, training optimizations, memory management, available tools, document processing, development tools, and more.
+
 ## Current Features
 
 ### Core Features

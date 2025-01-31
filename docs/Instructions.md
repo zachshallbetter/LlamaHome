@@ -1,5 +1,28 @@
 # Agent Instructions
 
+## Table of Contents
+
+- [System Context](#system-context)
+- [Architecture Pattern](#architecture-pattern)
+- [Implementation Standards](#implementation-standards)
+- [Core Components](#core-components)
+- [Current State](#current-state)
+- [Implementation Patterns](#implementation-patterns)
+- [Key Considerations](#key-considerations)
+- [Directory Structure](#directory-structure)
+- [Configuration System](#configuration-system)
+- [Testing Strategy](#testing-strategy)
+- [Documentation Requirements](#documentation-requirements)
+- [Development Workflow](#development-workflow)
+- [Critical Paths](#critical-paths)
+- [Integration Points](#integration-points)
+- [Next Actions](#next-actions)
+- [Handoff Notes](#handoff-notes)
+
+## Overview
+
+This document provides a comprehensive set of instructions for developing LlamaHome, including system context, architecture patterns, implementation standards, core components, current state, implementation patterns, key considerations, directory structure, configuration system, testing strategy, documentation requirements, development workflow, critical paths, integration points, next actions, handoff notes, and more.
+
 ## System Context
 
 LlamaHome is a hybrid implementation combining llama-recipes and H2O features for optimal performance. The system follows these key principles:

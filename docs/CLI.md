@@ -1,8 +1,30 @@
 # LlamaHome Command-Line Interface (CLI)
 
-The LlamaHome CLI provides a robust, interactive environment for managing, testing, and refining large language models, particularly the Llama model family. With shell-like features, auto-completion, and a rich command set, you can easily execute tasks—from model downloads and listings to starting interactive chat sessions.
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Getting Started](#getting-started)
+- [CLI Features](#cli-features)
+- [Advanced Usage](#advanced-usage)
+- [Configuration & Integration](#configuration-and-integration)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+- [Next Steps](#next-steps)
 
 ## Overview
+
+This document provides a comprehensive overview of LlamaHome's command-line interface (CLI), including key features, getting started, CLI features, advanced usage, configuration & integration, troubleshooting, best practices, and next steps.
+
+```mermaid
+graph TD
+    A[CLI Interface] --> B[Core System]
+    B --> C[Model Management]
+    B --> D[Cache System]
+    B --> E[Config Management]
+    B --> F[Training Pipeline]
+    B --> G[Inference Pipeline]
+```
 
 ### Key Features
 

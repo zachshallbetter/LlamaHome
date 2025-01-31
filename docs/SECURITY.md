@@ -1,5 +1,22 @@
 # Security Policy
 
+## Table of Contents
+
+- [Supported Versions](#supported-versions)
+- [Reporting a Vulnerability](#reporting-a-vulnerability)
+- [Security Best Practices](#security-best-practices)
+- [Security Features](#security-features)
+- [Security Monitoring](#security-monitoring)
+- [Incident Response](#incident-response)
+- [Compliance](#compliance)
+- [Training](#training)
+- [Updates](#updates)
+- [Contact](#contact)
+
+## Overview
+
+This document outlines the security policies and procedures for LlamaHome. It includes information on supported versions, reporting vulnerabilities, security best practices, and incident response processes.
+
 ## Supported Versions
 
 Use this section to tell people about which versions of your project are currently being supported with security updates.

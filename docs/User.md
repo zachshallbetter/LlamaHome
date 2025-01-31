@@ -9,6 +9,10 @@
 - [Troubleshooting](#troubleshooting)
 - [Examples](#examples)
 
+## Overview
+
+LlamaHome is a user-friendly interface for interacting with large language models. It provides a command-line interface (CLI) for basic interactions and a graphical user interface (GUI) for more advanced features.
+
 ## Getting Started
 
 ### Installation

@@ -1,4 +1,39 @@
-# Training Architecture
+# Data Architecture
+
+## Table of Contents
+
+- [Design Decisions](#design-decisions)
+- [Data Pipeline](#data-pipeline)
+- [State Management](#state-management)
+- [Integration Points](#integration-points)
+- [Performance Considerations](#performance-considerations)
+- [Error Handling](#error-handling)
+- [Testing Strategy](#testing-strategy)
+- [Configuration](#configuration)
+- [Known Limitations](#known-limitations)
+- [Future Considerations](#future-considerations)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's data architecture, including design decisions, data pipeline, state management, integration points, performance considerations, error handling, testing strategy, configuration, known limitations, and future considerations.
+
+```mermaid
+graph TD
+    A[Data Architecture] --> B[Design Decisions]
+    A --> C[Data Pipeline]
+    A --> D[State Management]
+    A --> E[Integration Points]
+    A --> F[Performance Considerations]
+    A --> G[Error Handling]
+    A --> H[Testing Strategy]
+    A --> I[Configuration]
+    A --> J[Known Limitations]
+    A --> K[Future Considerations]
+```
+
+## Data Architecture Overview
+
+LlamaHome's data architecture is designed to be modular, scalable, and efficient. It uses a streaming approach with async processing to handle large datasets and complex training tasks. The architecture is designed to be flexible and extensible, allowing for easy customization and integration with other systems.
 
 ## Design Decisions
 
@@ -19,9 +54,61 @@ class TrainingPipeline:
 
 Key considerations:
 
-- Memory efficiency over processing speed
-- Disk I/O optimization
-- Resource-aware scheduling
+- Memory efficiency prioritized over raw processing speed
+  - Streaming data loading with configurable batch sizes
+  - Automatic garbage collection of processed batches
+  - Memory-mapped files for large datasets
+
+- Optimized disk I/O operations
+  - Asynchronous prefetching and buffering
+  - Compressed data formats (e.g. Arrow, Parquet)
+  - Sequential read patterns where possible
+
+- Intelligent resource scheduling
+  - Dynamic load balancing across GPUs
+  - CPU/GPU memory monitoring
+  - Automatic batch size adjustment
+
+- Parallel processing capabilities
+  - Multi-GPU training support
+  - Distributed data loading
+  - Pipeline parallelism
+
+- Model-aware data handling
+  - Format-specific tokenization
+  - Adaptive sequence length
+  - Model-specific data augmentation
+
+- Robust validation pipeline
+  - Schema validation
+  - Data type checking
+  - Missing value handling
+  - Outlier detection
+
+- Smart caching system
+  - LRU cache for frequent data
+  - Disk-backed caching for large datasets
+  - Cache invalidation policies
+
+- Flexible data distribution
+  - Dynamic sharding
+  - Load-balanced partitioning
+  - Cross-validation splits
+
+- Comprehensive versioning
+  - Dataset versioning
+  - Preprocessing step tracking
+  - Training run history
+
+- Data quality assurance
+  - Automated quality checks
+  - Data drift detection
+  - Consistency validation
+
+- Enterprise-grade security
+  - Data encryption at rest
+  - Access control and auditing
+  - Secure data deletion
 
 ### State Management
 

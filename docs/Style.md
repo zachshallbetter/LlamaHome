@@ -1,4 +1,18 @@
-# LlamaHome Style Guide
+# Code Style Guide
+
+## Table of Contents
+
+- [Code Style Overview](#code-style-overview)
+- [Python Style Guide](#python-style-guide)
+- [Testing Style](#testing-style)
+- [Configuration Style](#configuration-style)
+- [API Style](#api-style)
+- [Documentation Style](#documentation-style)
+- [Markdown Style Guide](#markdown-style-guide)
+
+## Overview
+
+This document outlines the coding standards and best practices for LlamaHome. These guidelines are enforced by tools like `black`, `isort`, `mypy`, `ruff`, and `pylint`.
 
 ## Code Style Overview
 

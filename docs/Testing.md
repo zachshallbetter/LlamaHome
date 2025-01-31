@@ -1,5 +1,19 @@
 # Testing Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Test Categories](#test-categories)
+- [Test Data](#test-data)
+- [Running Tests](#running-tests)
+- [Test Coverage](#test-coverage)
+- [Writing Tests](#writing-tests)
+- [Continuous Integration](#continuous-integration)
+- [Performance Testing](#performance-testing)
+- [Debugging Tests](#debugging-tests)
+- [Contributing Tests](#contributing-tests)
+- [Test Maintenance](#test-maintenance)
+
 ## Overview
 
 This document outlines the testing infrastructure and practices for the LlamaHome project. Our testing strategy encompasses unit tests, integration tests, performance tests, and system tests.

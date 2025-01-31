@@ -1,5 +1,23 @@
 # LlamaHome GUI Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Quick Start Tutorial](#quick-start-tutorial)
+- [Common Use Cases](#common-use-cases)
+- [Advanced Use Cases](#advanced-use-cases)
+- [Interface Guide](#interface-guide)
+- [Power User Features](#power-user-features)
+- [Configuration Guide](#configuration-guide)
+- [User Role Guide](#user-role-guide)
+- [Accessibility Features](#accessibility-features)
+- [Troubleshooting](#troubleshooting)
+- [Performance Optimization](#performance-optimization)
+- [Integration Guide](#integration-guide)
+- [Best Practices](#best-practices)
+- [Next Steps](#next-steps)
+
 ## Overview
 
 The LlamaHome GUI provides a user-friendly environment for interacting with large language models. It allows you to quickly test prompts, refine generated content, and configure performance parameters—all without diving into terminal commands.

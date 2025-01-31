@@ -1,5 +1,20 @@
 # Performance Optimization Guide
 
+## Table of Contents
+
+- [Memory Management](#memory-management)
+- [Data Processing](#data-processing)
+- [Training Optimization](#training-optimization)
+- [Resource Utilization](#resource-utilization)
+- [Configuration](#configuration)
+- [Best Practices](#best-practices)
+- [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
+
+## Overview
+
+This document provides a comprehensive guide to optimizing LlamaHome's performance, covering memory management, data processing, training optimizations, resource utilization, configuration, best practices, monitoring, and troubleshooting.
+
 ## Memory Management
 
 ### Training Optimizations

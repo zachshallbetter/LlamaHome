@@ -1,5 +1,20 @@
 # Training System
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Quick Start](#quick-start)
+- [Distributed Training](#distributed-training)
+- [Monitoring and Visualization](#monitoring-and-visualization)
+- [Directory Structure](#directory-structure)
+- [Configuration](#configuration)
+- [Training Pipeline](#training-pipeline)
+- [Advanced Features](#advanced-features)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Next Steps](#next-steps)
+
 ## Overview
 
 LlamaHome's training system provides a comprehensive environment for fine-tuning large language models with advanced features for monitoring, optimization, and distributed training. The system integrates H2O's efficient attention mechanisms with llama-recipes' training capabilities, offering a hybrid approach that maximizes both performance and efficiency.

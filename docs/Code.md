@@ -1,5 +1,23 @@
 # LlamaHome Python Code Style Guide
 
+## Table of Contents
+
+- [General Principles](#general-principles)
+- [Readability](#readability)
+- [Consistency](#consistency)
+- [Code Organization](#code-organization)
+- [Testing](#testing)
+- [Error Handling](#error-handling)
+- [Documentation](#documentation)
+- [Performance](#performance)
+- [Version Control](#version-control)
+- [Security](#security)
+- [Contributing](#contributing)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's coding style guide, including general principles, readability, consistency, code organization, testing, error handling, documentation, performance, version control, security, and contributing.
+
 ## General Principles
 
 ### Readability

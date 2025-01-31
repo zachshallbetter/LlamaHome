@@ -1,5 +1,20 @@
 # LlamaHome Model Configuration and Integration
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Supported Models](#supported-models)
+- [Model Configuration](#model-configuration)
+- [Model Management Features](#model-management-features)
+- [Storage Management](#storage-management)
+- [Model Integration](#model-integration)
+- [Security](#security)
+- [Best Practices](#best-practices)
+- [Configuration Details](#configuration-details)
+- [Troubleshooting](#troubleshooting)
+- [Performance Optimization](#performance-optimization)
+- [Future Considerations](#future-considerations)
+
 ## Overview
 
 LlamaHome offers a comprehensive framework for managing and utilizing language models, specifically focusing on the Llama model family. This system supports efficient model downloading, versioning, and configuration management, ensuring optimal performance and resource utilization.
@@ -8,7 +23,7 @@ LlamaHome offers a comprehensive framework for managing and utilizing language m
 
 The system currently supports the following models:
 
-- Llama 3.3 7B
+- Llama 3.3
 - Additional versions can be configured through the `models.json` file.
 
 ## Model Configuration

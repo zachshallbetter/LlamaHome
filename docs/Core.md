@@ -1,5 +1,21 @@
 # LlamaHome Core Architecture
 
+## Table of Contents
+
+- [System Overview](#system-overview)
+- [Core Components](#core-components)
+- [Model Management](#model-management)
+- [Configuration Management](#configuration-management)
+- [Cache Management](#cache-management)
+- [Interface Layer](#interface-layer)
+- [System Integration](#system-integration)
+- [Performance Optimization](#performance-optimization)
+- [Next Steps](#next-steps)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's core architecture, including system components, model management, configuration management, cache management, interface layer, system integration, performance optimization, and next steps. 
+
 ## System Overview
 
 ### Core Components

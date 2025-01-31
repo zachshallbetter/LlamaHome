@@ -1,6 +1,24 @@
 # LlamaHome API Guide
 
+## Table of Contents
+
+- [API Overview](#api-overview)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
+- [Integration Patterns](#integration-patterns)
+- [Security](#security)
+- [Monitoring](#monitoring)
+- [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
+- [Next Steps](#next-steps)
+
+## Overview
+
+This document provides a comprehensive overview of LlamaHome's API, including core concepts, architecture, key features, quick start, API reference, integration patterns, security, monitoring, error handling, best practices, and next steps.
+
 ## API Overview
+
+LlamaHome's API is designed to provide a robust, scalable, and secure interface for interacting with large language models. It supports both synchronous and asynchronous operations, with support for streaming responses and batch processing.
 
 ### Core Concepts
 
