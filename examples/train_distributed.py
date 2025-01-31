@@ -8,7 +8,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.core.resource.config import GPUConfig
 from src.training import (
     DistributedTrainer,
-    OptimizerConfig,
+    OptimizationConfig,
     SchedulerConfig,
     TrainingConfig,
 )
@@ -26,7 +26,7 @@ async def train_distributed() -> None:
         gradient_accumulation_steps=4,
         learning_rate=2e-5,
         num_epochs=3,
-        optimizer=OptimizerConfig(
+        optimizer=OptimizationConfig(
             name="adamw", weight_decay=0.01, beta1=0.9, beta2=0.999
         ),
         scheduler=SchedulerConfig(name="cosine", num_warmup_steps=100),

@@ -3,7 +3,7 @@ Training pipeline components.
 """
 
 from .cache import Cache, CacheConfig, CacheError, CacheManager, DiskCache, MemoryCache
-from .data import DataConfig, DataError, DataManager, StreamingDataset
+from .data import DataConfig, DataError, DataManager
 from .distributed import (
     DistributedConfig,
     DistributedError,
@@ -18,9 +18,9 @@ from .monitoring import (
     MonitorError,
     MonitorManager,
     ProgressMonitor,
-    ResourceMonitor as MonitoringResourceMonitor,
-    TensorboardMonitor,
 )
+from .monitoring import ResourceMonitor as MonitoringResourceMonitor
+from .monitoring import TensorboardMonitor
 from .optimization import (
     ConstantScheduler,
     CosineScheduler,
@@ -56,7 +56,6 @@ __all__ = [
     "DiskCache",
     "MemoryCache",
     # Data
-    "StreamingDataset",
     "DataConfig",
     "DataError",
     "DataManager",

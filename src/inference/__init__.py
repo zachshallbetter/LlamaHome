@@ -2,13 +2,14 @@
 Inference module for LlamaHome.
 """
 
-from .config import CacheConfig, InferenceConfig, ProcessingConfig, ResourceConfig
+from .config import InferenceConfig
+from .manager import InferenceManager
 from .pipeline import InferencePipeline
+from .streaming import StreamingInference
 
 __all__ = [
-    "CacheConfig",
     "InferenceConfig",
-    "ProcessingConfig",
-    "ResourceConfig",
+    "InferenceManager",
     "InferencePipeline",
+    "StreamingInference",
 ]

@@ -3,7 +3,7 @@ Training monitoring and metrics system.
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -25,7 +25,7 @@ from ..core.utils.memory_tracker import MemoryTracker
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
 
-@dataclass 
+@dataclass
 class MonitorConfig:
     """Monitoring configuration."""
 

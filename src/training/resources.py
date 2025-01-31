@@ -3,17 +3,18 @@ Resource management implementation for training pipeline.
 """
 
 import asyncio
-import psutil
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Callable, Dict, List, Optional
 
+import psutil
 import torch
 
 
 @dataclass
 class ResourceConfig:
     """Resource configuration."""
+
     gpu_memory_fraction: float = 0.9
     cpu_usage_threshold: float = 0.8
     io_queue_size: int = 1000
@@ -23,14 +24,17 @@ class ResourceConfig:
 class Resource(ABC):
     """Abstract base class for resources."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize resource."""
         self._lock = asyncio.Lock()
         self._in_use = False
+        self._usage_history: List[float] = []
+        self._queue: asyncio.Queue = asyncio.Queue()
 
     @abstractmethod
     async def is_available(self) -> bool:
         """Check if resource is available."""
-        pass
+        raise NotImplementedError("Must implement is_available")
 
     async def wait(self) -> None:
         """Wait for resource availability."""
@@ -42,6 +46,21 @@ class Resource(ABC):
     def release(self) -> None:
         """Release resource."""
         self._in_use = False
+
+    @abstractmethod
+    async def get_memory_info(self) -> Dict[str, float]:
+        """Get memory usage information."""
+        raise NotImplementedError("Must implement get_memory_info")
+
+    @abstractmethod
+    async def get_cpu_info(self) -> Dict[str, float]:
+        """Get CPU usage information."""
+        raise NotImplementedError("Must implement get_cpu_info")
+
+    @abstractmethod
+    async def get_io_info(self) -> Dict[str, float]:
+        """Get I/O usage information."""
+        raise NotImplementedError("Must implement get_io_info")
 
 
 class GPUResource(Resource):
@@ -78,7 +97,7 @@ class GPUResource(Resource):
             "allocated": torch.cuda.memory_allocated(),
             "reserved": torch.cuda.memory_reserved(),
             "total": self.total_memory,
-            "available": self.total_memory - torch.cuda.memory_allocated()
+            "available": self.total_memory - torch.cuda.memory_allocated(),
         }
 
 
@@ -123,7 +142,17 @@ class CPUResource(Resource):
             "count": self.cpu_count,
             "usage": psutil.cpu_percent(percpu=True),
             "average": self._get_average_usage(),
-            "memory": dict(psutil.virtual_memory()._asdict())
+            "memory": dict(psutil.virtual_memory()._asdict()),
+        }
+
+    async def get_memory_info(self) -> Dict[str, float]:
+        """Get memory usage information."""
+        mem = psutil.virtual_memory()
+        return {
+            "total": float(mem.total),
+            "available": float(mem.available),
+            "used": float(mem.used),
+            "percent": float(mem.percent),
         }
 
 
@@ -147,7 +176,7 @@ class IOResource(Resource):
 
         return self._queue.qsize() < self.queue_size
 
-    async def queue_operation(self, operation: callable) -> None:
+    async def queue_operation(self, operation: Callable[[], Any]) -> Any:
         """Queue an I/O operation."""
         await self._queue.put(operation)
         try:
@@ -163,7 +192,17 @@ class IOResource(Resource):
             "read_bytes": current.read_bytes - self._io_counters.read_bytes,
             "write_bytes": current.write_bytes - self._io_counters.write_bytes,
             "queue_size": self._queue.qsize(),
-            "queue_capacity": self.queue_size
+            "queue_capacity": self.queue_size,
+        }
+
+    async def get_memory_info(self) -> Dict[str, float]:
+        """Get memory usage information."""
+        disk = psutil.disk_usage("/")
+        return {
+            "total": float(disk.total),
+            "used": float(disk.used),
+            "free": float(disk.free),
+            "percent": float(disk.percent),
         }
 
 
@@ -175,15 +214,12 @@ class ResourceManager:
         self.resources = {
             "gpu": GPUResource(self.config.gpu_memory_fraction),
             "cpu": CPUResource(self.config.cpu_usage_threshold),
-            "io": IOResource(self.config.io_queue_size)
+            "io": IOResource(self.config.io_queue_size),
         }
 
     async def wait_for_resources(self) -> None:
         """Wait for all resources to be available."""
-        await asyncio.gather(*[
-            resource.wait()
-            for resource in self.resources.values()
-        ])
+        await asyncio.gather(*[resource.wait() for resource in self.resources.values()])
 
     def release_resources(self) -> None:
         """Release all resources."""
@@ -195,10 +231,11 @@ class ResourceManager:
         return {
             "gpu": self.resources["gpu"].get_memory_info(),
             "cpu": self.resources["cpu"].get_cpu_info(),
-            "io": self.resources["io"].get_io_info()
+            "io": self.resources["io"].get_io_info(),
         }
 
 
 class ResourceError(Exception):
     """Resource management error."""
+
     pass

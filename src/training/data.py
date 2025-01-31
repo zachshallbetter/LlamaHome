@@ -116,7 +116,9 @@ class ConversationDataset(Dataset):
             "labels": labels.squeeze(0),
         }
 
-    def _format_conversation(self, conversation: Dict[str, List[Dict[str, str]]]) -> str:
+    def _format_conversation(
+        self, conversation: Dict[str, List[Dict[str, str]]]
+    ) -> str:
         """Format conversation for model input."""
         formatted = []
 
@@ -216,7 +218,9 @@ class DataManager:
             self.cache_dir = Path(self.config.cache_dir)
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    async def _load_raw_data(self, data_path: Union[str, Path]) -> List[Dict[str, List[Dict[str, str]]]]:
+    async def _load_raw_data(
+        self, data_path: Union[str, Path]
+    ) -> List[Dict[str, List[Dict[str, str]]]]:
         """Load raw data from file."""
         data_path = Path(data_path)
 
@@ -264,7 +268,10 @@ class DataManager:
 
     def _split_data(
         self, data: List[Dict[str, List[Dict[str, str]]]]
-    ) -> Tuple[List[Dict[str, List[Dict[str, str]]]], Optional[List[Dict[str, List[Dict[str, str]]]]]]:
+    ) -> Tuple[
+        List[Dict[str, List[Dict[str, str]]]],
+        Optional[List[Dict[str, List[Dict[str, str]]]]],
+    ]:
         """Split data into train and validation sets."""
         if not self.config.validation_split:
             return data, None

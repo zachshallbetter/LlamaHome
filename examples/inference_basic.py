@@ -1,27 +1,21 @@
 """Basic inference example."""
 
-import asyncio
-from pathlib import Path
+from src.inference import InferenceManager
+from src.inference.config import InferenceConfig
 
-import torch
+# Create inference configuration
+# ruff: noqa: E501
+config = InferenceConfig(
+    model_name="llama3.3-7b",
+    batch_size=4,
+    max_length=1024,
+    temperature=0.8
+)
 
-from src.inference import InferenceConfig, InferencePipeline
+# Initialize inference manager
+manager = InferenceManager(config)
 
-
-async def run_inference() -> None:
-    """Run basic inference example."""
-    config = InferenceConfig(
-        model_name="gpt2",
-        device="cuda" if torch.cuda.is_available() else "cpu",
-    )
-
-    pipeline = InferencePipeline(config)
-
-    prompt = "Once upon a time"
-    response = await pipeline.generate(prompt)
-    print(f"Input: {prompt}")
-    print(f"Output: {response}")
-
-
-if __name__ == "__main__":
-    asyncio.run(run_inference())
+# Run inference
+text = "Summarize this article:"
+result = manager.generate(text)
+print(result)

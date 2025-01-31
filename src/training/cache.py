@@ -34,17 +34,11 @@ Caching implementation with memory and disk tiers for training pipeline.
 """
 
 @dataclass
-
-
 class CacheConfig:
     """Cache configuration."""
-    memory_size: int = 1000
-    disk_size: int = 10000
-    cleanup_interval: int = 3600
-    max_age_days: int = 7
-    use_mmap: bool = True
-    compression: bool = True
-    async_writes: bool = True
+    cache_dir: Union[str, Path] = Path(".cache")
+    max_size: int = 1000  # MB
+    cleanup_interval: int = 3600  # seconds
 
 
 class Cache(ABC):
@@ -260,15 +254,12 @@ class CacheManager:
     """Cache management with multiple tiers."""
 
 
-    def __init__(
-        self,
-        cache_dir: Union[str, Path],
-        config: Optional[CacheConfig] = None
-    ):
+    def __init__(self, cache_dir: Union[str, Path], config: Optional[CacheConfig] = None) -> None:
         self.config = config or CacheConfig()
+        self.cache_dir = Path(cache_dir) if isinstance(cache_dir, str) else cache_dir
         self.memory_cache = MemoryCache(self.config.memory_size)
         self.disk_cache = DiskCache(
-            cache_dir,
+            self.cache_dir,
             self.config.disk_size,
             self.config
         )

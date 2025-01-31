@@ -3,7 +3,9 @@ Configuration classes for inference.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Union
+from typing import Optional
+
+from ..core.resource import GPUConfig
 
 
 @dataclass
@@ -46,14 +48,17 @@ class ResourceConfig:
 
 @dataclass
 class InferenceConfig:
-    """Main inference configuration."""
+    """Inference configuration."""
 
-    cache: CacheConfig = CacheConfig()
-    processing: ProcessingConfig = ProcessingConfig()
-    resource: ResourceConfig = ResourceConfig()
-    model_revision: Optional[str] = None
-    trust_remote_code: bool = False
-    use_auth_token: Optional[str] = None
-    device: Optional[str] = None
-    dtype: Optional[str] = "float16"
-    quantization: Optional[str] = None  # "int8", "int4", etc.
+    model_name: str
+    model_path: Optional[str] = None
+    gpu_config: GPUConfig = GPUConfig()
+    batch_size: int = 1
+    max_length: int = 2048
+    temperature: float = 0.7
+    top_p: float = 0.9
+    top_k: int = 50
+    repetition_penalty: float = 1.1
+    num_return_sequences: int = 1
+    stream_output: bool = False
+    use_cache: bool = True

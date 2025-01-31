@@ -1,31 +1,30 @@
 """Streaming inference example."""
 
+from src.inference import InferenceConfig, StreamingInference
+from src.core.resource import GPUConfig
+from src.core.config import ModelConfig
+
+# Load model configuration
+model_config = ModelConfig()
+
+# Create inference configuration
+config = InferenceConfig(
+    model_name=model_config.name,
+    batch_size=1,
+    max_length=2048,
+    stream_output=True,
+    gpu_config=GPUConfig()
+)
+
+# Initialize streaming inference
+inference = StreamingInference(config)
+
+# Run streaming inference
+async def process_stream():
+    text = "Write a story about:"
+    async for token in inference.generate_stream(text):
+        print(token, end="", flush=True)
+
+# Run the async function
 import asyncio
-from pathlib import Path
-
-import torch
-
-from src.inference import InferenceConfig
-from src.inference.streaming import StreamingPipeline
-
-
-async def run_streaming() -> None:
-    """Run streaming inference example."""
-    config = InferenceConfig(
-        model_name="gpt2",
-        device="cuda" if torch.cuda.is_available() else "cpu",
-    )
-
-    pipeline = StreamingPipeline(config)
-
-    prompt = "Tell me a story about"
-    print(f"Input: {prompt}")
-    print("Output:", end=" ", flush=True)
-
-    async for chunk in pipeline.generate_stream(prompt):
-        print(chunk, end="", flush=True)
-    print()
-
-
-if __name__ == "__main__":
-    asyncio.run(run_streaming())
+asyncio.run(process_stream())

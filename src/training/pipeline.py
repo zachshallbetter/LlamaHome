@@ -2,7 +2,7 @@
 Main training pipeline implementation.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -14,9 +14,9 @@ from ..core.utils import LogManager, LogTemplates
 from ..core.utils.io import safe_torch_load, safe_torch_save
 from .cache import CacheConfig, CacheManager
 from .data import DataConfig, DataManager
-from .monitoring import MetricsConfig, MonitorManager
-from .optimization import Optimizer, OptimizerConfig, SchedulerConfig
-from .processing import ProcessingConfig, ProcessingError, TensorProcessor
+from .monitoring import MonitorConfig
+from .optimization import OptimizationConfig
+from .processing import ProcessingConfig, TensorProcessor
 from .resources import ResourceConfig, ResourceManager
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
@@ -32,16 +32,23 @@ class TrainingConfig:
     learning_rate: float = 2e-5
     num_epochs: int = 3
 
-    # Optimization
-    optimizer: OptimizerConfig = OptimizerConfig()
-    scheduler: SchedulerConfig = SchedulerConfig()
+    # Configuration objects
+    monitor_config: MonitorConfig = MonitorConfig()
+    optimization_config: OptimizationConfig = OptimizationConfig()
+    resource_config: ResourceConfig = ResourceConfig()
 
     # Data configuration
-    data: DataConfig = DataConfig()
+    data_config: Dict[str, Union[str, int, float]] = field(
+        default_factory=lambda: {
+            "batch_size": 32,
+            "max_length": 512,
+            "num_workers": 4,
+            "shuffle": True,
+            "validation_split": 0.1,
+        }
+    )
     cache_config: CacheConfig = CacheConfig()
-    monitor_config: MetricsConfig = MetricsConfig()
     processing_config: ProcessingConfig = ProcessingConfig()
-    resource_config: ResourceConfig = ResourceConfig()
 
     # Training steps
     logging_steps: int = 10
@@ -125,7 +132,7 @@ class TrainingPipeline:
         self.optimizer = Optimizer(
             model=self.model,
             learning_rate=self.config.learning_rate,
-            config=self.config.optimizer,
+            config=self.config.optimization_config,
         )
         self._setup_components()
 
@@ -175,11 +182,11 @@ class TrainingPipeline:
 
             # Create data loaders
             train_loader = DataLoader(
-                train_dataset, batch_size=self.config.data.batch_size, shuffle=True
+                train_dataset, batch_size=self.config.data_config["batch_size"], shuffle=True
             )
 
             eval_loader = (
-                DataLoader(eval_dataset, batch_size=self.config.data.batch_size)
+                DataLoader(eval_dataset, batch_size=self.config.data_config["batch_size"])
                 if eval_dataset
                 else None
             )

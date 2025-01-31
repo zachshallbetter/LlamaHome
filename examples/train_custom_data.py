@@ -7,7 +7,7 @@ from typing import Dict, List
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.training import (
-    OptimizerConfig,
+    OptimizationConfig,
     SchedulerConfig,
     TrainingConfig,
     TrainingPipeline,
@@ -41,7 +41,7 @@ async def train_custom() -> None:
         gradient_accumulation_steps=4,
         learning_rate=2e-5,
         num_epochs=3,
-        optimizer=OptimizerConfig(name="adamw", weight_decay=0.01),
+        optimizer=OptimizationConfig(name="adamw", weight_decay=0.01),
         scheduler=SchedulerConfig(name="cosine", num_warmup_steps=100),
     )
 

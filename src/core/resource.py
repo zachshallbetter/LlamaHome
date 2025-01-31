@@ -1,12 +1,15 @@
 """Resource management functionality."""
 
 from dataclasses import dataclass
-from typing import AsyncContextManager, Dict, List, Optional, Union, Type, BaseException
+from typing import AsyncContextManager, Dict, List, Optional, Type, Union
 
 import torch
 from torch.utils.data import get_worker_info
 
 from .utils import MemoryTracker
+
+# Use proper type hints for exception handling
+ExceptionType = Type[BaseException]
 
 
 @dataclass
@@ -54,7 +57,12 @@ class ResourceOptimizer(AsyncContextManager):
         """Enter context."""
         return self
 
-    async def __aexit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[object]) -> None:
+    async def __aexit__(
+        self,
+        exc_type: Optional[ExceptionType],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[object],
+    ) -> None:
         """Exit context."""
         pass
 
@@ -104,9 +112,9 @@ class ResourceManager:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException], 
-        exc_tb: Optional[object]
+        exc_type: Optional[ExceptionType],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[object],
     ) -> None:
         """Exit context."""
         pass

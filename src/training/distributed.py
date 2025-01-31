@@ -5,7 +5,7 @@ Distributed training implementation.
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -14,11 +14,12 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
 from ..core.resource.config import GPUConfig
-from ..core.utils.io import safe_torch_save, safe_torch_load
+from ..core.utils.io import safe_torch_load, safe_torch_save
 from .data import DataConfig, StreamingDataset
 from .monitoring import DistributedMetrics
 from .pipeline import ProcessingConfig, TrainingConfig
 from .processing import TensorProcessor
+from transformers import PreTrainedModel, PreTrainedTokenizer
 
 # Add epoch
 epoch: int = 0
@@ -47,7 +48,8 @@ class DistributedConfig:
 class DistributedTrainerConfig:
     """Configuration for distributed training."""
 
-    model_name: str
+    model: PreTrainedModel
+    tokenizer: PreTrainedTokenizer
     training_config: TrainingConfig
     gpu_config: GPUConfig
     backend: str = "nccl"
@@ -68,28 +70,12 @@ class DistributedTrainer:
 
     def __init__(
         self,
-        model_name: str,
-        training_config: TrainingConfig,
-        gpu_config: GPUConfig,
-        data_config: Optional[DataConfig] = None,
-        processing_config: Optional[ProcessingConfig] = None,
+        config: DistributedTrainerConfig,
     ) -> None:
-        """Initialize distributed trainer.
-
-        Args:
-            model_name: Name of model to train
-            training_config: Training configuration
-            gpu_config: GPU configuration
-            data_config: Data configuration
-            processing_config: Processing configuration
-        """
-        self.config = DistributedTrainerConfig(
-            model_name=model_name,
-            training_config=training_config,
-            gpu_config=gpu_config,
-        )
-        self.data_config = data_config or DataConfig()
-        self.processing_config = processing_config or ProcessingConfig()
+        """Initialize distributed trainer."""
+        self.config = config
+        self.model = config.model
+        self.tokenizer = config.tokenizer
         self._setup_distributed()
 
     def _setup_distributed(self) -> None:
@@ -129,16 +115,16 @@ class DistributedTrainer:
             dataset,
             num_replicas=self.config.world_size,
             rank=self.config.rank,
-            shuffle=self.data_config.shuffle,
+            shuffle=self.config.data_config.shuffle,
         )
 
         return torch.utils.data.DataLoader(
             dataset,
-            batch_size=self.data_config.batch_size,
+            batch_size=self.config.data_config.batch_size,
             sampler=sampler,
-            num_workers=self.data_config.num_workers,
-            pin_memory=self.data_config.pin_memory,
-            prefetch_factor=self.data_config.prefetch_factor,
+            num_workers=self.config.data_config.num_workers,
+            pin_memory=self.config.data_config.pin_memory,
+            prefetch_factor=self.config.data_config.prefetch_factor,
         )
 
     async def train(
@@ -197,7 +183,9 @@ class DistributedTrainer:
             for key, value in batch_metrics.items():
                 if key not in epoch_metrics:
                     epoch_metrics[key] = 0.0
-                epoch_metrics[key] += float(value.item() if torch.is_tensor(value) else value)
+                epoch_metrics[key] += float(
+                    value.item() if torch.is_tensor(value) else value
+                )
 
         # Average epoch metrics
         for key in epoch_metrics:
@@ -217,8 +205,8 @@ class DistributedTrainer:
             "metrics": metrics,
             "config": {
                 "distributed": self.config,
-                "data": self.data_config,
-                "processing": self.processing_config,
+                "data": self.config.data_config,
+                "processing": self.config.processing_config,
             },
         }
 

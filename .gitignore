@@ -95,10 +95,11 @@ __pycache__/
 venv/
 ENV/
 
-# Build
+# Python package metadata
+*.egg-info/
+*.egg
 dist/
 build/
-*.egg-info/
 
 # IDE
 .idea/

@@ -35,6 +35,7 @@ class TensorProcessor:
     def __init__(self, model: PreTrainedModel, config: ProcessingConfig) -> None:
         self.model = model
         self.config = config
+        self.metrics_queue: List[Dict[str, float]] = []
         self._setup_processing()
         self._setup_memory_optimization()
 
@@ -296,3 +297,15 @@ class TensorProcessor:
     def prepare_inputs(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Prepare model inputs from batch."""
         return self._move_to_device(batch, next(self.model.parameters()).device)
+
+    def accumulate_metrics(self) -> None:
+        """Accumulate metrics over batches."""
+        accumulated_metrics: Dict[str, float] = {}
+
+        for batch_metrics in self.metrics_queue:
+            for key, value in batch_metrics.items():
+                if key not in accumulated_metrics:
+                    accumulated_metrics[key] = 0.0
+                accumulated_metrics[key] += float(
+                    value.item() if torch.is_tensor(value) else value
+                )
