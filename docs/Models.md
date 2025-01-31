@@ -95,8 +95,8 @@ llamahome list
 
 ### 1. Directory Structure
 
-- Base models stored in data/models/base
-- Fine-tuned models in data/models/fine-tuned
+- Base models stored in .data/models/base
+- Fine-tuned models in .data/models/fine-tuned
 - Cached files in .cache/models
 
 ### 2. Version Management

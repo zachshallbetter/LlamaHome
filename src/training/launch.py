@@ -192,7 +192,7 @@ def main() -> None:
     """Main training launch entry point."""
     try:
         config_path = Path("config/training_config.toml")
-        data_path = Path("data/training")
+        data_path = Path(".data/training")
         output_dir = Path("outputs")
 
         asyncio.run(launch_training(

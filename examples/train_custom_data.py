@@ -53,7 +53,7 @@ async def train_custom() -> None:
     try:
         # Start training
         await pipeline.train(
-            train_data="data/custom/train.txt", eval_data="data/custom/eval.txt"
+            train_data=".data/custom/train.txt", eval_data=".data/custom/eval.txt"
         )
 
     except Exception as e:

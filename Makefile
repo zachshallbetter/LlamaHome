@@ -21,7 +21,7 @@ endif
 
 # Directories
 CACHE_DIR := .cache
-DATA_DIR := data
+DATA_DIR := .data
 CONFIG_DIR := .config
 LOGS_DIR := .logs
 
@@ -160,8 +160,8 @@ train-distributed:
 	@echo "Starting distributed training..."
 	python -m src.training.launch \
 		--config .config/distributed_config.yaml \
-		--data data/training \
-		--output output/training \
+		--data .data/training \
+		--output o.data/output/training \
 		--epochs $(EPOCHS) \
 		--world-size $(WORLD_SIZE)
 
@@ -169,8 +169,8 @@ train-multi-node:
 	@echo "Starting multi-node training..."
 	python -m src.training.launch \
 		--config .config/distributed_config.yaml \
-		--data data/training \
-		--output output/training \
+		--data .data/training \
+		--output .data/output/training \
 		--epochs $(EPOCHS) \
 		--num-nodes $(NUM_NODES) \
 		--node-rank $(NODE_RANK) \

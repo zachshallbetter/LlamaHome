@@ -260,7 +260,7 @@ def train_model(
 
     Example:
         >>> config = load_config("training_config.toml")
-        >>> result = train_model(config, "data/training")
+        >>> result = train_model(config, ".data/training")
         >>> print(f"Training loss: {result.metrics['loss']}")
     """
     pass

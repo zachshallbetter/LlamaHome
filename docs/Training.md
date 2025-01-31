@@ -33,13 +33,13 @@ LlamaHome's training system provides a comprehensive environment for training an
 
 ```bash
 # Start training with default configuration
-make train DATA_PATH=data/training/dataset.jsonl
+make train DATA_PATH=.data/training/dataset.jsonl
 
 # Resume from checkpoint
 make train-resume CHECKPOINT=checkpoints/checkpoint-1000
 
 # Evaluate model
-make evaluate MODEL=models/fine-tuned/model DATA=data/eval/test.jsonl
+make evaluate MODEL=models/fine-tuned/model DATA=.data/eval/test.jsonl
 ```
 
 ### Distributed Training
