@@ -1,7 +1,7 @@
 """Resource management functionality."""
 
 from dataclasses import dataclass
-from typing import AsyncContextManager, Dict, List, Optional, Type, Union
+from typing import AsyncContextManager
 
 import torch
 from torch.utils.data import get_worker_info
@@ -9,7 +9,7 @@ from torch.utils.data import get_worker_info
 from .utils import MemoryTracker
 
 # Use proper type hints for exception handling
-ExceptionType = Type[BaseException]
+ExceptionType = type[BaseException]
 
 
 @dataclass
@@ -36,13 +36,13 @@ def get_optimal_device() -> str:
 class GPUConfig:
     """GPU resource configuration."""
 
-    device: Optional[str] = None  # Will be set to optimal device if None
+    device: str | None = None  # Will be set to optimal device if None
     memory_fraction: float = 0.9
     allow_growth: bool = True
-    allowed_devices: Optional[List[int]] = None
-    device_map: Optional[Dict[str, Union[int, str]]] = None
-    max_memory: Optional[Dict[int, str]] = None
-    offload_folder: Optional[str] = None
+    allowed_devices: list[int] | None = None
+    device_map: dict[str, int | str] | None = None
+    max_memory: dict[int, str] | None = None
+    offload_folder: str | None = None
 
     def __post_init__(self) -> None:
         """Set optimal device if none specified."""
@@ -59,9 +59,9 @@ class ResourceOptimizer(AsyncContextManager):
 
     async def __aexit__(
         self,
-        exc_type: Optional[ExceptionType],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[object],
+        exc_type: ExceptionType | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
     ) -> None:
         """Exit context."""
         pass
@@ -89,8 +89,8 @@ class ResourceManager:
 
     def _setup_monitoring(self) -> None:
         """Set up monitoring infrastructure."""
-        self.metrics: Dict[str, float] = {}
-        self.alerts: Dict[str, bool] = {}
+        self.metrics: dict[str, float] = {}
+        self.alerts: dict[str, bool] = {}
 
     def _worker_init_fn(self, worker_id: int) -> None:
         """Initialize worker with memory limits."""
@@ -98,7 +98,7 @@ class ResourceManager:
         if worker_info is not None and hasattr(worker_info.dataset, "memory_limit"):
             worker_info.dataset.memory_limit = self.config.max_memory
 
-    async def get_memory_info(self) -> Dict[int, float]:
+    async def get_memory_info(self) -> dict[int, float]:
         """Get GPU memory usage in GB."""
         memory_info = {}
         if torch.cuda.is_available():
@@ -112,9 +112,9 @@ class ResourceManager:
 
     async def __aexit__(
         self,
-        exc_type: Optional[ExceptionType],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[object],
+        exc_type: ExceptionType | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
     ) -> None:
         """Exit context."""
         pass

@@ -2,7 +2,6 @@
 Streaming inference implementation.
 """
 
-import asyncio
 from typing import AsyncIterator
 
 from .config import InferenceConfig

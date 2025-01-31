@@ -4,7 +4,7 @@ Main training pipeline implementation.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -38,7 +38,7 @@ class TrainingConfig:
     resource_config: ResourceConfig = ResourceConfig()
 
     # Data configuration
-    data_config: Dict[str, Union[str, int, float]] = field(
+    data_config: dict[str, str | int | float] = field(
         default_factory=lambda: {
             "batch_size": 32,
             "max_length": 512,
@@ -62,7 +62,7 @@ class TrainingConfig:
     # Paths and directories
     output_dir: str = "output"
     cache_dir: Optional[str] = None
-    checkpoint_dir: Optional[str] = None
+    checkpoint_dir: str | None = None
     tensorboard_dir: str = "runs"
 
     # Early stopping
@@ -84,15 +84,15 @@ class TrainingConfig:
     find_unused_parameters: bool = False
 
     # Model configuration
-    model_revision: Optional[str] = None
+    model_revision: str | None = None
     trust_remote_code: bool = False
     use_auth_token: bool = False
     low_cpu_mem_usage: bool = False
-    torch_dtype: Optional[str] = None
+    torch_dtype: str | None = None
 
     # Memory optimization
-    max_memory: Optional[Dict[int, str]] = None
-    offload_folder: Optional[str] = None
+    max_memory: dict[int, str] | None = None
+    offload_folder: str | None = None
     offload_state_dict: bool = False
 
     def __post_init__(self) -> None:
@@ -116,8 +116,8 @@ class TrainingPipeline:
     def __init__(
         self,
         config: Optional[TrainingConfig] = None,
-        distributed_config: Optional[DistributedConfig] = None,
-        optimization_config: Optional[OptimizationConfig] = None,
+        distributed_config: DistributedConfig | None = None,
+        optimization_config: OptimizationConfig | None = None,
     ) -> None:
         """Initialize training pipeline."""
         self.config = config or TrainingConfig()

@@ -1,7 +1,7 @@
 """Model manager configuration."""
 
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import Field
 
@@ -24,7 +24,7 @@ class ModelSpecs(BaseConfig):
     size: ModelSize
     variant: ModelVariant = "base"
     revision: str = "main"
-    quantization: Optional[str] = None
+    quantization: str | None = None
 
 
 class ResourceSpecs(BaseConfig):
@@ -61,7 +61,7 @@ class SecuritySpecs(BaseConfig):
     trust_remote_code: bool = False
     use_auth_token: bool = False
     verify_downloads: bool = True
-    allowed_model_sources: List[str] = ["huggingface.co"]
+    allowed_model_sources: list[str] = ["huggingface.co"]
 
 
 class ModelConfig(BaseConfig):

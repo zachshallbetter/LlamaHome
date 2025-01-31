@@ -1,19 +1,15 @@
 """Tests for the LlamaHome GUI interface."""
 
-import json
-import sys
-from pathlib import Path
-from typing import Dict, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
-from src.interfaces.gui import GUI, MainWindow
+from src.interfaces.gui import MainWindow
 
 
 @pytest.fixture
-def mock_request_handler():
+def mock_request_handler() -> MagicMock:
     """Mock request handler fixture."""
     handler = MagicMock()
     handler.process_request.return_value = "Test response"
@@ -21,28 +17,26 @@ def mock_request_handler():
 
 
 @pytest.fixture
-def gui_interface(mock_request_handler):
+def gui_interface(mock_request_handler: MagicMock) -> None:
     """GUI interface fixture."""
     with patch.object(QApplication, '__init__', return_value=None):
-        gui = GUI(request_handler=mock_request_handler)
-        yield gui
-        gui.stop()
+        window = MainWindow(mock_request_handler)
+        yield window
+        window.close()
 
 
-def test_main_window_init(mock_request_handler):
+def test_main_window_init(mock_request_handler: MagicMock) -> None:
     """Test MainWindow initialization."""
-    config = {"model_path": "test/model.bin", "temperature": 0.7}
-    window = MainWindow(mock_request_handler, config)
+    window = MainWindow(mock_request_handler)
     
     assert window.windowTitle() == "LlamaHome"
-    assert window.config == config
     assert window.request_handler == mock_request_handler
     assert isinstance(window.history, list)
 
 
-def test_submit_prompt(gui_interface):
+def test_submit_prompt(gui_interface: MainWindow) -> None:
     """Test prompt submission."""
-    window = gui_interface.window
+    window = gui_interface
     window.input_text.setPlainText("Test prompt")
     
     window._submit_prompt()
@@ -53,9 +47,9 @@ def test_submit_prompt(gui_interface):
     assert window.history[0][0] == "Test prompt"
 
 
-def test_save_load_history(gui_interface, tmp_path):
+def test_save_load_history(gui_interface: MainWindow, tmp_path: str) -> None:
     """Test saving and loading conversation history."""
-    window = gui_interface.window
+    window = gui_interface
     history_file = tmp_path / "history.json"
     
     # Add some test history
@@ -64,7 +58,7 @@ def test_save_load_history(gui_interface, tmp_path):
         ("Test prompt 2", "Test response 2")
     ]
     
-    with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName', 
+    with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
                return_value=(str(history_file), None)):
         window._save_history()
     
@@ -81,9 +75,9 @@ def test_save_load_history(gui_interface, tmp_path):
     assert window.history[1][1] == "Test response 2"
 
 
-def test_error_handling(gui_interface):
+def test_error_handling(gui_interface: MainWindow) -> None:
     """Test error handling in GUI."""
-    window = gui_interface.window
+    window = gui_interface
     window.request_handler.process_request.side_effect = Exception("Test error")
     
     with patch.object(QMessageBox, 'critical') as mock_error:

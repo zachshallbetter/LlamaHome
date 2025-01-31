@@ -1,7 +1,7 @@
 """Tests for monitoring configuration."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import toml  # type: ignore # missing stubs
@@ -15,7 +15,7 @@ from src.core.monitoring.config import (
 
 
 @pytest.fixture
-def test_monitoring_config() -> Dict[str, Any]:
+def test_monitoring_config() -> dict[str, Any]:
     """Test monitoring configuration data."""
     return {
         "logging": {
@@ -51,7 +51,7 @@ def test_monitoring_config() -> Dict[str, Any]:
 
 
 async def test_monitoring_config_load(
-    config_dir: Path, test_monitoring_config: Dict[str, Any]
+    config_dir: Path, test_monitoring_config: dict[str, Any]
 ) -> None:
     """Test loading monitoring configuration."""
     # Create test config file

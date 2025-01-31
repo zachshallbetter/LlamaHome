@@ -86,11 +86,11 @@ class InferenceConfig(BaseConfig):
     # Streaming settings
     stream_output: bool = False
     chunk_size: int = Field(4, ge=1)
-    max_chunks: Optional[int] = None
+    max_chunks: int | None = None
 
     # Cache settings
     use_cache: bool = True
-    cache_dir: Optional[Path] = None
+    cache_dir: Path | None = None
 
     @classmethod
     async def load(

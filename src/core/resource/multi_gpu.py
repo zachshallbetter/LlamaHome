@@ -1,6 +1,5 @@
 """Multi-GPU resource management."""
 
-from typing import List, Optional
 
 import torch
 
@@ -17,7 +16,7 @@ class DeviceAllocator:
             config: GPU configuration
         """
         self.config = config
-        self.devices: List[int] = []
+        self.devices: list[int] = []
         self._initialize_devices()
 
     def _initialize_devices(self) -> None:
@@ -38,7 +37,7 @@ class MultiGPUManager:
         self.config = config
         self.allocator = DeviceAllocator(config)
 
-    async def allocate_device(self) -> Optional[int]:
+    async def allocate_device(self) -> int | None:
         """Allocate next available GPU device.
 
         Returns:

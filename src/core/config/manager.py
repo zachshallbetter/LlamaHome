@@ -4,7 +4,7 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
 import toml
 from dotenv import load_dotenv
@@ -80,7 +80,7 @@ class ConfigManager:
     ):
         self.config_dir = config_dir
         self.env_prefix = env_prefix
-        self.configs: Dict[str, BaseConfig] = {}
+        self.configs: dict[str, BaseConfig] = {}
         self.workspace_root = ROOT_DIR
         self.local_config_dir = LOCAL_CONFIG_DIR
         self._config: Optional[ConfigData] = None
@@ -108,7 +108,7 @@ class ConfigManager:
         return self.config_dir / filename
 
     async def load_config(
-        self, config_type: Type[T], name: str, file_name: Optional[str] = None
+        self, config_type: type[T], name: str, file_name: str | None = None
     ) -> T:
         """Load configuration of specified type."""
         try:
@@ -128,7 +128,7 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f"Failed to load {name} config: {str(e)}")
 
-    async def save_config(self, name: str, file_name: Optional[str] = None) -> None:
+    async def save_config(self, name: str, file_name: str | None = None) -> None:
         """Save configuration to file."""
         if name not in self.configs:
             raise ConfigError(f"Config {name} not found")
@@ -143,7 +143,7 @@ class ConfigManager:
             raise ConfigError(f"Config {name} not found")
         return self.configs[name]
 
-    async def update_config(self, name: str, updates: Dict[str, Any]) -> None:
+    async def update_config(self, name: str, updates: dict[str, Any]) -> None:
         """Update configuration values."""
         if name not in self.configs:
             raise ConfigError(f"Config {name} not found")

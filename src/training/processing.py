@@ -2,7 +2,7 @@
 Tensor processing implementation for training pipeline.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 import torch
 import torch.nn.functional as F
@@ -30,10 +30,10 @@ class TensorProcessor:
     def __init__(self, model: PreTrainedModel, config: ProcessingConfig) -> None:
         self.model = model
         self.config = config
-        self.metrics_queue: List[Dict[str, float]] = []
+        self.metrics_queue: list[dict[str, float]] = []
         self._setup_processing()
         self._setup_memory_optimization()
-        self.accumulated_metrics: Dict[str, List[float]] = {
+        self.accumulated_metrics: dict[str, list[float]] = {
             "loss": [],
             "accuracy": [],
             "learning_rate": [],
@@ -67,7 +67,7 @@ class TensorProcessor:
             self.model.to(self.model_device)
 
     async def process_batch(
-        self, batch: List[Dict[str, Any]], device: Optional[torch.device] = None
+        self, batch: list[Dict[str, Any]], device: torch.device | None = None
     ) -> Dict[str, torch.Tensor]:
         """Process batch of data.
 
@@ -100,7 +100,7 @@ class TensorProcessor:
 
         return processed
 
-    def update_metrics(self, outputs: Dict[str, Any], batch_size: int) -> None:
+    def update_metrics(self, outputs: dict[str, Any], batch_size: int) -> None:
         """Update accumulated metrics.
 
         Args:
@@ -122,7 +122,7 @@ class TensorProcessor:
             self.accumulated_metrics["learning_rate"].append(outputs["learning_rate"])
 
     def _calculate_accuracy(
-        self, logits: torch.Tensor, labels: Optional[torch.Tensor]
+        self, logits: torch.Tensor, labels: torch.Tensor | None
     ) -> float:
         """Calculate accuracy from logits and labels.
 
@@ -141,7 +141,7 @@ class TensorProcessor:
         total = labels.numel()
         return correct / total if total > 0 else 0.0
 
-    def get_metrics(self) -> Dict[str, float]:
+    def get_metrics(self) -> dict[str, float]:
         """Get current metrics.
 
         Returns:
@@ -367,13 +367,13 @@ class TensorProcessor:
         if hasattr(self.model, "config"):
             self.model.config.use_cache = False
 
-    def prepare_inputs(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def prepare_inputs(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Prepare model inputs from batch."""
         return self._move_to_device(batch, next(self.model.parameters()).device)
 
     def accumulate_metrics(self) -> None:
         """Accumulate metrics over batches."""
-        accumulated_metrics: Dict[str, float] = {}
+        accumulated_metrics: dict[str, float] = {}
 
         for batch_metrics in self.metrics_queue:
             for key, value in batch_metrics.items():

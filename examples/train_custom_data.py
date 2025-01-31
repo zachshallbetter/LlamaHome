@@ -24,7 +24,7 @@ class CustomDataConfig:
     num_workers: int = 4
 
 
-def prepare_dataset(config: CustomDataConfig) -> Dict:
+def prepare_dataset(config: CustomDataConfig) -> dict:
     """Prepare custom dataset for training."""
     return {"data": []}
 

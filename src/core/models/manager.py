@@ -1,7 +1,7 @@
 """Model management implementation."""
 
 from pathlib import Path
-from typing import Dict, Optional, TypeVar
+from typing import TypeVar
 
 import torch
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ class ModelManager:
 
     def __init__(self, config: ModelConfig):
         self.config = config
-        self._model: Optional[PreTrainedModel] = None
+        self._model: PreTrainedModel | None = None
 
     async def load_model(self) -> PreTrainedModel:
         """Load model based on configuration.
@@ -81,7 +81,7 @@ class ModelManager:
         }
         return dtype_map.get(str(self.config.model.torch_dtype), torch.float16)
 
-    def _get_quantization_kwargs(self) -> Dict[str, bool]:
+    def _get_quantization_kwargs(self) -> dict[str, bool]:
         """Get quantization keyword arguments."""
         if self.config.model.quantization == "int8":
             return {"load_in_8bit": True}
@@ -107,6 +107,6 @@ class ModelManager:
             raise ValueError(f"Failed to save model: {str(e)}") from e
 
     @property
-    def model(self) -> Optional[PreTrainedModel]:
+    def model(self) -> PreTrainedModel | None:
         """Get loaded model."""
         return self._model

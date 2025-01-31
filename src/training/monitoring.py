@@ -69,7 +69,7 @@ class TrainingMetrics:
         )
 
         # Metrics storage
-        self.metrics_history: Dict[str, List[float]] = {
+        self.metrics_history: dict[str, list[float]] = {
             "loss": [],
             "learning_rate": [],
             "memory_usage": [],
@@ -258,9 +258,9 @@ class TrainingMetrics:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
-        exc_tb: Optional[object],
+        exc_type: type | None,
+        exc_val: Exception | None,
+        exc_tb: object | None,
     ) -> None:
         """Clean up progress tracking."""
         self.progress.stop()
@@ -362,8 +362,8 @@ class Monitor:
     async def update(
         self,
         step: int,
-        metrics: Dict[str, float],
-        model: Optional[torch.nn.Module] = None,
+        metrics: dict[str, float],
+        model: torch.nn.Module | None = None,
     ) -> None:
         """Update monitor with new metrics."""
         raise NotImplementedError
@@ -383,8 +383,8 @@ class ProgressMonitor(Monitor):
     async def update(
         self,
         step: int,
-        metrics: Dict[str, float],
-        model: Optional[torch.nn.Module] = None,
+        metrics: dict[str, float],
+        model: torch.nn.Module | None = None,
     ) -> None:
         """Update progress bars."""
         self.progress.update(step, advance=1)
@@ -399,8 +399,8 @@ class ResourceMonitor(Monitor):
     async def update(
         self,
         step: int,
-        metrics: Dict[str, float],
-        model: Optional[torch.nn.Module] = None,
+        metrics: dict[str, float],
+        model: torch.nn.Module | None = None,
     ) -> None:
         """Update resource metrics."""
         if torch.cuda.is_available():
@@ -417,8 +417,8 @@ class TensorboardMonitor(Monitor):
     async def update(
         self,
         step: int,
-        metrics: Dict[str, float],
-        model: Optional[torch.nn.Module] = None,
+        metrics: dict[str, float],
+        model: torch.nn.Module | None = None,
     ) -> None:
         """Update tensorboard metrics."""
         for name, value in metrics.items():
@@ -431,7 +431,7 @@ class MonitorManager:
     def __init__(self, config: MonitorConfig, model_name: str) -> None:
         self.config = config
         self.model_name = model_name
-        self.monitors: Dict[str, Monitor] = {}
+        self.monitors: dict[str, Monitor] = {}
         self._setup_monitors()
 
     def _setup_monitors(self) -> None:
@@ -446,8 +446,8 @@ class MonitorManager:
     async def update_metrics(
         self,
         step: int,
-        metrics: Dict[str, float],
-        model: Optional[torch.nn.Module] = None,
+        metrics: dict[str, float],
+        model: torch.nn.Module | None = None,
     ) -> None:
         """Update monitoring metrics."""
         for monitor in self.monitors.values():

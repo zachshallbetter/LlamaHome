@@ -9,25 +9,65 @@ toml>=0.10.2
 psutil>=5.9.0
 prometheus-client>=0.17.0
 PyJWT>=2.7.0
+httpx>=0.24.1  # Required for FastAPI test client
+PyMuPDF>=1.22.5  # For PDF handling (provides fitz module)
+aiofiles>=23.1.0  # For async file operations
+ratelimit>=2.2.1  # For rate limiting
+xformers>=0.0.20  # For efficient attention implementations
+nltk>=3.8.1  # For text analysis
+
+# Machine Learning
+accelerate>=0.20.3
+bitsandbytes>=0.41.1
+optimum>=1.13.2
+tokenizers>=0.13.3
+sentencepiece>=0.1.99
+sacremoses>=0.0.53
+
+# Web Framework
+starlette>=0.27.0
+python-multipart>=0.0.6
+websockets>=11.0.3
+
+# GUI dependencies
+PyQt6>=6.5.2
 
 # Type stubs
 types-toml>=0.10.8
 types-psutil>=5.9.5
 types-PyJWT>=1.7.1
-types-prometheus-client>=0.17.0.1
 types-python-dateutil>=2.8.19
 types-requests>=2.31.0
 types-setuptools>=68.0.0
+types-aiofiles>=23.1.0.1
+types-PyMuPDF>=1.22.5
+types-nltk>=3.8.1
+types-PyQt6>=6.5.2
 
 # Development dependencies
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
+pytest-qt>=4.2.0  # For PyQt testing
 black>=23.3.0
 isort>=5.12.0
 mypy>=1.4.1
 ruff>=0.0.280
 bandit>=1.7.5
+pytest-mock>=3.11.1  # For mocking in tests
+pytest-timeout>=2.1.0  # For test timeouts
+pytest-xdist>=3.3.1  # For parallel testing
+rich>=13.5.2  # For rich console output
+
+# Testing utilities
+faker>=19.3.0  # For generating test data
+freezegun>=1.2.2  # For time-based testing
+responses>=0.23.3  # For mocking HTTP requests
+coverage>=7.3.0  # For code coverage reporting
 
 # Optional dependencies
-torch-mps-is-available>=0.3.0; sys_platform == "darwin" and platform_machine == "arm64" 
+torch-mps-is-available>=0.3.0; sys_platform == "darwin" and platform_machine == "arm64"
+
+# Platform-specific dependencies
+pywin32>=306.0; sys_platform == "win32"  # Windows-specific
+pyobjc-framework-Cocoa>=9.2; sys_platform == "darwin"  # macOS-specific 

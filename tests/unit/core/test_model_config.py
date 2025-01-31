@@ -1,7 +1,7 @@
 """Tests for model configuration."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -16,7 +16,7 @@ from src.core.models.config import (
 
 
 @pytest.fixture
-def test_model_config() -> Dict[str, Any]:
+def test_model_config() -> dict[str, Any]:
     """Test model configuration data."""
     return {
         "model": {
@@ -54,7 +54,7 @@ def test_model_config() -> Dict[str, Any]:
     }
 
 
-async def test_model_config_load(config_dir: Path, test_model_config: Dict[str, Any]):
+async def test_model_config_load(config_dir: Path, test_model_config: dict[str, Any]):
     """Test loading model configuration."""
     # Create test config file
     config_path = config_dir / "model_config.toml"

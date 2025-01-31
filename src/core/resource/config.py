@@ -1,7 +1,6 @@
 """Resource configuration classes."""
 
 from pathlib import Path
-from typing import List, Optional
 
 import torch
 from pydantic import Field
@@ -14,7 +13,7 @@ class MemoryConfig(BaseConfig):
 
     total_memory: int = Field(0, ge=0)  # Total system memory in bytes
     available_memory: int = Field(0, ge=0)  # Available memory in bytes
-    gpu_memory: Optional[int] = None  # GPU memory in bytes if available
+    gpu_memory: int | None = None  # GPU memory in bytes if available
     memory_fraction: float = Field(0.9, ge=0.0, le=1.0)  # Memory usage fraction
     swap_enabled: bool = False  # Whether to enable swap
     swap_size: int = Field(0, ge=0)  # Swap size in bytes
@@ -25,7 +24,7 @@ class MemoryConfig(BaseConfig):
 
         return psutil.virtual_memory().available
 
-    def get_gpu_memory(self) -> Optional[int]:
+    def get_gpu_memory(self) -> int | None:
         """Get GPU memory in bytes if available."""
         if not torch.cuda.is_available():
             return None
@@ -39,7 +38,7 @@ class GPUConfig(BaseConfig):
     allow_growth: bool = True
     per_process_memory: str = "12GB"
     enable_tf32: bool = True
-    cuda_devices: Optional[List[int]] = None
+    cuda_devices: list[int] | None = None
 
     @property
     def available_memory(self) -> int:
@@ -53,7 +52,7 @@ class ResourceConfig(BaseConfig):
     """Complete resource configuration."""
 
     memory: MemoryConfig
-    gpu: Optional[GPUConfig] = None
+    gpu: GPUConfig | None = None
     max_workers: int = Field(4, ge=1)
     io_queue_size: int = Field(1000, ge=1)
     pin_memory: bool = True

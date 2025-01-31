@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, List
 
 import toml
 from pydantic import BaseModel
@@ -7,17 +6,17 @@ from pydantic import BaseModel
 
 class ValidationResult(BaseModel):
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
+    errors: list[str]
+    warnings: list[str]
 
 
 class ConfigValidator:
     def __init__(self, schema_dir: Path = Path("config/schemas")):
         self.schema_dir = schema_dir
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
-    async def validate_config(self, config: Dict, config_type: str) -> ValidationResult:
+    async def validate_config(self, config: dict, config_type: str) -> ValidationResult:
         """Validate configuration against schema."""
         try:
             # Load schema
@@ -48,7 +47,7 @@ class ConfigValidator:
                 is_valid=False, errors=self.errors, warnings=self.warnings
             )
 
-    def _validate_structure(self, config: Dict, schema: Dict) -> None:
+    def _validate_structure(self, config: dict, schema: dict) -> None:
         """Validate configuration structure against schema."""
         for key, value in schema.items():
             if key not in config:
@@ -59,7 +58,7 @@ class ConfigValidator:
                 else:
                     self._validate_structure(config[key], value)
 
-    def _validate_types(self, config: Dict, schema: Dict) -> None:
+    def _validate_types(self, config: dict, schema: dict) -> None:
         """Validate configuration value types."""
         for key, value in config.items():
             if key in schema:
@@ -69,7 +68,7 @@ class ConfigValidator:
                         f"Invalid type for {key}: expected {expected_type}"
                     )
 
-    def _validate_dependencies(self, config: Dict) -> None:
+    def _validate_dependencies(self, config: dict) -> None:
         """Validate configuration dependencies."""
         if "models" in config:
             for model in config["models"].values():
@@ -77,7 +76,7 @@ class ConfigValidator:
                     if "gpu_memory" not in model:
                         self.errors.append("Missing gpu_memory config for GPU model")
 
-    def _validate_constraints(self, config: Dict) -> None:
+    def _validate_constraints(self, config: dict) -> None:
         """Validate configuration constraints."""
         if "resources" in config:
             resources = config["resources"]

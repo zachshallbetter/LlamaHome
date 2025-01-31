@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 from src.training.cache import TrainingCache
 from src.training.data import DataManager
-from src.core.config_handler import ConfigManager
+from src.core.config import ConfigManager
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Type, TypeVar
+from typing import TypeVar
 
 import toml
 from pydantic import BaseModel, Field, validator
@@ -16,7 +16,7 @@ class BaseConfig(BaseModel):
         arbitrary_types_allowed = True
 
     @classmethod
-    def load_from_file(cls: Type[T], path: Path) -> T:
+    def load_from_file(cls: type[T], path: Path) -> T:
         """Load configuration from a TOML file."""
         try:
             data = toml.load(str(path))
@@ -25,7 +25,7 @@ class BaseConfig(BaseModel):
             raise ConfigError(f"Failed to load config from {path}: {str(e)}")
 
     @classmethod
-    def load_from_env(cls: Type[T], prefix: str = "") -> T:
+    def load_from_env(cls: type[T], prefix: str = "") -> T:
         """Load configuration from environment variables."""
         import os
 
@@ -74,10 +74,10 @@ class ResourceConfig(BaseConfig):
     max_workers: int = Field(4, ge=1)
     io_queue_size: int = Field(1000, ge=1)
     enable_gpu: bool = True
-    cuda_devices: Optional[list[int]] = None
+    cuda_devices: list[int] | None = None
 
     @validator("cuda_devices")
-    def validate_cuda_devices(cls, v: Optional[list[int]]) -> Optional[list[int]]:
+    def validate_cuda_devices(cls, v: list[int] | None) -> list[int] | None:
         if v is not None:
             import torch
 

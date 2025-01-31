@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from src.data.converter import FormatConverter, create_converter
+from src.data.processing.converters import FormatConverter, create_converter
 
 
 @pytest.fixture

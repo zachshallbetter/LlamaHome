@@ -11,19 +11,17 @@ from typing import Any, Dict, Optional
 import toml
 import torch
 from torch.distributed.elastic.multiprocessing.errors import record
+from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 
 from ..core.config import TrainingConfig
+from ..core.config.base import BaseConfig
 from .data import DataConfig, StreamingDataset
 from .distributed import DistributedConfig, DistributedTrainer
-from .model import create_model  # Assuming create_model is defined in model module
-from .optimization import (  # Assuming create_optimizer is defined in optimizer module
-    create_optimizer,
-)
+from .model import create_model
+from .optimization import create_optimizer
 from .pipeline import TrainingPipeline
 from .processing import ProcessingConfig
-from .scheduler import (  # Assuming create_scheduler is defined in scheduler module
-    create_scheduler,
-)
+from .scheduler import create_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -56,138 +54,69 @@ def setup_environment(
 
 
 @record
-def train_worker(
+async def train_worker(
     rank: int,
     world_size: int,
-    config_path: Path,
+    config: TrainingConfig,
     data_path: Path,
-    output_dir: Path,
-    num_epochs: int,
-    master_addr: str = "localhost",
-    master_port: str = "29500",
-    node_rank: int = 0,
-    num_nodes: int = 1,
+    output_dir: Optional[Path] = None,
 ) -> None:
-    """Worker process for distributed training."""
-    # Load configuration
-    config = load_config(config_path)
+    """Training worker process.
 
-    # Set up environment
-    setup_environment(
-        rank + node_rank * (world_size // num_nodes),
-        world_size,
-        master_addr,
-        master_port,
-    )
-
-    # Create configurations
-    distributed_config = DistributedConfig(
-        world_size=world_size,
-        rank=rank + node_rank * (world_size // num_nodes),
-        local_rank=rank,
-        master_addr=master_addr,
-        master_port=master_port,
-        num_nodes=num_nodes,
-        node_rank=node_rank,
-        **config["distributed"],
-    )
-
-    data_config = DataConfig(**config["resources"])
-    processing_config = ProcessingConfig(**config["optimization"])
-
-    # Initialize model and move to device
-    model = create_model()  # Implement based on your model
-    model.to(f"cuda:{rank}")
-
-    # Create trainer
-    trainer = DistributedTrainer(
-        model, distributed_config, data_config, processing_config
-    )
-
+    Args:
+        rank: Process rank
+        world_size: Total number of processes
+        config: Training configuration
+        data_path: Path to training data
+        output_dir: Optional output directory
+    """
     try:
-        # Load dataset
-        dataset = StreamingDataset(
-            data_path,
-            buffer_size=config["resources"]["prefetch_factor"],
-            memory_limit=config["resources"]["max_memory"],
+        # Set up distributed environment
+        setup_environment(
+            rank=rank,
+            world_size=world_size,
+            master_addr=config.distributed.master_addr,
+            master_port=config.distributed.master_port,
         )
+
+        # Initialize process group
+        torch.distributed.init_process_group(
+            backend=config.distributed.backend,
+            init_method="env://",
+            world_size=world_size,
+            rank=rank,
+        )
+
+        # Create model and move to device
+        model = create_model(config.model)
+        device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+
+        # Wrap model for distributed training
+        model = DistributedTrainer(
+            model=model,
+            device=device,
+            config=config,
+        )
+
+        # Create dataset
+        dataset = StreamingDataset(data_path)
 
         # Create optimizer and scheduler
-        optimizer = create_optimizer(model, config)  # Implement based on your needs
-        scheduler = create_scheduler(optimizer, config)  # Implement based on your needs
+        optimizer = await create_optimizer(model, config.optimization)
+        scheduler = await create_scheduler(optimizer, config.optimization)
 
         # Train model
-        metrics = trainer.train(
-            dataset, num_epochs, optimizer, scheduler, output_dir / "checkpoints"
+        await model.train(
+            dataset=dataset,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            output_dir=output_dir,
         )
-
-        # Save final results on main process
-        if rank == 0:
-            save_results(output_dir, metrics)
 
     except Exception as e:
-        print(f"Error in worker {rank}: {e}")
+        logger.error(f"Training worker failed: {e}")
         raise
-    finally:
-        trainer.cleanup()
-
-
-def launch_distributed(
-    config_path: Path,
-    data_path: Path,
-    output_dir: Path,
-    num_epochs: int,
-    world_size: Optional[int] = None,
-    num_nodes: int = 1,
-    node_rank: int = 0,
-    master_addr: str = "localhost",
-    master_port: str = "29500",
-) -> None:
-    """Launch distributed training."""
-    # Determine world size if not specified
-    if world_size is None:
-        world_size = torch.cuda.device_count() * num_nodes
-
-    # Create output directory
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Launch processes
-    if num_nodes > 1:
-        # Multi-node training
-        local_world_size = world_size // num_nodes
-        torch.multiprocessing.spawn(
-            train_worker,
-            args=(
-                local_world_size,
-                config_path,
-                data_path,
-                output_dir,
-                num_epochs,
-                master_addr,
-                master_port,
-                node_rank,
-                num_nodes,
-            ),
-            nprocs=local_world_size,
-        )
-    else:
-        # Single-node training
-        torch.multiprocessing.spawn(
-            train_worker,
-            args=(
-                world_size,
-                config_path,
-                data_path,
-                output_dir,
-                num_epochs,
-                master_addr,
-                master_port,
-                0,
-                1,
-            ),
-            nprocs=world_size,
-        )
 
 
 async def launch_training(
@@ -208,14 +137,14 @@ async def launch_training(
     config = TrainingConfig.parse_obj(load_config(config_path))
 
     # Initialize training components
-    dataset = StreamingDataset(data_path, config.max_sequence_length)
-    optimizer = await create_optimizer(config.optimization)
+    model = await create_model(config.model)
+    optimizer = await create_optimizer(model, config.optimization)
 
     # Create training pipeline
     pipeline = TrainingPipeline(
-        config=config,
-        dataset=dataset,
+        model=model,
         optimizer=optimizer,
+        config=config,
         output_dir=output_dir,
     )
 
@@ -223,16 +152,24 @@ async def launch_training(
     if distributed:
         await launch_distributed_training(pipeline, config)
     else:
-        await pipeline.train()
+        await pipeline.train(data_path)
 
 
-def main():
+def main() -> None:
     """Main training launch entry point."""
     try:
-        launcher = TrainingLauncher()
-        launcher.run()
+        config_path = Path("config/training_config.toml")
+        data_path = Path("data/training")
+        output_dir = Path("outputs")
+
+        asyncio.run(launch_training(
+            config_path=config_path,
+            data_path=data_path,
+            output_dir=output_dir,
+            distributed=torch.cuda.device_count() > 1,
+        ))
     except Exception as e:
-        logger.error("Training launch error: %s", str(e))
+        logger.error(f"Training launch error: {e}")
         sys.exit(1)
 
 

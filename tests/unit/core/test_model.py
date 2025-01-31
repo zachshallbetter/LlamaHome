@@ -10,10 +10,10 @@ import torch
 import toml
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from src.core.model import HybridModel
+from src.core.models import HybridModel
 from src.core.attention import HybridAttention
-from src.core.config_handler import ConfigManager
-from src.managers.model_manager import ModelManager
+from src.core.config import ConfigManager
+from src.core.models import ModelManager
 
 
 @pytest.fixture(autouse=True)

@@ -3,7 +3,7 @@ Learning rate scheduler implementation for training pipeline.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -40,6 +40,6 @@ class SchedulerConfig:
 
     name: str = "linear"
     num_warmup_steps: int = 0
-    num_training_steps: Optional[int] = None
+    num_training_steps: int | None = None
     num_cycles: int = 1
     power: float = 1.0

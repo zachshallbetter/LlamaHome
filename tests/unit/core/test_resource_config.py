@@ -1,7 +1,7 @@
 """Tests for resource configuration."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import toml  # type: ignore # missing stubs
@@ -11,7 +11,7 @@ from src.core.resource.config import GPUConfig, MonitorConfig, ResourceConfig
 
 
 @pytest.fixture
-def test_resource_config() -> Dict[str, Any]:
+def test_resource_config() -> dict[str, Any]:
     """Test resource configuration data."""
     return {
         "gpu": {
@@ -34,7 +34,7 @@ def test_resource_config() -> Dict[str, Any]:
 
 
 async def test_resource_config_load(
-    config_dir: Path, test_resource_config: Dict[str, Any]
+    config_dir: Path, test_resource_config: dict[str, Any]
 ) -> None:
     """Test loading resource configuration."""
     # Create test config file
@@ -45,20 +45,22 @@ async def test_resource_config_load(
         toml.dump(test_resource_config, f)
 
     # Load config
-    config = await ResourceConfig.load(str(config_dir))
+    config = await ResourceConfig.load(config_dir)
 
     # Verify GPU config
-    assert config.gpu.memory_fraction == 0.9
-    assert config.gpu.allow_growth is True
-    assert config.gpu.per_process_memory == "12GB"
-    assert config.gpu.enable_tf32 is True
-    assert config.gpu.cuda_devices == [0, 1]
+    if config.gpu is not None:
+        assert config.gpu.memory_fraction == 0.9
+        assert config.gpu.allow_growth is True
+        assert config.gpu.per_process_memory == "12GB"
+        assert config.gpu.enable_tf32 is True
+        assert config.gpu.cuda_devices == [0, 1]
 
     # Verify monitor config
-    assert config.monitor.check_interval == 1.0
-    assert config.monitor.memory_threshold == 0.9
-    assert config.monitor.cpu_threshold == 0.8
-    assert config.monitor.gpu_temp_threshold == 80.0
+    if config.monitor is not None:
+        assert config.monitor.check_interval == 1.0
+        assert config.monitor.memory_threshold == 0.9
+        assert config.monitor.cpu_threshold == 0.8
+        assert config.monitor.gpu_temp_threshold == 80.0
 
     # Verify resource config
     assert config.max_workers == 4

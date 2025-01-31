@@ -10,25 +10,26 @@ Key Features:
 - Size-based constraints
 - Automatic cleanup
 """
-
+import sys
 import asyncio
-import json
-import mmap
-import os
-import pickle
+import hashlib
+import sys
 import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional, TypeVar
 
 import torch
 from pydantic import BaseModel
 
-from ..core.config.base import BaseConfig
 from ..core.utils import LogManager, LogTemplates
-from ..core.utils.io import safe_load_json, safe_save_json, safe_load_torch, safe_save_torch
-from ..utils.security import verify_data_source
+from ..core.utils.io import (
+    safe_load_json,
+    safe_load_torch,
+    safe_save_json,
+    safe_save_torch,
+)
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -53,7 +54,7 @@ class CacheItem(BaseModel):
     key: str
     size: int
     last_access: float
-    path: Optional[Path] = None
+    path: Path | None = None
 
 
 class Cache(ABC):
@@ -90,20 +91,20 @@ class MemoryCache:
 
     def __init__(self, max_size: int):
         """Initialize memory cache.
-        
+
         Args:
             max_size: Maximum cache size in MB
         """
         self.max_size = max_size * 1024 * 1024  # Convert to bytes
         self._data: OrderedDict[str, Any] = OrderedDict()
-        self._metadata: Dict[str, CacheItem] = {}
+        self._metadata: dict[str, CacheItem] = {}
 
     def get(self, key: str) -> Optional[Any]:
         """Get item from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached item if found
         """
@@ -116,14 +117,14 @@ class MemoryCache:
 
     def put(self, key: str, value: Any) -> None:
         """Put item in cache.
-        
+
         Args:
             key: Cache key
             value: Item to cache
         """
         # Calculate size
         size = self._calculate_size(value)
-        
+
         # Enforce size limit
         while self._current_size() + size > self.max_size and self._data:
             # Remove least recently used
@@ -138,10 +139,10 @@ class MemoryCache:
 
     def _calculate_size(self, value: Any) -> int:
         """Calculate size of value in bytes.
-        
+
         Args:
             value: Value to calculate size for
-            
+
         Returns:
             Size in bytes
         """
@@ -151,7 +152,7 @@ class MemoryCache:
 
     def _current_size(self) -> int:
         """Get current cache size in bytes.
-        
+
         Returns:
             Current size in bytes
         """
@@ -163,27 +164,27 @@ class DiskCache:
 
     def __init__(self, cache_dir: Path, max_size: int):
         """Initialize disk cache.
-        
+
         Args:
             cache_dir: Cache directory
             max_size: Maximum cache size in MB
         """
         self.cache_dir = cache_dir
         self.max_size = max_size * 1024 * 1024  # Convert to bytes
-        self._metadata: Dict[str, CacheItem] = {}
-        
+        self._metadata: dict[str, CacheItem] = {}
+
         # Create cache directory
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Load existing metadata
         self._load_metadata()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get item from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached item if found
         """
@@ -201,20 +202,20 @@ class DiskCache:
 
     def put(self, key: str, value: Any) -> None:
         """Put item in cache.
-        
+
         Args:
             key: Cache key
             value: Item to cache
         """
         path = self._get_path(key)
-        
+
         try:
             # Save value
             if isinstance(value, torch.Tensor):
                 safe_save_torch(value, path)
             else:
                 safe_save_json(value, path)
-            
+
             # Update metadata
             self._metadata[key] = CacheItem(
                 key=key,
@@ -222,13 +223,13 @@ class DiskCache:
                 last_access=time.time(),
                 path=path,
             )
-            
+
             # Enforce size limit
             self._enforce_size_limit()
-            
+
             # Save metadata
             self._save_metadata()
-            
+
         except Exception as e:
             # Clean up on error
             if path.exists():
@@ -237,10 +238,10 @@ class DiskCache:
 
     def _get_path(self, key: str) -> Path:
         """Get cache file path for key.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cache file path
         """
@@ -250,7 +251,7 @@ class DiskCache:
 
     def _remove(self, key: str) -> None:
         """Remove item from cache.
-        
+
         Args:
             key: Cache key
         """
@@ -263,13 +264,13 @@ class DiskCache:
     def _enforce_size_limit(self) -> None:
         """Enforce cache size limit by removing old items."""
         current_size = sum(item.size for item in self._metadata.values())
-        
+
         # Sort by last access time
         items = sorted(
             self._metadata.items(),
             key=lambda x: x[1].last_access,
         )
-        
+
         # Remove oldest items until under limit
         while current_size > self.max_size and items:
             key, item = items.pop(0)
@@ -282,9 +283,7 @@ class DiskCache:
         if metadata_path.exists():
             try:
                 data = safe_load_json(metadata_path)
-                self._metadata = {
-                    k: CacheItem(**v) for k, v in data.items()
-                }
+                self._metadata = {k: CacheItem(**v) for k, v in data.items()}
             except Exception:
                 # Start fresh if metadata is corrupt
                 self._metadata = {}
@@ -306,7 +305,7 @@ class CacheManager:
 
     def __init__(self, config: CacheConfig):
         """Initialize cache manager.
-        
+
         Args:
             config: Cache configuration
         """
@@ -317,12 +316,12 @@ class CacheManager:
             config.disk_size,
         )
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get item from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached item if found
         """
@@ -330,26 +329,26 @@ class CacheManager:
         value = self.memory_cache.get(key)
         if value is not None:
             return value
-            
+
         # Try disk
         value = self.disk_cache.get(key)
         if value is not None:
             # Cache in memory
             self.memory_cache.put(key, value)
             return value
-            
+
         return None
 
     def put(self, key: str, value: Any) -> None:
         """Put item in cache.
-        
+
         Args:
             key: Cache key
             value: Item to cache
         """
         # Cache in memory
         self.memory_cache.put(key, value)
-        
+
         # Cache on disk
         self.disk_cache.put(key, value)
 

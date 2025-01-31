@@ -5,7 +5,7 @@ import torch
 from unittest.mock import MagicMock, patch
 
 from src.core.attention import HybridAttention
-from src.core.config_handler import ConfigManager
+from src.core.config import ConfigManager
 
 
 @pytest.fixture

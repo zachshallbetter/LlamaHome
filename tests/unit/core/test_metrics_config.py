@@ -1,7 +1,7 @@
 """Test metrics configuration."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -12,7 +12,7 @@ from src.core.metrics.config import MetricsConfig
 @pytest.fixture
 def metrics_config() -> MetricsConfig:
     """Create test metrics configuration.
-    
+
     Returns:
         Test metrics configuration
     """
@@ -27,9 +27,9 @@ def metrics_config() -> MetricsConfig:
 
 
 @pytest.fixture
-def metrics_data() -> Dict[str, Any]:
+def metrics_data() -> dict[str, Any]:
     """Create test metrics data.
-    
+
     Returns:
         Test metrics data
     """
@@ -43,14 +43,14 @@ def metrics_data() -> Dict[str, Any]:
     }
 
 
-async def test_metrics_config_load(metrics_data: Dict[str, Any]) -> None:
+async def test_metrics_config_load(metrics_data: dict[str, Any]) -> None:
     """Test loading metrics configuration.
-    
+
     Args:
         metrics_data: Test metrics data
     """
     config = MetricsConfig(**metrics_data)
-    
+
     # Verify loaded values
     assert config.enabled_metrics == metrics_data["enabled_metrics"]
     assert config.aggregation_interval == metrics_data["aggregation_interval"]

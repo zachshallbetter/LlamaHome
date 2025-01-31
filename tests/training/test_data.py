@@ -5,7 +5,7 @@ import torch
 from typing import Dict, Any
 
 from src.training.data import DataManager, DataConfig
-from src.core.config_handler import ConfigManager
+from src.core.config import ConfigManager
 
 
 @pytest.fixture

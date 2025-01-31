@@ -2,7 +2,7 @@
 Manager class for inference.
 """
 
-from typing import Any, List, Optional
+from typing import Any
 
 from .config import InferenceConfig
 from .pipeline import InferencePipeline
@@ -37,7 +37,7 @@ class InferenceManager:
         """
         return self.pipeline.generate(prompt, **kwargs)
 
-    def generate_batch(self, prompts: List[str], **kwargs: Any) -> List[str]:
+    def generate_batch(self, prompts: list[str], **kwargs: Any) -> list[str]:
         """Generate responses for multiple prompts.
 
         Args:
@@ -50,7 +50,7 @@ class InferenceManager:
         return self.pipeline.generate_batch(prompts, **kwargs)
 
     async def generate_stream(
-        self, prompt: str, chunk_size: Optional[int] = None, **kwargs: Any
+        self, prompt: str, chunk_size: int | None = None, **kwargs: Any
     ) -> Any:
         """Generate streaming response for a prompt.
 

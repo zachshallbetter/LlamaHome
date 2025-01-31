@@ -3,14 +3,12 @@
 
 import os
 import platform
-import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 
-def validate_command(command: List[str]) -> None:
+def validate_command(command: list[str]) -> None:
     """Validate command for security.
 
     Args:
@@ -42,7 +40,7 @@ def validate_command(command: List[str]) -> None:
             raise ValueError(f"Invalid argument characters in: {arg}")
 
 
-def run_command(command: List[str], cwd: Optional[Path] = None) -> Tuple[int, str, str]:
+def run_command(command: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
     """Run command securely.
 
     Args:
@@ -108,7 +106,7 @@ def is_apple_silicon() -> bool:
     return platform.system() == "Darwin" and platform.machine() == "arm64"
 
 
-def get_torch_install_command() -> List[str]:
+def get_torch_install_command() -> list[str]:
     """Get the appropriate torch installation command for the platform.
 
     Returns:
@@ -218,6 +216,7 @@ def verify_installation() -> None:
         print("CUDA: Available")
         try:
             import torch
+
             print(f"PyTorch CUDA: {torch.version.cuda}")
         except ImportError:
             print("PyTorch: Not installed")

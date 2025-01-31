@@ -4,8 +4,9 @@ Resource management implementation for training pipeline.
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Optional
 
 import psutil
 import torch
@@ -28,7 +29,7 @@ class Resource(ABC):
         """Initialize resource."""
         self._lock = asyncio.Lock()
         self._in_use = False
-        self._usage_history: List[float] = []
+        self._usage_history: list[float] = []
         self._queue: asyncio.Queue = asyncio.Queue()
 
     @abstractmethod
@@ -48,17 +49,17 @@ class Resource(ABC):
         self._in_use = False
 
     @abstractmethod
-    async def get_memory_info(self) -> Dict[str, float]:
+    async def get_memory_info(self) -> dict[str, float]:
         """Get memory usage information."""
         raise NotImplementedError("Must implement get_memory_info")
 
     @abstractmethod
-    async def get_cpu_info(self) -> Dict[str, float]:
+    async def get_cpu_info(self) -> dict[str, float]:
         """Get CPU usage information."""
         raise NotImplementedError("Must implement get_cpu_info")
 
     @abstractmethod
-    async def get_io_info(self) -> Dict[str, float]:
+    async def get_io_info(self) -> dict[str, float]:
         """Get I/O usage information."""
         raise NotImplementedError("Must implement get_io_info")
 
@@ -145,7 +146,7 @@ class CPUResource(Resource):
             "memory": dict(psutil.virtual_memory()._asdict()),
         }
 
-    async def get_memory_info(self) -> Dict[str, float]:
+    async def get_memory_info(self) -> dict[str, float]:
         """Get memory usage information."""
         mem = psutil.virtual_memory()
         return {
@@ -195,7 +196,7 @@ class IOResource(Resource):
             "queue_capacity": self.queue_size,
         }
 
-    async def get_memory_info(self) -> Dict[str, float]:
+    async def get_memory_info(self) -> dict[str, float]:
         """Get memory usage information."""
         disk = psutil.disk_usage("/")
         return {

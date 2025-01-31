@@ -43,8 +43,13 @@ setup-dirs:
 .PHONY: setup-env
 setup-env:
 	@echo "Setting up Python environment..."
-	@python3 scripts/install.py
-	@echo "Python environment ready"
+	@$(PYTHON) -m venv $(VENV)
+	@echo "Activating virtual environment..."
+	@. $(VENV)/bin/activate && \
+	echo "Upgrading pip..." && \
+	$(BIN)/pip install --upgrade pip && \
+	echo "Installing Python dependencies..." && \
+	$(BIN)/pip install -r requirements.txt
 
 # Configuration setup
 .PHONY: setup-config

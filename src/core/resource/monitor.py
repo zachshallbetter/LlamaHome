@@ -1,6 +1,5 @@
 """Resource monitoring functionality."""
 
-from typing import Dict
 
 import psutil
 import torch
@@ -22,10 +21,10 @@ class PerformanceMonitor:
 
     def _setup_monitoring(self) -> None:
         """Set up monitoring infrastructure."""
-        self.metrics: Dict[str, float] = {}
-        self.alerts: Dict[str, bool] = {}
+        self.metrics: dict[str, float] = {}
+        self.alerts: dict[str, bool] = {}
 
-    async def check_resources(self) -> Dict[str, float]:
+    async def check_resources(self) -> dict[str, float]:
         """Check current resource utilization.
 
         Returns:

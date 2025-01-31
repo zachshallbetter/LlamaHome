@@ -1,8 +1,8 @@
 """Resource management functionality."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import torch
 
@@ -44,8 +44,8 @@ class ResourceManager:
 
     def _setup_monitoring(self) -> None:
         """Set up monitoring infrastructure."""
-        self.metrics: Dict[str, float] = {}
-        self.alerts: Dict[str, bool] = {}
+        self.metrics: dict[str, float] = {}
+        self.alerts: dict[str, bool] = {}
 
     @asynccontextmanager
     async def optimize(self) -> AsyncGenerator[None, None]:
@@ -73,11 +73,11 @@ class ResourceManager:
 class GPUConfig:
     """GPU resource configuration."""
 
-    device: Optional[str] = None
+    device: str | None = None
     memory_fraction: float = 0.9
     allow_growth: bool = True
     enable_tf32: bool = False
-    allowed_devices: Optional[List[int]] = None
-    device_map: Optional[Dict[str, Union[int, str]]] = None
-    max_memory: Optional[Dict[int, str]] = None
-    offload_folder: Optional[str] = None
+    allowed_devices: list[int] | None = None
+    device_map: dict[str, int | str] | None = None
+    max_memory: dict[int, str] | None = None
+    offload_folder: str | None = None

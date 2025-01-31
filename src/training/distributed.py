@@ -129,7 +129,7 @@ class DistributedTrainer:
 
     async def train(
         self,
-        train_dataset: Union[str, Path],
+        train_dataset: str | Path,
         eval_dataset: Optional[Union[str, Path]] = None,
     ) -> None:
         """Run distributed training.
@@ -149,7 +149,7 @@ class DistributedTrainer:
         metrics: DistributedMetrics,
     ) -> Dict[str, float]:
         """Train single epoch with distributed support."""
-        epoch_metrics: Dict[str, float] = {}
+        epoch_metrics: dict[str, float] = {}
         self.model.train()
 
         for step, batch in enumerate(dataloader):

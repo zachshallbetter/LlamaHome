@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import Field
 
@@ -56,7 +56,7 @@ class TrainingConfig(BaseConfig):
     resources: ResourceConfig
     monitoring: MonitoringConfig
     checkpointing: CheckpointConfig
-    distributed: Optional[DistributedConfig] = None
+    distributed: DistributedConfig | None = None
 
     @classmethod
     async def load(

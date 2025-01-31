@@ -1,7 +1,7 @@
 """Configuration tests."""
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import toml  # type: ignore # missing stubs
@@ -19,7 +19,7 @@ def config_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def test_config() -> Dict[str, Any]:
+def test_config() -> dict[str, Any]:
     """Test configuration data."""
     return {
         "resources": {
@@ -44,7 +44,7 @@ async def config_manager(config_dir: Path) -> ConfigManager:
     return ConfigManager(config_dir)
 
 
-async def test_load_from_file(config_dir: Path, test_config: Dict[str, Any]) -> None:
+async def test_load_from_file(config_dir: Path, test_config: dict[str, Any]) -> None:
     """Test loading configuration from file."""
     # Create test config file
     config_path = config_dir / "test_config.toml"
@@ -81,7 +81,7 @@ async def test_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert config.io_queue_size == 500
 
 
-async def test_save_to_file(config_dir: Path, test_config: Dict[str, Any]) -> None:
+async def test_save_to_file(config_dir: Path, test_config: dict[str, Any]) -> None:
     """Test saving configuration to file."""
     # Create config instance
     config = ResourceConfig(**test_config["resources"])
@@ -144,7 +144,7 @@ async def test_validation() -> None:
 
 
 async def test_config_manager(
-    config_manager: ConfigManager, test_config: Dict[str, Any]
+    config_manager: ConfigManager, test_config: dict[str, Any]
 ) -> None:
     """Test configuration manager functionality."""
     # Save test configs

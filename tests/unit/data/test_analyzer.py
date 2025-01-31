@@ -15,7 +15,7 @@ import nltk
 import pytest
 from rich.console import Console
 
-from src.data.analyzer import TextAnalyzer, AnalysisConfig, create_analyzer
+from src.data.processing.analyzer import TextAnalyzer, AnalysisConfig, create_analyzer
 from src.core.utils import LogManager, LogTemplates
 
 # Set up console for test output

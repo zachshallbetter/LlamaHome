@@ -4,16 +4,17 @@ Data loading implementation for training pipeline.
 
 import json
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from transformers import PreTrainedTokenizer
 
-from ..utils.security import verify_data_source
-from .monitoring import MemoryTracker
+from src.core.security import verify_data_source
+from src.core.monitoring import MemoryTracker
 
 
 @dataclass
@@ -49,8 +50,8 @@ class ConversationDataset(Dataset):
         self.max_length = max_length
         self.buffer_size = buffer_size
         self.memory_limit = memory_limit
-        self._buffer: List[Dict[str, torch.Tensor]] = []
-        self._file_iter: Optional[Iterator[str]] = None
+        self._buffer: list[dict[str, torch.Tensor]] = []
+        self._file_iter: Iterator[str] | None = None
         self._total_size = self._count_samples()
         self._setup_streaming()
         self.memory_tracker = MemoryTracker()
@@ -118,7 +119,7 @@ class ConversationDataset(Dataset):
         }
 
     def _format_conversation(
-        self, conversation: Dict[str, List[Dict[str, str]]]
+        self, conversation: Dict[str, list[dict[str, str]]]
     ) -> str:
         """Format conversation for model input."""
         formatted = []
@@ -142,9 +143,9 @@ class StreamingDataset(Dataset):
 
     def __init__(
         self,
-        data_path: Union[str, Path],
+        data_path: str | Path,
         max_length: int = 512,
-        cache_dir: Optional[Path] = None,
+        cache_dir: Path | None = None,
     ):
         self.data_path = Path(data_path)
         self.max_length = max_length
@@ -165,7 +166,7 @@ class StreamingDataset(Dataset):
         else:
             self.data = self._load_json_data()
 
-    def _load_torch_data(self) -> List[Dict[str, List[Dict[str, str]]]]:
+    def _load_torch_data(self) -> list[dict[str, list[dict[str, str]]]]:
         """Load PyTorch data safely."""
         try:
             # Load with extra verification
@@ -180,7 +181,7 @@ class StreamingDataset(Dataset):
         except Exception as e:
             raise ValueError(f"Failed to load PyTorch data: {e}")
 
-    def _load_json_data(self) -> List[Dict[str, List[Dict[str, str]]]]:
+    def _load_json_data(self) -> list[dict[str, list[dict[str, str]]]]:
         """Load JSON data safely."""
         try:
             with open(self.data_path) as f:
@@ -195,7 +196,7 @@ class StreamingDataset(Dataset):
         """Get dataset length."""
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         """Get dataset item."""
         item = self.data[idx]
         # Convert to tensors
@@ -286,7 +287,7 @@ class DataManager:
 
     async def _load_raw_data(
         self, data_path: Union[str, Path]
-    ) -> List[Dict[str, List[Dict[str, str]]]]:
+    ) -> List[Dict[str, list[dict[str, str]]]]:
         """Load raw data from file."""
         data_path = Path(data_path)
 
@@ -318,7 +319,7 @@ class DataManager:
         except Exception as e:
             raise DataError(f"Failed to load data: {e}") from e
 
-    def _validate_data(self, data: List[Dict[str, List[Dict[str, str]]]]) -> None:
+    def _validate_data(self, data: List[Dict[str, list[dict[str, str]]]]) -> None:
         """Validate data format."""
         for item in data:
             if "messages" not in item:
@@ -333,10 +334,10 @@ class DataManager:
                     raise DataError(f"Invalid role: {message['role']}")
 
     def _split_data(
-        self, data: List[Dict[str, List[Dict[str, str]]]]
+        self, data: List[Dict[str, list[dict[str, str]]]]
     ) -> Tuple[
-        List[Dict[str, List[Dict[str, str]]]],
-        Optional[List[Dict[str, List[Dict[str, str]]]]],
+        List[Dict[str, list[dict[str, str]]]],
+        Optional[List[Dict[str, list[dict[str, str]]]]],
     ]:
         """Split data into train and validation sets."""
         if not self.config.validation_split:
@@ -355,7 +356,7 @@ class DataManager:
             pin_memory=True,
         )
 
-    async def prepare_dataset(self, data_path: Union[str, Path]) -> Dataset:
+    async def prepare_dataset(self, data_path: str | Path) -> Dataset:
         """Prepare dataset from path."""
         if isinstance(data_path, str):
             data_path = Path(data_path)

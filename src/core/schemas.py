@@ -1,7 +1,7 @@
 """Configuration schemas."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Field, validator
 
@@ -32,9 +32,9 @@ class ModelSchema(BaseModel):
 class TrainingSchema(BaseModel):
     """Training configuration schema."""
 
-    cache: Dict[str, Union[int, bool, str, Path]]
-    optimization: Dict[str, Union[float, int, str, bool]]
-    resources: Dict[str, Union[float, int]]
+    cache: dict[str, int | bool | str | Path]
+    optimization: dict[str, float | int | str | bool]
+    resources: dict[str, float | int]
 
     @validator("optimization")
     def validate_optimization(cls, v):
@@ -46,9 +46,9 @@ class TrainingSchema(BaseModel):
 class DistributedSchema(BaseModel):
     """Distributed configuration schema."""
 
-    basic: Dict[str, Union[str, int]]
-    resources: Dict[str, Union[float, int, bool]]
-    communication: Dict[str, Union[int, bool]]
+    basic: dict[str, str | int]
+    resources: dict[str, float | int | bool]
+    communication: dict[str, int | bool]
 
     @validator("basic")
     def validate_basic(cls, v):
@@ -117,16 +117,16 @@ class InferenceSchema(BaseSchema):
         return value
 
     model_name: str
-    model_path: Optional[Path]
-    gpu_config: Dict[str, Union[str, int, float, bool]]
-    resource: Dict[str, Union[float, int]]
+    model_path: Path | None
+    gpu_config: dict[str, str | int | float | bool]
+    resource: dict[str, float | int]
     device: str
     dtype: str
     trust_remote_code: bool = False
-    use_auth_token: Optional[str] = None
-    model_revision: Optional[str] = None
-    quantization: Optional[str] = None
-    processing: Dict[str, Union[int, float, bool]]
+    use_auth_token: str | None = None
+    model_revision: str | None = None
+    quantization: str | None = None
+    processing: dict[str, int | float | bool]
 
     @validator("dtype")
     def validate_dtype(cls, v):
@@ -139,7 +139,7 @@ class InferenceSchema(BaseSchema):
 class MonitoringSchema(BaseModel):
     """Monitoring configuration schema."""
 
-    monitoring: Dict[str, Union[int, bool]]
+    monitoring: dict[str, int | bool]
 
     @validator("monitoring")
     def validate_monitoring(cls, v):
@@ -155,7 +155,7 @@ class MonitoringSchema(BaseModel):
 class MetricsSchema(BaseModel):
     """Metrics configuration schema."""
 
-    metrics: Dict[str, Union[List[str], int, str, bool]]
+    metrics: dict[str, list[str] | int | str | bool]
 
     @validator("metrics")
     def validate_metrics(cls, v):

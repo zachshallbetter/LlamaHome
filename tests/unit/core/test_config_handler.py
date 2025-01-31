@@ -6,7 +6,7 @@ import pytest
 import toml
 from unittest.mock import patch, mock_open
 
-from src.core.config_handler import ConfigManager
+from src.core.config import ConfigManager
 
 
 @pytest.fixture

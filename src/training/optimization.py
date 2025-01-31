@@ -1,56 +1,22 @@
 """Training optimization utilities."""
 
 import math
-from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, ReduceLROnPlateau
+from torch.nn import Module
+from torch.optim import AdamW, Optimizer
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    LinearLR,
+    ReduceLROnPlateau,
+    _LRScheduler,
+)
 
-from ..core.config import ConfigManager
-from ..core.schemas import TrainingSchema
+from ..core.config.base import BaseConfig
 from ..core.utils import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
-
-
-@dataclass
-class OptimizationConfig:
-    """Optimization configuration."""
-
-    def __init__(self) -> None:
-        self.config_manager = ConfigManager()
-        self.optimization_config = self.config_manager.configs["training"][
-            "optimization"
-        ]
-
-        # Load settings
-        self.learning_rate = float(self.optimization_config["learning_rate"])
-        self.weight_decay = float(self.optimization_config["weight_decay"])
-        self.warmup_steps = int(self.optimization_config["warmup_steps"])
-        self.scheduler_type = self.optimization_config["scheduler_type"]
-        self.max_grad_norm = float(self.optimization_config["max_grad_norm"])
-        self.mixed_precision = self.optimization_config["mixed_precision"]
-        self.gradient_checkpointing = self.optimization_config["gradient_checkpointing"]
-
-        self._validate_config()
-
-    def _validate_config(self) -> None:
-        """Validate optimization configuration."""
-        config_dict = {
-            "optimization": {
-                "learning_rate": self.learning_rate,
-                "weight_decay": self.weight_decay,
-                "warmup_steps": self.warmup_steps,
-                "scheduler_type": self.scheduler_type,
-                "max_grad_norm": self.max_grad_norm,
-                "mixed_precision": self.mixed_precision,
-                "gradient_checkpointing": self.gradient_checkpointing,
-            }
-        }
-
-        TrainingSchema(**config_dict)
 
 
 class OptimizerConfig(BaseConfig):
@@ -64,141 +30,161 @@ class OptimizerConfig(BaseConfig):
     max_grad_norm: float = 1.0
     warmup_steps: int = 0
     scheduler_type: str = "linear"
+    total_steps: int = 1000
+    num_cycles: float = 0.5
+    power: float = 1.0
 
 
-def get_scheduler(
-    name: str,
-    optimizer: Optimizer,
-    num_warmup_steps: int,
-    num_training_steps: int,
-    **kwargs,
-) -> LRScheduler:
-    """Get learning rate scheduler.
-
-    Args:
-        name: Scheduler name
-        optimizer: Optimizer instance
-        num_warmup_steps: Number of warmup steps
-        num_training_steps: Total number of training steps
-        **kwargs: Additional scheduler arguments
-
-    Returns:
-        Learning rate scheduler
-
-    Raises:
-        ValueError: If scheduler type is not supported
-    """
-    name = name.lower()
-
-    if name == "linear":
-        return LinearScheduler(optimizer, num_warmup_steps, num_training_steps)
-    elif name == "cosine":
-        return CosineScheduler(
-            optimizer,
-            num_warmup_steps,
-            num_training_steps,
-            num_cycles=kwargs.get("num_cycles", 0.5),
-        )
-    elif name == "constant":
-        return ConstantScheduler(optimizer, num_warmup_steps)
-    else:
-        raise ValueError(f"Unknown scheduler type: {name}")
-
-
-class Optimizer:
-    """Optimizer wrapper with scheduling and gradient handling."""
+class OptimizationManager:
+    """Manages optimization components."""
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: Module,
         config: OptimizerConfig,
-    ):
+    ) -> None:
+        """Initialize optimization manager.
+
+        Args:
+            model: Model to optimize
+            config: Optimizer configuration
+        """
         self.model = model
         self.config = config
-        self._setup_optimizer()
-        self._setup_scheduler()
+        self.optimizer = self._create_optimizer()
+        self.scheduler = self._create_scheduler()
 
-    def _setup_optimizer(self) -> None:
-        """Set up optimizer."""
-        self.optimizer = AdamW(
-            self.model.parameters(),
+    def _create_optimizer(self) -> Optimizer:
+        """Create optimizer instance.
+
+        Returns:
+            Configured optimizer
+        """
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
+                "weight_decay": self.config.weight_decay,
+            },
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        return AdamW(
+            optimizer_grouped_parameters,
             lr=self.config.learning_rate,
             betas=(self.config.adam_beta1, self.config.adam_beta2),
             eps=self.config.adam_epsilon,
-            weight_decay=self.config.weight_decay,
         )
 
-    def _setup_scheduler(self) -> None:
-        """Set up learning rate scheduler."""
+    def _create_scheduler(self) -> _LRScheduler:
+        """Create learning rate scheduler.
+
+        Returns:
+            Configured scheduler
+        """
         if self.config.scheduler_type == "linear":
-            self.scheduler = LinearLR(
+            return LinearLR(
                 self.optimizer,
                 start_factor=1.0,
                 end_factor=0.0,
-                total_iters=self.config.warmup_steps,
+                total_iters=self.config.total_steps,
             )
         elif self.config.scheduler_type == "cosine":
-            self.scheduler = CosineAnnealingLR(
+            return CosineAnnealingLR(
                 self.optimizer,
-                T_max=self.config.warmup_steps,
+                T_max=self.config.total_steps,
+                eta_min=0.0,
             )
         elif self.config.scheduler_type == "plateau":
-            self.scheduler = ReduceLROnPlateau(
-                self.optimizer,
-                mode="min",
-                factor=0.1,
-                patience=10,
+            return cast(
+                _LRScheduler,
+                ReduceLROnPlateau(
+                    self.optimizer,
+                    mode="min",
+                    factor=0.1,
+                    patience=10,
+                    verbose=True,
+                ),
             )
         else:
-            self.scheduler = None
+            raise ValueError(f"Unknown scheduler type: {self.config.scheduler_type}")
 
-    def step(self) -> None:
-        """Perform optimization step."""
-        if self.scheduler is not None:
-            self.scheduler.step()
+    def step(self, loss: Optional[float] = None) -> None:
+        """Perform optimization step.
+
+        Args:
+            loss: Optional loss value for plateau scheduler
+        """
+        # Optimizer step
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def backward(self, loss: torch.Tensor) -> None:
-        """Backward pass with gradient clipping."""
-        loss.backward()
-        if self.config.max_grad_norm > 0:
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
-                self.config.max_grad_norm,
-            )
+        # Scheduler step
+        if isinstance(self.scheduler, ReduceLROnPlateau):
+            if loss is not None:
+                self.scheduler.step(loss)
+        else:
+            self.scheduler.step()
+
+    def get_lr(self) -> List[float]:
+        """Get current learning rates.
+
+        Returns:
+            List of learning rates
+        """
+        if isinstance(self.scheduler, ReduceLROnPlateau):
+            return [group["lr"] for group in self.optimizer.param_groups]
+        return self.scheduler.get_last_lr()
 
     def state_dict(self) -> Dict[str, Any]:
-        """Get optimizer state."""
+        """Get optimization state.
+
+        Returns:
+            State dictionary
+        """
         return {
             "optimizer": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "scheduler": self.scheduler.state_dict(),
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Load optimizer state."""
+        """Load optimization state.
+
+        Args:
+            state_dict: State dictionary to load
+        """
         self.optimizer.load_state_dict(state_dict["optimizer"])
-        if self.scheduler and state_dict["scheduler"]:
-            self.scheduler.load_state_dict(state_dict["scheduler"])
+        self.scheduler.load_state_dict(state_dict["scheduler"])
 
 
 async def create_optimizer(
-    model: torch.nn.Module,
+    model: Module,
     config: OptimizerConfig,
-) -> Optimizer:
-    """Create optimizer instance.
+) -> OptimizationManager:
+    """Create optimization manager.
 
     Args:
         model: Model to optimize
         config: Optimizer configuration
 
     Returns:
-        Configured optimizer instance
+        Configured optimization manager
     """
-    return Optimizer(model, config)
+    return OptimizationManager(model, config)
 
 
-class CosineScheduler(LRScheduler):
+class CosineScheduler(_LRScheduler):
     """Cosine learning rate scheduler with warmup."""
 
     def __init__(
@@ -208,14 +194,27 @@ class CosineScheduler(LRScheduler):
         num_training_steps: int,
         num_cycles: float = 0.5,
         last_epoch: int = -1,
-    ):
+    ) -> None:
+        """Initialize scheduler.
+
+        Args:
+            optimizer: Optimizer to schedule
+            num_warmup_steps: Number of warmup steps
+            num_training_steps: Total number of training steps
+            num_cycles: Number of cycles for cosine decay
+            last_epoch: The index of last epoch
+        """
         self.num_warmup_steps = num_warmup_steps
         self.num_training_steps = num_training_steps
         self.num_cycles = num_cycles
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self) -> List[float]:
-        """Get learning rates for current step."""
+        """Get learning rates for current step.
+
+        Returns:
+            List of learning rates
+        """
         if self.last_epoch < self.num_warmup_steps:
             # Linear warmup
             return [
@@ -227,14 +226,15 @@ class CosineScheduler(LRScheduler):
         progress = (self.last_epoch - self.num_warmup_steps) / (
             self.num_training_steps - self.num_warmup_steps
         )
-
         return [
-            base_lr * 0.5 * (1.0 + math.cos(math.pi * self.num_cycles * 2.0 * progress))
+            base_lr
+            * 0.5
+            * (1.0 + math.cos(math.pi * self.num_cycles * 2.0 * progress))
             for base_lr in self.base_lrs
         ]
 
 
-class LinearScheduler(LRScheduler):
+class LinearScheduler(_LRScheduler):
     """Linear learning rate scheduler with warmup."""
 
     def __init__(
@@ -243,13 +243,25 @@ class LinearScheduler(LRScheduler):
         num_warmup_steps: int,
         num_training_steps: int,
         last_epoch: int = -1,
-    ):
+    ) -> None:
+        """Initialize scheduler.
+
+        Args:
+            optimizer: Optimizer to schedule
+            num_warmup_steps: Number of warmup steps
+            num_training_steps: Total number of training steps
+            last_epoch: The index of last epoch
+        """
         self.num_warmup_steps = num_warmup_steps
         self.num_training_steps = num_training_steps
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self) -> List[float]:
-        """Get learning rates for current step."""
+        """Get learning rates for current step.
+
+        Returns:
+            List of learning rates
+        """
         if self.last_epoch < self.num_warmup_steps:
             # Linear warmup
             return [
@@ -261,30 +273,7 @@ class LinearScheduler(LRScheduler):
         progress = (self.last_epoch - self.num_warmup_steps) / (
             self.num_training_steps - self.num_warmup_steps
         )
-
         return [base_lr * (1.0 - progress) for base_lr in self.base_lrs]
-
-
-class ConstantScheduler(LRScheduler):
-    """Constant learning rate scheduler with warmup."""
-
-    def __init__(
-        self, optimizer: Optimizer, num_warmup_steps: int, last_epoch: int = -1
-    ):
-        self.num_warmup_steps = num_warmup_steps
-        super().__init__(optimizer, last_epoch)
-
-    def get_lr(self) -> List[float]:
-        """Get learning rates for current step."""
-        if self.last_epoch < self.num_warmup_steps:
-            # Linear warmup
-            return [
-                base_lr * self.last_epoch / self.num_warmup_steps
-                for base_lr in self.base_lrs
-            ]
-
-        # Constant learning rate
-        return self.base_lrs
 
 
 class OptimizationError(Exception):

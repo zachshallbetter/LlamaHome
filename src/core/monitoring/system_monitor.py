@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Optional
 
 import psutil
 import torch
@@ -16,10 +15,10 @@ class ResourceMetrics(BaseModel):
 
     cpu_usage: float
     memory_usage: float
-    gpu_usage: Optional[float]
-    gpu_memory: Optional[float]
+    gpu_usage: float | None
+    gpu_memory: float | None
     disk_usage: float
-    network_io: Dict[str, float]
+    network_io: dict[str, float]
 
 
 class SystemMetrics(BaseModel):
@@ -135,7 +134,7 @@ class SystemMonitor:
             self.logger.error(f"Error collecting metrics: {str(e)}")
             raise
 
-    def _collect_gpu_metrics(self) -> Dict[str, float]:
+    def _collect_gpu_metrics(self) -> dict[str, float]:
         """Collect GPU metrics if available."""
         try:
             if torch.cuda.is_available():

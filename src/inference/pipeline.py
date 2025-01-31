@@ -3,7 +3,7 @@ Inference pipeline implementation.
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List
 
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizer
@@ -43,7 +43,7 @@ class InferencePipeline:
         if hasattr(self.model, "use_cache"):
             self.model.use_cache = self.config.use_cache
 
-    async def generate(self, prompt: str, **kwargs: Any) -> Union[str, List[str]]:
+    async def generate(self, prompt: str, **kwargs: Any) -> str | list[str]:
         """Generate text from prompt.
 
         Args:
@@ -89,7 +89,7 @@ class InferencePipeline:
 
         return decoded[0] if len(decoded) == 1 else decoded
 
-    def _get_generation_config(self, **kwargs: Any) -> Dict[str, Any]:
+    def _get_generation_config(self, **kwargs: Any) -> dict[str, Any]:
         """Get generation configuration.
 
         Args:

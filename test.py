@@ -20,7 +20,7 @@ class TestCore(unittest.TestCase):
     def test_memory_tracking(self) -> None:
         """Test memory tracking functionality."""
         memory_stats = self.memory_tracker.get_memory_stats()
-        self.assertIsInstance(memory_stats, Dict)
+        self.assertIsInstance(memory_stats, dict)
 
     def test_safe_io(self) -> None:
         """Test safe I/O operations."""

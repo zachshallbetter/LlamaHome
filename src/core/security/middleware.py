@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TypeVar
+from typing import Any, TypeVar
 
 import jwt
 from fastapi import HTTPException, Request, Response
@@ -19,18 +19,18 @@ class SecurityConfig(BaseModel):
     rate_limit_requests: int = 100
     rate_limit_period: int = 60
     max_request_size: int = 1024 * 1024  # 1MB
-    allowed_origins: List[str] = ["*"]
+    allowed_origins: list[str] = ["*"]
 
 
 class AuditLog(BaseModel):
     """Audit log entry."""
 
     timestamp: datetime
-    user_id: Optional[str]
+    user_id: str | None
     action: str
     resource: str
     status: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
 class SecurityMiddleware:
@@ -38,7 +38,7 @@ class SecurityMiddleware:
 
     def __init__(self, config: SecurityConfig) -> None:
         """Initialize security middleware.
-        
+
         Args:
             config: Security configuration
         """
@@ -48,13 +48,13 @@ class SecurityMiddleware:
 
     async def process_request(self, request: Request) -> Response:
         """Process and validate incoming requests.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Returns:
             Processed response
-            
+
         Raises:
             HTTPException: If request validation fails
         """
@@ -74,10 +74,10 @@ class SecurityMiddleware:
 
     async def _validate_request_size(self, request: Request) -> None:
         """Validate request size against configured limit.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Raises:
             HTTPException: If request is too large
         """
@@ -87,10 +87,10 @@ class SecurityMiddleware:
 
     async def _validate_origin(self, request: Request) -> None:
         """Validate request origin against allowed origins.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Raises:
             HTTPException: If origin is not allowed
         """
@@ -99,15 +99,15 @@ class SecurityMiddleware:
             if origin not in self.config.allowed_origins:
                 raise HTTPException(status_code=403, detail="Origin not allowed")
 
-    async def _authenticate_request(self, request: Request) -> Optional[Dict[str, Any]]:
+    async def _authenticate_request(self, request: Request) -> dict[str, Any] | None:
         """Authenticate request using JWT.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Returns:
             Decoded JWT payload if authentication succeeds
-            
+
         Raises:
             HTTPException: If authentication fails
         """
@@ -124,14 +124,14 @@ class SecurityMiddleware:
             ) from e
 
     async def _check_rate_limit(
-        self, request: Request, user: Optional[Dict[str, Any]]
+        self, request: Request, user: dict[str, Any] | None
     ) -> None:
         """Check request against rate limits.
-        
+
         Args:
             request: FastAPI request object
             user: Authenticated user information
-            
+
         Raises:
             HTTPException: If rate limit is exceeded
         """
@@ -143,10 +143,10 @@ class SecurityMiddleware:
 
     async def _validate_input(self, request: Request) -> None:
         """Validate request input data.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Raises:
             HTTPException: If input data is invalid
         """
@@ -154,18 +154,20 @@ class SecurityMiddleware:
             try:
                 await request.json()
             except Exception as e:
-                raise HTTPException(status_code=400, detail="Invalid request data") from e
+                raise HTTPException(
+                    status_code=400, detail="Invalid request data"
+                ) from e
 
     async def _audit_log(
         self,
         request: Request,
-        user: Optional[Dict[str, Any]],
+        user: dict[str, Any] | None,
         action: str,
         status: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Log security audit information.
-        
+
         Args:
             request: FastAPI request object
             user: Authenticated user information
@@ -185,10 +187,10 @@ class SecurityMiddleware:
 
     async def _process_response(self, request: Request) -> Response:
         """Process and enhance response with security headers.
-        
+
         Args:
             request: FastAPI request object
-            
+
         Returns:
             Enhanced response with security headers
         """

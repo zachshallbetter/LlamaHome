@@ -5,7 +5,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -13,7 +13,7 @@ from torch import Tensor
 from ..security import verify_data_source
 
 
-def safe_torch_save(obj: Any, path: Union[str, Path], **kwargs: Any) -> str:
+def safe_torch_save(obj: Any, path: str | Path, **kwargs: Any) -> str:
     """Safely save PyTorch object with hash verification.
 
     Returns:
@@ -52,7 +52,7 @@ def safe_torch_save(obj: Any, path: Union[str, Path], **kwargs: Any) -> str:
     return torch_hash
 
 
-def safe_torch_load(path: Union[str, Path], **kwargs: Any) -> Dict[str, Any]:
+def safe_torch_load(path: str | Path, **kwargs: Any) -> dict[str, Any]:
     """Safely load PyTorch object with hash verification."""
     path = Path(path)
     try:
@@ -61,7 +61,7 @@ def safe_torch_load(path: Union[str, Path], **kwargs: Any) -> Dict[str, Any]:
         if path.suffix not in {".pt", ".pth"}:
             raise ValueError(f"Unsupported file extension: {path.suffix}")
 
-        result: Dict[str, Any] = torch.load(
+        result: dict[str, Any] = torch.load(
             path,
             map_location="cpu",
             weights_only=True,
@@ -74,10 +74,10 @@ def safe_torch_load(path: Union[str, Path], **kwargs: Any) -> Dict[str, Any]:
 
 
 def safe_load_torch(
-    path: Union[str, Path], 
-    device: Optional[str] = None,
+    path: str | Path,
+    device: str | None = None,
     weights_only: bool = True,
-    verify: bool = True
+    verify: bool = True,
 ) -> Any:
     """Safely load PyTorch data with verification.
 
@@ -106,11 +106,12 @@ def safe_load_torch(
         # Create temporary directory for safe loading
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir) / path.name
-            
+
             # Copy file to temp location
             import shutil
+
             shutil.copy2(path, temp_path)
-            
+
             # Load with extra verification
             data = torch.load(
                 temp_path,
@@ -123,7 +124,7 @@ def safe_load_torch(
         raise ValueError(f"Failed to load PyTorch data: {e}") from e
 
 
-def safe_save_torch(data: Any, path: Union[str, Path]) -> None:
+def safe_save_torch(data: Any, path: str | Path) -> None:
     """Safely save PyTorch data.
 
     Args:
@@ -151,7 +152,7 @@ def safe_save_torch(data: Any, path: Union[str, Path]) -> None:
             )
             # Ensure data is written to disk
             os.fsync(tmp.fileno())
-            
+
         # Atomic rename
         os.rename(tmp.name, path)
     except Exception as e:
@@ -164,7 +165,7 @@ def safe_save_torch(data: Any, path: Union[str, Path]) -> None:
         raise ValueError(f"Failed to save PyTorch data: {e}") from e
 
 
-def safe_load_json(path: Union[str, Path]) -> Dict[str, Any]:
+def safe_load_json(path: str | Path) -> dict[str, Any]:
     """Safely load JSON data with verification.
 
     Args:
@@ -191,7 +192,7 @@ def safe_load_json(path: Union[str, Path]) -> Dict[str, Any]:
         raise ValueError(f"Failed to load JSON data: {e}") from e
 
 
-def safe_save_json(data: Dict[str, Any], path: Union[str, Path]) -> None:
+def safe_save_json(data: dict[str, Any], path: str | Path) -> None:
     """Safely save JSON data.
 
     Args:
@@ -217,7 +218,7 @@ def safe_save_json(data: Dict[str, Any], path: Union[str, Path]) -> None:
             # Ensure data is written to disk
             tmp.flush()
             os.fsync(tmp.fileno())
-            
+
         # Atomic rename
         os.rename(tmp.name, path)
     except Exception as e:

@@ -1,7 +1,6 @@
 """Metrics configuration."""
 
 from pathlib import Path
-from typing import Set
 
 from pydantic import Field
 
@@ -22,7 +21,7 @@ class StorageConfig(BaseConfig):
 class MetricsConfig(BaseConfig):
     """Metrics configuration."""
 
-    enabled_metrics: Set[str] = {"cpu", "memory", "gpu", "throughput"}
+    enabled_metrics: set[str] = {"cpu", "memory", "gpu", "throughput"}
     aggregation_interval: int = Field(60, ge=1)  # seconds
     storage: StorageConfig
     collect_system_metrics: bool = True
