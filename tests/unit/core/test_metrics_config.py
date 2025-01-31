@@ -1,88 +1,105 @@
-"""Tests for metrics configuration."""
+"""Test metrics configuration."""
+
+from pathlib import Path
+from typing import Any, Dict
 
 import pytest
-from pathlib import Path
-from typing import Dict, Any
+from pydantic import ValidationError
 
-from src.core.metrics.config import (
-    MetricsConfig,
-    StorageConfig
-)
+from src.core.metrics.config import MetricsConfig
+
 
 @pytest.fixture
-def test_metrics_config() -> Dict[str, Any]:
-    """Test metrics configuration data."""
+def metrics_config() -> MetricsConfig:
+    """Create test metrics configuration.
+    
+    Returns:
+        Test metrics configuration
+    """
+    return MetricsConfig(
+        enabled_metrics=["accuracy", "loss", "f1"],
+        aggregation_interval=60,
+        export_dir=Path("metrics"),
+        prometheus_port=9090,
+        tensorboard_enabled=True,
+        log_level="INFO",
+    )
+
+
+@pytest.fixture
+def metrics_data() -> Dict[str, Any]:
+    """Create test metrics data.
+    
+    Returns:
+        Test metrics data
+    """
     return {
-        "storage": {
-            "storage_type": "local",
-            "retention_days": 30,
-            "compression": True,
-            "export_format": "parquet",
-            "metrics_dir": "metrics",
-            "export_dir": "metrics/exports"
-        },
-        "metrics": {
-            "enabled_metrics": ["cpu", "memory", "gpu", "throughput"],
-            "aggregation_interval": 60,
-            "collect_system_metrics": True,
-            "collect_model_metrics": True,
-            "collect_training_metrics": True
-        }
+        "enabled_metrics": ["accuracy", "loss", "f1"],
+        "aggregation_interval": 60,
+        "export_dir": "metrics",
+        "prometheus_port": 9090,
+        "tensorboard_enabled": True,
+        "log_level": "INFO",
     }
 
-async def test_metrics_config_load(
-    config_dir: Path,
-    test_metrics_config: Dict[str, Any]
-):
-    """Test loading metrics configuration."""
-    # Create test config file
-    config_path = config_dir / "metrics_config.toml"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    
-    import toml
-    with open(config_path, "w") as f:
-        toml.dump(test_metrics_config, f)
-    
-    # Load config
-    config = await MetricsConfig.load(str(config_dir))
-    
-    # Verify storage config
-    assert config.storage.storage_type == "local"
-    assert config.storage.retention_days == 30
-    assert config.storage.compression is True
-    assert config.storage.export_format == "parquet"
-    
-    # Verify metrics config
-    assert "cpu" in config.enabled_metrics
-    assert "memory" in config.enabled_metrics
-    assert config.aggregation_interval == 60
-    assert config.collect_system_metrics is True
 
-async def test_metrics_config_validation():
+async def test_metrics_config_load(metrics_data: Dict[str, Any]) -> None:
+    """Test loading metrics configuration.
+    
+    Args:
+        metrics_data: Test metrics data
+    """
+    config = MetricsConfig(**metrics_data)
+    
+    # Verify loaded values
+    assert config.enabled_metrics == metrics_data["enabled_metrics"]
+    assert config.aggregation_interval == metrics_data["aggregation_interval"]
+    assert config.export_dir == Path(metrics_data["export_dir"])
+    assert config.prometheus_port == metrics_data["prometheus_port"]
+    assert config.tensorboard_enabled == metrics_data["tensorboard_enabled"]
+    assert config.log_level == metrics_data["log_level"]
+
+
+async def test_metrics_config_validation() -> None:
     """Test metrics configuration validation."""
-    # Test invalid retention days
-    with pytest.raises(ValueError):
-        StorageConfig(
-            storage_type="local",
-            retention_days=0,
-            compression=True,
-            export_format="parquet"
+    # Test invalid metrics
+    with pytest.raises(ValidationError):
+        MetricsConfig(
+            enabled_metrics=["invalid_metric"],
+            aggregation_interval=60,
+            export_dir="metrics",
         )
-    
-    # Test invalid storage type
-    with pytest.raises(ValueError):
-        StorageConfig(
-            storage_type="invalid",
-            retention_days=30,
-            compression=True,
-            export_format="parquet"
+
+    # Test invalid interval
+    with pytest.raises(ValidationError):
+        MetricsConfig(
+            enabled_metrics=["accuracy"],
+            aggregation_interval=-1,
+            export_dir="metrics",
         )
-    
-    # Test invalid export format
-    with pytest.raises(ValueError):
-        StorageConfig(
-            storage_type="local",
-            retention_days=30,
-            compression=True,
-            export_format="invalid"
-        ) 
+
+    # Test invalid export directory
+    with pytest.raises(ValidationError):
+        MetricsConfig(
+            enabled_metrics=["accuracy"],
+            aggregation_interval=60,
+            export_dir="",
+        )
+
+    # Test invalid prometheus port
+    with pytest.raises(ValidationError):
+        MetricsConfig(
+            enabled_metrics=["accuracy"],
+            aggregation_interval=60,
+            export_dir="metrics",
+            prometheus_port=70000,
+        )
+
+    # Test invalid log level
+    with pytest.raises(ValidationError):
+        MetricsConfig(
+            enabled_metrics=["accuracy"],
+            aggregation_interval=60,
+            export_dir="metrics",
+            log_level="INVALID",
+        )

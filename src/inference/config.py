@@ -2,22 +2,14 @@
 Configuration classes for inference.
 """
 
-import os
 from dataclasses import dataclass
-from typing import Literal, Optional, List
 from pathlib import Path
+from typing import List, Literal, Optional
 
-import torch
 from pydantic import Field
 
-from ..core.config import ConfigManager
-from ..core.resource import GPUConfig
+from ..core.config.base import BaseConfig, ProcessingConfig, ResourceConfig
 from ..core.schemas import InferenceSchema
-from ..core.config.base import (
-    BaseConfig,
-    ResourceConfig,
-    ProcessingConfig
-)
 
 
 @dataclass
@@ -60,6 +52,7 @@ class ResourceConfig:
 
 class ModelConfig(BaseConfig):
     """Model-specific configuration."""
+
     model_name: str
     model_path: Optional[Path] = None
     trust_remote_code: bool = False
@@ -73,10 +66,11 @@ class ModelConfig(BaseConfig):
 
 class InferenceConfig(BaseConfig):
     """Inference configuration."""
+
     model: ModelConfig
     resources: ResourceConfig
     processing: ProcessingConfig
-    
+
     # Inference-specific settings
     max_new_tokens: int = Field(512, ge=1)
     temperature: float = Field(0.7, ge=0.0, le=2.0)
@@ -88,59 +82,22 @@ class InferenceConfig(BaseConfig):
     num_return_sequences: int = Field(1, ge=1)
     do_sample: bool = True
     early_stopping: bool = True
-    
+
     # Streaming settings
     stream_output: bool = False
     chunk_size: int = Field(4, ge=1)
     max_chunks: Optional[int] = None
-    
+
     # Cache settings
     use_cache: bool = True
     cache_dir: Optional[Path] = None
-    
+
     @classmethod
     async def load(
-        cls,
-        config_dir: Path = Path("config"),
-        env_prefix: str = "LLAMAHOME_"
-    ) -> 'InferenceConfig':
+        cls, config_dir: Path = Path("config"), env_prefix: str = "LLAMAHOME_"
+    ) -> "InferenceConfig":
         """Load inference configuration."""
         from ..core.config.manager import ConfigManager
-        
+
         manager = ConfigManager(config_dir, env_prefix)
-        
-        # Load model config
-        model = await manager.load_config(
-            ModelConfig,
-            "model",
-            "model_config.toml"
-        )
-        
-        # Load resource config
-        resources = await manager.load_config(
-            ResourceConfig,
-            "resources",
-            "resource_config.toml"
-        )
-        
-        # Load processing config
-        processing = await manager.load_config(
-            ProcessingConfig,
-            "processing",
-            "processing_config.toml"
-        )
-        
-        # Load inference-specific config
-        inference = await manager.load_config(
-            cls,
-            "inference",
-            "inference_config.toml"
-        )
-        
-        # Merge all configs
-        return cls(
-            model=model,
-            resources=resources,
-            processing=processing,
-            **inference.dict(exclude={'model', 'resources', 'processing'})
-        )
+        return await manager.load_config(cls, "inference", "inference_config.toml")

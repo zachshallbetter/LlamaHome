@@ -2,33 +2,46 @@
 Distributed training launcher.
 """
 
+import logging
 import os
+import sys
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import toml
 import torch
-import torch.distributed as dist
 from torch.distributed.elastic.multiprocessing.errors import record
 
 from ..core.config import TrainingConfig
 from .data import DataConfig, StreamingDataset
 from .distributed import DistributedConfig, DistributedTrainer
-from .manager import TrainingManager
 from .model import create_model  # Assuming create_model is defined in model module
 from .optimization import (  # Assuming create_optimizer is defined in optimizer module
     create_optimizer,
 )
+from .pipeline import TrainingPipeline
 from .processing import ProcessingConfig
 from .scheduler import (  # Assuming create_scheduler is defined in scheduler module
     create_scheduler,
 )
 
+logger = logging.getLogger(__name__)
 
-def load_config(config_path: Path) -> Dict:
-    """Load configuration from file."""
-    with open(config_path) as f:
-        return toml.load(f)
+
+def load_config(config_path: Path) -> Dict[str, Any]:
+    """Load training configuration.
+
+    Args:
+        config_path: Path to configuration file
+
+    Returns:
+        Loaded configuration dictionary
+    """
+    try:
+        return toml.load(config_path)
+    except Exception as e:
+        logger.error(f"Failed to load config: {e}")
+        sys.exit(1)
 
 
 def setup_environment(
@@ -178,39 +191,39 @@ def launch_distributed(
 
 
 async def launch_training(
-    model_path: Path,
-    training_config: Optional[TrainingConfig] = None,
-    distributed_config: Optional[DistributedConfig] = None,
+    config_path: Path,
+    data_path: Path,
+    output_dir: Optional[Path] = None,
+    distributed: bool = False,
 ) -> None:
     """Launch training process.
 
     Args:
-        model_path: Path to model
-        training_config: Optional training configuration
-        distributed_config: Optional distributed configuration
+        config_path: Path to configuration file
+        data_path: Path to training data
+        output_dir: Optional output directory
+        distributed: Whether to use distributed training
     """
-    manager = TrainingManager(training_config, distributed_config)
+    # Load configuration
+    config = TrainingConfig.parse_obj(load_config(config_path))
 
-    if distributed_config and distributed_config.basic["world_size"] > 1:
-        # Set up distributed environment
-        os.environ["MASTER_ADDR"] = distributed_config.basic.get(
-            "master_addr", "localhost"
-        )
-        os.environ["MASTER_PORT"] = distributed_config.basic.get("master_port", "29500")
+    # Initialize training components
+    dataset = StreamingDataset(data_path, config.max_sequence_length)
+    optimizer = await create_optimizer(config.optimization)
 
-        dist.init_process_group(
-            backend=distributed_config.basic["backend"],
-            init_method=distributed_config.basic["init_method"],
-            world_size=distributed_config.basic["world_size"],
-            rank=distributed_config.basic["rank"],
-        )
+    # Create training pipeline
+    pipeline = TrainingPipeline(
+        config=config,
+        dataset=dataset,
+        optimizer=optimizer,
+        output_dir=output_dir,
+    )
 
-    try:
-        pipeline = await manager.setup_training(model_path)
+    # Launch training
+    if distributed:
+        await launch_distributed_training(pipeline, config)
+    else:
         await pipeline.train()
-    finally:
-        if dist.is_initialized():
-            dist.destroy_process_group()
 
 
 def main():

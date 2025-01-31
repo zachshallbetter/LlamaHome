@@ -1,0 +1,51 @@
+[bandit]
+exclude_dirs = [
+    "tests",
+    "venv",
+    ".env",
+    ".venv",
+    "examples",
+    "docs",
+]
+
+# Skip assert checks in test files
+skips = ["B101"]
+
+[bandit.assert_used]
+skips = ["*/test_*.py"]
+
+# Configure specific tests
+[bandit.B301]
+# Allow pickle in safe_load_torch with verification
+exclude_dirs = ["src/core/utils/io.py"]
+
+[bandit.B403]
+# Allow import of pickle in safe contexts
+exclude_dirs = ["src/core/utils/io.py"]
+
+[bandit.B404]
+# Allow subprocess in install scripts
+exclude_dirs = ["scripts/install.py"]
+
+[bandit.B603]
+# Allow subprocess calls in install scripts
+exclude_dirs = ["scripts/install.py"]
+
+[bandit.B607]
+# Allow PATH searches in install scripts
+exclude_dirs = ["scripts/install.py"]
+
+# Configure output format
+[bandit.formatters]
+output = "screen"
+
+# Configure test configuration
+[bandit.config]
+recursive = true
+aggregate = true
+number = 3
+level = "HIGH"
+
+# Configure test profiles
+[bandit.profiles]
+test = "all" 

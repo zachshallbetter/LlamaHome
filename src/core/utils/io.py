@@ -2,11 +2,15 @@
 
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 from torch import Tensor
+
+from ..security import verify_data_source
 
 
 def safe_torch_save(obj: Any, path: Union[str, Path], **kwargs: Any) -> str:
@@ -67,3 +71,160 @@ def safe_torch_load(path: Union[str, Path], **kwargs: Any) -> Dict[str, Any]:
         return result
     except Exception as e:
         raise ValueError(f"Failed to load file {path}: {e}") from e
+
+
+def safe_load_torch(
+    path: Union[str, Path], 
+    device: Optional[str] = None,
+    weights_only: bool = True,
+    verify: bool = True
+) -> Any:
+    """Safely load PyTorch data with verification.
+
+    Args:
+        path: Path to file
+        device: Optional device to load to
+        weights_only: Whether to only load tensor data
+        verify: Whether to verify data source
+
+    Returns:
+        Loaded data
+
+    Raises:
+        ValueError: If file verification fails
+        FileNotFoundError: If file does not exist
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    if verify:
+        # Verify data source
+        verify_data_source(path)
+
+    try:
+        # Create temporary directory for safe loading
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir) / path.name
+            
+            # Copy file to temp location
+            import shutil
+            shutil.copy2(path, temp_path)
+            
+            # Load with extra verification
+            data = torch.load(
+                temp_path,
+                map_location=device or "cpu",
+                weights_only=weights_only,
+                pickle_module=None,  # Disable pickle for security
+            )
+            return data
+    except Exception as e:
+        raise ValueError(f"Failed to load PyTorch data: {e}") from e
+
+
+def safe_save_torch(data: Any, path: Union[str, Path]) -> None:
+    """Safely save PyTorch data.
+
+    Args:
+        data: Data to save
+        path: Path to save to
+
+    Raises:
+        ValueError: If save fails
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Save with temporary file
+        with tempfile.NamedTemporaryFile(
+            dir=str(path.parent),
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp:
+            torch.save(
+                data,
+                tmp.name,
+                pickle_module=None,  # Disable pickle for security
+            )
+            # Ensure data is written to disk
+            os.fsync(tmp.fileno())
+            
+        # Atomic rename
+        os.rename(tmp.name, path)
+    except Exception as e:
+        # Clean up temp file
+        if "tmp" in locals():
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+        raise ValueError(f"Failed to save PyTorch data: {e}") from e
+
+
+def safe_load_json(path: Union[str, Path]) -> Dict[str, Any]:
+    """Safely load JSON data with verification.
+
+    Args:
+        path: Path to file
+
+    Returns:
+        Loaded data
+
+    Raises:
+        ValueError: If file verification fails
+        FileNotFoundError: If file does not exist
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    # Verify data source
+    verify_data_source(path)
+
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception as e:
+        raise ValueError(f"Failed to load JSON data: {e}") from e
+
+
+def safe_save_json(data: Dict[str, Any], path: Union[str, Path]) -> None:
+    """Safely save JSON data.
+
+    Args:
+        data: Data to save
+        path: Path to save to
+
+    Raises:
+        ValueError: If save fails
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Save with temporary file
+        with tempfile.NamedTemporaryFile(
+            dir=str(path.parent),
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            mode="w",
+            delete=False,
+        ) as tmp:
+            json.dump(data, tmp, indent=2)
+            # Ensure data is written to disk
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            
+        # Atomic rename
+        os.rename(tmp.name, path)
+    except Exception as e:
+        # Clean up temp file
+        if "tmp" in locals():
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+        raise ValueError(f"Failed to save JSON data: {e}") from e

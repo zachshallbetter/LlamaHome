@@ -11,22 +11,20 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 from ..utils import LogManager, LogTemplates
-from .constants import (
-    ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR, DATA_DIR
-)
 from .base import (
     BaseConfig,
+    CacheConfig,
     ConfigError,
-    ResourceConfig,
-    ProcessingConfig,
-    OptimizationConfig,
     MonitoringConfig,
-    CacheConfig
+    OptimizationConfig,
+    ProcessingConfig,
+    ResourceConfig,
 )
+from .constants import CACHE_DIR, DATA_DIR, LOCAL_CONFIG_DIR, ROOT_DIR
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
-T = TypeVar('T', bound=BaseConfig)
+T = TypeVar("T", bound=BaseConfig)
 
 
 @dataclass
@@ -62,7 +60,7 @@ class ConfigData:
             model_config=data.get("model_config", {}),
             training_config=data.get("training_config", {}),
             code_check=data.get("code_check", {}),
-            type_check=data.get("type_check", {})
+            type_check=data.get("type_check", {}),
         )
 
 
@@ -74,13 +72,11 @@ class ConfigManager:
         "LLAMA_MODEL",
         "LLAMA_MODEL_SIZE",
         "LLAMA_MODEL_VARIANT",
-        "LLAMAHOME_LOG_LEVEL"
+        "LLAMAHOME_LOG_LEVEL",
     }
 
     def __init__(
-        self,
-        config_dir: Path = Path("config"),
-        env_prefix: str = "LLAMAHOME_"
+        self, config_dir: Path = Path("config"), env_prefix: str = "LLAMAHOME_"
     ):
         self.config_dir = config_dir
         self.env_prefix = env_prefix
@@ -112,10 +108,7 @@ class ConfigManager:
         return self.config_dir / filename
 
     async def load_config(
-        self,
-        config_type: Type[T],
-        name: str,
-        file_name: Optional[str] = None
+        self, config_type: Type[T], name: str, file_name: Optional[str] = None
     ) -> T:
         """Load configuration of specified type."""
         try:
@@ -135,11 +128,7 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f"Failed to load {name} config: {str(e)}")
 
-    async def save_config(
-        self,
-        name: str,
-        file_name: Optional[str] = None
-    ) -> None:
+    async def save_config(self, name: str, file_name: Optional[str] = None) -> None:
         """Save configuration to file."""
         if name not in self.configs:
             raise ConfigError(f"Config {name} not found")
@@ -154,11 +143,7 @@ class ConfigManager:
             raise ConfigError(f"Config {name} not found")
         return self.configs[name]
 
-    async def update_config(
-        self,
-        name: str,
-        updates: Dict[str, Any]
-    ) -> None:
+    async def update_config(self, name: str, updates: Dict[str, Any]) -> None:
         """Update configuration values."""
         if name not in self.configs:
             raise ConfigError(f"Config {name} not found")
@@ -168,11 +153,7 @@ class ConfigManager:
             if hasattr(config, key):
                 setattr(config, key, value)
 
-    async def merge_configs(
-        self,
-        name: str,
-        other_config: BaseConfig
-    ) -> None:
+    async def merge_configs(self, name: str, other_config: BaseConfig) -> None:
         """Merge another configuration into existing one."""
         if name not in self.configs:
             raise ConfigError(f"Config {name} not found")
@@ -209,7 +190,7 @@ class ConfigManager:
                 model_config=model_config,
                 training_config=training_config,
                 code_check=code_check,
-                type_check=type_check
+                type_check=type_check,
             )
 
             # Validate loaded config
@@ -338,8 +319,7 @@ class ConfigManager:
             if "default_version" in model_info:
                 if model_info["default_version"] not in model_info.get("versions", []):
                     self._add_error(
-                        "model_config",
-                        f"Invalid default version for {model_type}"
+                        "model_config", f"Invalid default version for {model_type}"
                     )
                     valid = False
 
@@ -519,6 +499,7 @@ class ConfigManager:
 
 class ApplicationConfig(BaseModel):
     """Complete application configuration."""
+
     resources: ResourceConfig
     processing: ProcessingConfig
     optimization: OptimizationConfig
@@ -527,43 +508,29 @@ class ApplicationConfig(BaseModel):
 
     @classmethod
     async def load(
-        cls,
-        config_dir: Path = Path("config"),
-        env_prefix: str = "LLAMAHOME_"
-    ) -> 'ApplicationConfig':
+        cls, config_dir: Path = Path("config"), env_prefix: str = "LLAMAHOME_"
+    ) -> "ApplicationConfig":
         """Load complete application configuration."""
         manager = ConfigManager(config_dir, env_prefix)
 
         resources = await manager.load_config(
-            ResourceConfig,
-            "resources",
-            "resource_config.toml"
+            ResourceConfig, "resources", "resource_config.toml"
         )
         processing = await manager.load_config(
-            ProcessingConfig,
-            "processing",
-            "processing_config.toml"
+            ProcessingConfig, "processing", "processing_config.toml"
         )
         optimization = await manager.load_config(
-            OptimizationConfig,
-            "optimization",
-            "optimization_config.toml"
+            OptimizationConfig, "optimization", "optimization_config.toml"
         )
         monitoring = await manager.load_config(
-            MonitoringConfig,
-            "monitoring",
-            "monitoring_config.toml"
+            MonitoringConfig, "monitoring", "monitoring_config.toml"
         )
-        cache = await manager.load_config(
-            CacheConfig,
-            "cache",
-            "cache_config.toml"
-        )
+        cache = await manager.load_config(CacheConfig, "cache", "cache_config.toml")
 
         return cls(
             resources=resources,
             processing=processing,
             optimization=optimization,
             monitoring=monitoring,
-            cache=cache
+            cache=cache,
         )

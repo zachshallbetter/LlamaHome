@@ -14,30 +14,46 @@ Key Features:
 import asyncio
 import json
 import mmap
+import os
 import pickle
 import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 
+import torch
+from pydantic import BaseModel
+
+from ..core.config.base import BaseConfig
 from ..core.utils import LogManager, LogTemplates
+from ..core.utils.io import safe_load_json, safe_save_json, safe_load_torch, safe_save_torch
+from ..utils.security import verify_data_source
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
-"""
-Caching implementation with memory and disk tiers for training pipeline.
-"""
+T = TypeVar("T")
 
 
-@dataclass
-class CacheConfig:
+class CacheConfig(BaseModel):
     """Cache configuration."""
 
-    cache_dir: Union[str, Path] = Path(".cache")
-    max_size: int = 1000  # MB
+    memory_size: int = 1000  # MB
+    disk_size: int = 10000  # MB
     cleanup_interval: int = 3600  # seconds
+    max_age_days: int = 7
+    use_mmap: bool = True
+    compression: bool = True
+    async_writes: bool = True
+
+
+class CacheItem(BaseModel):
+    """Cache item metadata."""
+
+    key: str
+    size: int
+    last_access: float
+    path: Optional[Path] = None
 
 
 class Cache(ABC):
@@ -69,203 +85,287 @@ class Cache(ABC):
             self._data.popitem(last=False)
 
 
-class MemoryCache(Cache):
-    """In-memory LRU cache."""
+class MemoryCache:
+    """Memory-tier cache implementation."""
 
-    def __init__(self, max_size: int = CacheConfig.memory_size):
-        super().__init__(max_size)
-        self._hits = 0
-        self._misses = 0
+    def __init__(self, max_size: int):
+        """Initialize memory cache.
+        
+        Args:
+            max_size: Maximum cache size in MB
+        """
+        self.max_size = max_size * 1024 * 1024  # Convert to bytes
+        self._data: OrderedDict[str, Any] = OrderedDict()
+        self._metadata: Dict[str, CacheItem] = {}
 
-    async def get(self, key: str) -> Optional[Any]:
-        """Get value from memory cache."""
-        async with self._lock:
-            if key in self._data:
-                self._hits += 1
-                value = self._data.pop(key)
-                self._data[key] = value
-                return value
-            self._misses += 1
-            return None
+    def get(self, key: str) -> Optional[Any]:
+        """Get item from cache.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cached item if found
+        """
+        if key in self._data:
+            value = self._data[key]
+            # Move to end (most recently used)
+            self._data.move_to_end(key)
+            return value
+        return None
 
-    async def put(self, key: str, value: Any) -> None:
-        """Put value in memory cache."""
-        async with self._lock:
-            if key in self._data:
-                self._data.pop(key)
-            self._data[key] = value
-            self._enforce_size_limit()
+    def put(self, key: str, value: Any) -> None:
+        """Put item in cache.
+        
+        Args:
+            key: Cache key
+            value: Item to cache
+        """
+        # Calculate size
+        size = self._calculate_size(value)
+        
+        # Enforce size limit
+        while self._current_size() + size > self.max_size and self._data:
+            # Remove least recently used
+            self._data.popitem(last=False)
 
-    async def clear(self) -> None:
-        """Clear memory cache."""
-        async with self._lock:
-            self._data.clear()
-            self._hits = 0
-            self._misses = 0
+        self._data[key] = value
+        self._metadata[key] = CacheItem(
+            key=key,
+            size=size,
+            last_access=time.time(),
+        )
 
-    def get_stats(self) -> Dict[str, int]:
-        """Get cache statistics."""
-        return {
-            "hits": self._hits,
-            "misses": self._misses,
-            "size": len(self._data),
-            "max_size": self.max_size,
-        }
+    def _calculate_size(self, value: Any) -> int:
+        """Calculate size of value in bytes.
+        
+        Args:
+            value: Value to calculate size for
+            
+        Returns:
+            Size in bytes
+        """
+        if isinstance(value, torch.Tensor):
+            return value.element_size() * value.nelement()
+        return sys.getsizeof(value)
+
+    def _current_size(self) -> int:
+        """Get current cache size in bytes.
+        
+        Returns:
+            Current size in bytes
+        """
+        return sum(item.size for item in self._metadata.values())
 
 
-class DiskCache(Cache):
-    """Disk-based persistent cache."""
+class DiskCache:
+    """Disk-tier cache implementation."""
 
-    def __init__(
-        self,
-        cache_dir: Union[str, Path],
-        max_size: int = CacheConfig.disk_size,
-        config: Optional[CacheConfig] = None,
-    ):
-        super().__init__(max_size)
-        self.config = config or CacheConfig()
-        self.cache_dir = Path(cache_dir)
-        self._setup_cache_dir()
+    def __init__(self, cache_dir: Path, max_size: int):
+        """Initialize disk cache.
+        
+        Args:
+            cache_dir: Cache directory
+            max_size: Maximum cache size in MB
+        """
+        self.cache_dir = cache_dir
+        self.max_size = max_size * 1024 * 1024  # Convert to bytes
+        self._metadata: Dict[str, CacheItem] = {}
+        
+        # Create cache directory
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing metadata
         self._load_metadata()
 
-    def _setup_cache_dir(self) -> None:
-        """Set up cache directory structure."""
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.data_dir = self.cache_dir / "data"
-        self.data_dir.mkdir(exist_ok=True)
-        self.meta_file = self.cache_dir / "metadata.json"
+    def get(self, key: str) -> Optional[Any]:
+        """Get item from cache.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cached item if found
+        """
+        if key in self._metadata:
+            path = self._get_path(key)
+            if path.exists():
+                try:
+                    if path.suffix in {".pt", ".pth"}:
+                        return safe_load_torch(path)
+                    return safe_load_json(path)
+                except Exception:
+                    # Remove invalid cache entry
+                    self._remove(key)
+        return None
 
-    def _load_metadata(self) -> None:
-        """Load cache metadata."""
-        if self.meta_file.exists():
-            with open(self.meta_file, "r") as f:
-                metadata = json.load(f)
-                self._data = OrderedDict(metadata)
-        else:
-            self._data = OrderedDict()
-
-    def _save_metadata(self) -> None:
-        """Save cache metadata."""
-        with open(self.meta_file, "w") as f:
-            json.dump(dict(self._data), f)
+    def put(self, key: str, value: Any) -> None:
+        """Put item in cache.
+        
+        Args:
+            key: Cache key
+            value: Item to cache
+        """
+        path = self._get_path(key)
+        
+        try:
+            # Save value
+            if isinstance(value, torch.Tensor):
+                safe_save_torch(value, path)
+            else:
+                safe_save_json(value, path)
+            
+            # Update metadata
+            self._metadata[key] = CacheItem(
+                key=key,
+                size=path.stat().st_size,
+                last_access=time.time(),
+                path=path,
+            )
+            
+            # Enforce size limit
+            self._enforce_size_limit()
+            
+            # Save metadata
+            self._save_metadata()
+            
+        except Exception as e:
+            # Clean up on error
+            if path.exists():
+                path.unlink()
+            raise ValueError(f"Failed to cache item: {e}") from e
 
     def _get_path(self, key: str) -> Path:
-        """Get path for cached item."""
-        return self.data_dir / f"{key}.pkl"
+        """Get cache file path for key.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cache file path
+        """
+        # Use hash of key as filename
+        filename = hashlib.sha256(key.encode()).hexdigest()
+        return self.cache_dir / filename
 
-    async def get(self, key: str) -> Optional[Any]:
-        """Get value from disk cache."""
-        async with self._lock:
-            if key not in self._data:
-                return None
-
+    def _remove(self, key: str) -> None:
+        """Remove item from cache.
+        
+        Args:
+            key: Cache key
+        """
+        if key in self._metadata:
             path = self._get_path(key)
-            if not path.exists():
-                return None
-
-            try:
-                if self.config.use_mmap:
-                    return self._load_mmap(path)
-                return self._load_pickle(path)
-            except Exception:
-                return None
-
-    async def put(self, key: str, value: Any) -> None:
-        """Put value in disk cache."""
-        async with self._lock:
-            path = self._get_path(key)
-
-            if self.config.async_writes:
-                await self._async_save(path, value)
-            else:
-                self._sync_save(path, value)
-
-            self._data[key] = {"path": str(path), "timestamp": time.time()}
-            self._enforce_size_limit()
-            self._save_metadata()
-
-    async def clear(self) -> None:
-        """Clear disk cache."""
-        async with self._lock:
-            for path in self.data_dir.glob("*.pkl"):
+            if path.exists():
                 path.unlink()
-            self._data.clear()
-            self._save_metadata()
+            del self._metadata[key]
 
-    def _load_pickle(self, path: Path) -> Any:
-        """Load pickled data."""
-        with open(path, "rb") as f:
-            return pickle.load(f)
+    def _enforce_size_limit(self) -> None:
+        """Enforce cache size limit by removing old items."""
+        current_size = sum(item.size for item in self._metadata.values())
+        
+        # Sort by last access time
+        items = sorted(
+            self._metadata.items(),
+            key=lambda x: x[1].last_access,
+        )
+        
+        # Remove oldest items until under limit
+        while current_size > self.max_size and items:
+            key, item = items.pop(0)
+            current_size -= item.size
+            self._remove(key)
 
-    def _load_mmap(self, path: Path) -> Any:
-        """Load memory-mapped data."""
-        with open(path, "rb") as f:
-            mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-            return pickle.loads(mm)
+    def _load_metadata(self) -> None:
+        """Load cache metadata from disk."""
+        metadata_path = self.cache_dir / "metadata.json"
+        if metadata_path.exists():
+            try:
+                data = safe_load_json(metadata_path)
+                self._metadata = {
+                    k: CacheItem(**v) for k, v in data.items()
+                }
+            except Exception:
+                # Start fresh if metadata is corrupt
+                self._metadata = {}
 
-    def _sync_save(self, path: Path, value: Any) -> None:
-        """Save data synchronously."""
-        with open(path, "wb") as f:
-            pickle.dump(value, f)
-
-    async def _async_save(self, path: Path, value: Any) -> None:
-        """Save data asynchronously."""
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self._sync_save, path, value)
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
-        total_size = sum(path.stat().st_size for path in self.data_dir.glob("*.pkl"))
-        return {
-            "items": len(self._data),
-            "max_items": self.max_size,
-            "total_size_bytes": total_size,
-            "compression": self.config.compression,
-            "mmap_enabled": self.config.use_mmap,
-        }
+    def _save_metadata(self) -> None:
+        """Save cache metadata to disk."""
+        metadata_path = self.cache_dir / "metadata.json"
+        try:
+            safe_save_json(
+                {k: v.dict() for k, v in self._metadata.items()},
+                metadata_path,
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to save cache metadata: {e}") from e
 
 
 class CacheManager:
-    """Cache management with multiple tiers."""
+    """Two-tier cache manager implementation."""
 
-    def __init__(
-        self, cache_dir: Union[str, Path], config: Optional[CacheConfig] = None
-    ) -> None:
-        self.config = config or CacheConfig()
-        self.cache_dir = Path(cache_dir) if isinstance(cache_dir, str) else cache_dir
-        self.memory_cache = MemoryCache(self.config.memory_size)
-        self.disk_cache = DiskCache(self.cache_dir, self.config.disk_size, self.config)
-
-    async def get(self, key: str) -> Optional[Any]:
-        """Get value from cache hierarchy."""
-        # Try memory cache first
-        if value := await self.memory_cache.get(key):
-            return value
-
-        # Try disk cache
-        if value := await self.disk_cache.get(key):
-            # Promote to memory cache
-            await self.memory_cache.put(key, value)
-            return value
-
-        return None
-
-    async def put(self, key: str, value: Any) -> None:
-        """Put value in cache hierarchy."""
-        # Save to both tiers
-        await asyncio.gather(
-            self.memory_cache.put(key, value), self.disk_cache.put(key, value)
+    def __init__(self, config: CacheConfig):
+        """Initialize cache manager.
+        
+        Args:
+            config: Cache configuration
+        """
+        self.config = config
+        self.memory_cache = MemoryCache(config.memory_size)
+        self.disk_cache = DiskCache(
+            Path(".cache/training"),
+            config.disk_size,
         )
 
-    async def clear(self) -> None:
+    def get(self, key: str) -> Optional[Any]:
+        """Get item from cache.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cached item if found
+        """
+        # Try memory first
+        value = self.memory_cache.get(key)
+        if value is not None:
+            return value
+            
+        # Try disk
+        value = self.disk_cache.get(key)
+        if value is not None:
+            # Cache in memory
+            self.memory_cache.put(key, value)
+            return value
+            
+        return None
+
+    def put(self, key: str, value: Any) -> None:
+        """Put item in cache.
+        
+        Args:
+            key: Cache key
+            value: Item to cache
+        """
+        # Cache in memory
+        self.memory_cache.put(key, value)
+        
+        # Cache on disk
+        self.disk_cache.put(key, value)
+
+    def clear(self) -> None:
         """Clear all cache tiers."""
-        await asyncio.gather(self.memory_cache.clear(), self.disk_cache.clear())
+        self.memory_cache = MemoryCache(self.config.memory_size)
+        self.disk_cache = DiskCache(
+            Path(".cache/training"),
+            self.config.disk_size,
+        )
 
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics for all tiers."""
         return {
-            "memory": self.memory_cache.get_stats(),
-            "disk": self.disk_cache.get_stats(),
+            "memory": self.memory_cache._metadata,
+            "disk": self.disk_cache._metadata,
         }
 
 

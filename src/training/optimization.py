@@ -2,11 +2,11 @@
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List
 
 import torch
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, ReduceLROnPlateau
 
 from ..core.config import ConfigManager
 from ..core.schemas import TrainingSchema
@@ -53,15 +53,17 @@ class OptimizationConfig:
         TrainingSchema(**config_dict)
 
 
-@dataclass
-class OptimizerConfig:
-    """Configuration for training optimization."""
+class OptimizerConfig(BaseConfig):
+    """Optimizer configuration."""
 
     learning_rate: float = 5e-5
     weight_decay: float = 0.01
-    warmup_steps: int = 100
+    adam_beta1: float = 0.9
+    adam_beta2: float = 0.999
+    adam_epsilon: float = 1e-8
     max_grad_norm: float = 1.0
-    optimizer_type: str = "adamw"
+    warmup_steps: int = 0
+    scheduler_type: str = "linear"
 
 
 def get_scheduler(
@@ -104,114 +106,96 @@ def get_scheduler(
 
 
 class Optimizer:
-    """Training optimizer with enhanced features."""
+    """Optimizer wrapper with scheduling and gradient handling."""
 
-    def __init__(self, config: OptimizerConfig):
-        """Initialize optimizer.
-
-        Args:
-            config: Optimizer configuration
-        """
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        config: OptimizerConfig,
+    ):
+        self.model = model
         self.config = config
-        self.optimizer: Optional[Optimizer] = None
+        self._setup_optimizer()
+        self._setup_scheduler()
 
-    def _setup_optimization(self) -> None:
-        """Set up optimizer and scheduler."""
-        # Create parameter groups
-        self.param_groups = self._create_param_groups()
-
-        # Initialize optimizer
-        self.optimizer = self._create_optimizer()
-
-        # Initialize scheduler
-        self.scheduler = None  # Set later with num_training_steps
-
-    def _create_param_groups(self) -> List[Dict]:
-        """Create parameter groups for optimization."""
-        no_decay = ["bias", "LayerNorm.weight"]
-
-        return [
-            {
-                "params": [
-                    p
-                    for n, p in self.model.named_parameters()
-                    if not any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": self.config.weight_decay,
-            },
-            {
-                "params": [
-                    p
-                    for n, p in self.model.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": 0.0,
-            },
-        ]
-
-    def _create_optimizer(self) -> torch.optim.Optimizer:
-        """Create optimizer with configuration."""
-        return torch.optim.AdamW(
-            self.param_groups,
+    def _setup_optimizer(self) -> None:
+        """Set up optimizer."""
+        self.optimizer = AdamW(
+            self.model.parameters(),
             lr=self.config.learning_rate,
             betas=(self.config.adam_beta1, self.config.adam_beta2),
             eps=self.config.adam_epsilon,
+            weight_decay=self.config.weight_decay,
         )
 
-    def setup_scheduler(self, num_training_steps: int) -> None:
+    def _setup_scheduler(self) -> None:
         """Set up learning rate scheduler."""
-        self.scheduler = get_scheduler(
-            name=self.config.scheduler_type,
-            optimizer=self.optimizer,
-            num_warmup_steps=self.config.warmup_steps,
-            num_training_steps=num_training_steps,
-        )
-
-    def step(self, loss: torch.Tensor, update_scheduler: bool = True) -> None:
-        """
-        Optimization step with gradient clipping.
-
-        Args:
-            loss: Loss tensor
-            update_scheduler: Whether to update scheduler
-        """
-        # Backward pass
-        loss.backward()
-
-        # Clip gradients
-        if self.config.max_grad_norm > 0:
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(), self.config.max_grad_norm
+        if self.config.scheduler_type == "linear":
+            self.scheduler = LinearLR(
+                self.optimizer,
+                start_factor=1.0,
+                end_factor=0.0,
+                total_iters=self.config.warmup_steps,
             )
+        elif self.config.scheduler_type == "cosine":
+            self.scheduler = CosineAnnealingLR(
+                self.optimizer,
+                T_max=self.config.warmup_steps,
+            )
+        elif self.config.scheduler_type == "plateau":
+            self.scheduler = ReduceLROnPlateau(
+                self.optimizer,
+                mode="min",
+                factor=0.1,
+                patience=10,
+            )
+        else:
+            self.scheduler = None
 
-        # Optimizer step
+    def step(self) -> None:
+        """Perform optimization step."""
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-        # Scheduler step
-        if update_scheduler and self.scheduler is not None:
-            self.scheduler.step()
+    def backward(self, loss: torch.Tensor) -> None:
+        """Backward pass with gradient clipping."""
+        loss.backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(),
+                self.config.max_grad_norm,
+            )
 
-    def get_last_lr(self) -> List[float]:
-        """Get current learning rates."""
-        if self.scheduler is not None:
-            return self.scheduler.get_last_lr()
-        return [self.config.learning_rate]
-
-    def state_dict(self) -> Dict:
-        """Get optimizer and scheduler state."""
-        state = {
+    def state_dict(self) -> Dict[str, Any]:
+        """Get optimizer state."""
+        return {
             "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
         }
-        if self.scheduler is not None:
-            state["scheduler"] = self.scheduler.state_dict()
-        return state
 
-    def load_state_dict(self, state_dict: Dict) -> None:
-        """Load optimizer and scheduler state."""
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Load optimizer state."""
         self.optimizer.load_state_dict(state_dict["optimizer"])
-        if "scheduler" in state_dict and self.scheduler is not None:
+        if self.scheduler and state_dict["scheduler"]:
             self.scheduler.load_state_dict(state_dict["scheduler"])
+
+
+async def create_optimizer(
+    model: torch.nn.Module,
+    config: OptimizerConfig,
+) -> Optimizer:
+    """Create optimizer instance.
+
+    Args:
+        model: Model to optimize
+        config: Optimizer configuration
+
+    Returns:
+        Configured optimizer instance
+    """
+    return Optimizer(model, config)
 
 
 class CosineScheduler(LRScheduler):

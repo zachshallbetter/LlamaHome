@@ -2,31 +2,26 @@
 Tensor processing implementation for training pipeline.
 """
 
-from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.nn.functional as F
 from torch.cuda.amp import autocast
+from torch.nn.utils.rnn import pad_sequence
 from transformers import PreTrainedModel
 
+from ..core.config.base import BaseConfig
 from .pipeline import TrainingError
 
 
-@dataclass
-class ProcessingConfig:
+class ProcessingConfig(BaseConfig):
     """Processing configuration."""
 
-    mixed_precision: bool = True
-    gradient_checkpointing: bool = True
-    compile_mode: str = "reduce-overhead"
-    max_batch_size: int = 32
-    accumulation_steps: int = 4
-    memory_efficient_attention: bool = True
-    optimize_cuda_cache: bool = True
-    gradient_clipping: float = 1.0
-    cpu_offload: bool = False
-    dynamic_batch_size: bool = True
+    max_sequence_length: int = 512
+    pad_token_id: int = 0
+    truncation: bool = True
+    padding: bool = True
+    return_tensors: bool = True
 
 
 class TensorProcessor:
@@ -38,6 +33,11 @@ class TensorProcessor:
         self.metrics_queue: List[Dict[str, float]] = []
         self._setup_processing()
         self._setup_memory_optimization()
+        self.accumulated_metrics: Dict[str, List[float]] = {
+            "loss": [],
+            "accuracy": [],
+            "learning_rate": [],
+        }
 
     def _setup_memory_optimization(self) -> None:
         """Set up memory optimizations."""
@@ -67,15 +67,96 @@ class TensorProcessor:
             self.model.to(self.model_device)
 
     async def process_batch(
-        self, batch: Dict[str, torch.Tensor], is_training: bool = True
+        self, batch: List[Dict[str, Any]], device: Optional[torch.device] = None
     ) -> Dict[str, torch.Tensor]:
-        """Process batch with memory optimization."""
-        if self.config.dynamic_batch_size:
-            batch = await self._adjust_batch_size(batch)
+        """Process batch of data.
 
-        if is_training:
-            return await self._process_training_batch(batch)
-        return await self._process_inference_batch(batch)
+        Args:
+            batch: List of data items
+            device: Optional device to place tensors on
+
+        Returns:
+            Dictionary of processed tensors
+        """
+        processed = {}
+        for key in batch[0].keys():
+            if isinstance(batch[0][key], torch.Tensor):
+                # Stack pre-tensorized data
+                processed[key] = torch.stack([item[key] for item in batch])
+            else:
+                # Convert to tensors
+                tensors = [torch.tensor(item[key]) for item in batch]
+                if self.config.padding:
+                    processed[key] = pad_sequence(
+                        tensors,
+                        batch_first=True,
+                        padding_value=self.config.pad_token_id,
+                    )
+                else:
+                    processed[key] = torch.stack(tensors)
+
+        if device is not None:
+            processed = {k: v.to(device) for k, v in processed.items()}
+
+        return processed
+
+    def update_metrics(self, outputs: Dict[str, Any], batch_size: int) -> None:
+        """Update accumulated metrics.
+
+        Args:
+            outputs: Model outputs
+            batch_size: Size of batch
+        """
+        if "loss" in outputs:
+            self.accumulated_metrics["loss"].append(
+                outputs["loss"].detach().cpu().item()
+            )
+
+        if "logits" in outputs:
+            accuracy = self._calculate_accuracy(
+                outputs["logits"], outputs.get("labels")
+            )
+            self.accumulated_metrics["accuracy"].append(accuracy)
+
+        if "learning_rate" in outputs:
+            self.accumulated_metrics["learning_rate"].append(outputs["learning_rate"])
+
+    def _calculate_accuracy(
+        self, logits: torch.Tensor, labels: Optional[torch.Tensor]
+    ) -> float:
+        """Calculate accuracy from logits and labels.
+
+        Args:
+            logits: Model logits
+            labels: Ground truth labels
+
+        Returns:
+            Accuracy score
+        """
+        if labels is None:
+            return 0.0
+
+        predictions = torch.argmax(logits, dim=-1)
+        correct = (predictions == labels).sum().item()
+        total = labels.numel()
+        return correct / total if total > 0 else 0.0
+
+    def get_metrics(self) -> Dict[str, float]:
+        """Get current metrics.
+
+        Returns:
+            Dictionary of metric names and values
+        """
+        metrics = {}
+        for name, values in self.accumulated_metrics.items():
+            if values:
+                metrics[name] = sum(values) / len(values)
+        return metrics
+
+    def reset_metrics(self) -> None:
+        """Reset accumulated metrics."""
+        for key in self.accumulated_metrics:
+            self.accumulated_metrics[key] = []
 
     async def _adjust_batch_size(
         self, batch: Dict[str, torch.Tensor]
@@ -277,14 +358,6 @@ class TensorProcessor:
         """Calculate perplexity metric."""
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1))
         return torch.exp(loss)
-
-    def _calculate_accuracy(
-        self, logits: torch.Tensor, labels: torch.Tensor
-    ) -> torch.Tensor:
-        """Calculate accuracy metric."""
-        predictions = logits.argmax(dim=-1)
-        correct = (predictions == labels).float()
-        return correct.mean()
 
     def _setup_processing(self) -> None:
         """Set up processing configuration."""

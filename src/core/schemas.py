@@ -1,7 +1,7 @@
 """Configuration schemas."""
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, validator
 
@@ -57,8 +57,64 @@ class DistributedSchema(BaseModel):
         return v
 
 
-class InferenceSchema(BaseModel):
-    """Inference configuration schema."""
+class BaseSchema(BaseModel):
+    """Base schema with common validation."""
+
+    class Config:
+        extra = "forbid"
+        arbitrary_types_allowed = True
+
+    @validator("*", pre=True)
+    def validate_none_values(cls, v: Any) -> Any:
+        """Validate none values."""
+        if v is None:
+            raise ValueError("None values not allowed")
+        return v
+
+
+class InferenceSchema(BaseSchema):
+    """Schema for inference configuration."""
+
+    def validate_model_path(cls, value: str) -> str:
+        """Validate model path exists."""
+        from pathlib import Path
+
+        path = Path(value)
+        if not path.exists():
+            raise ValueError(f"Model path does not exist: {value}")
+        return value
+
+    def validate_device(cls, value: str) -> str:
+        """Validate device is available."""
+        import torch
+
+        if value.startswith("cuda") and not torch.cuda.is_available():
+            raise ValueError("CUDA device requested but not available")
+        return value
+
+    def validate_batch_size(cls, value: int) -> int:
+        """Validate batch size is positive."""
+        if value < 1:
+            raise ValueError("Batch size must be positive")
+        return value
+
+    def validate_max_length(cls, value: int) -> int:
+        """Validate max length is positive."""
+        if value < 1:
+            raise ValueError("Max length must be positive")
+        return value
+
+    def validate_temperature(cls, value: float) -> float:
+        """Validate temperature is positive."""
+        if value <= 0:
+            raise ValueError("Temperature must be positive")
+        return value
+
+    def validate_top_p(cls, value: float) -> float:
+        """Validate top_p is between 0 and 1."""
+        if not 0 <= value <= 1:
+            raise ValueError("Top_p must be between 0 and 1")
+        return value
 
     model_name: str
     model_path: Optional[Path]

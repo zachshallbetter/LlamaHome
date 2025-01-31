@@ -1,4 +1,4 @@
-"""Test configuration."""
+"""Test configuration and fixtures."""
 
 from pathlib import Path
 
@@ -34,3 +34,16 @@ def setup_test_env(tmp_path):
     import shutil
 
     shutil.rmtree(tmp_path)
+
+
+@pytest.fixture
+def config_dir(tmp_path: Path) -> Path:
+    """Create temporary config directory.
+
+    Args:
+        tmp_path: Pytest temporary path fixture
+
+    Returns:
+        Path to temporary config directory
+    """
+    return tmp_path / "config"

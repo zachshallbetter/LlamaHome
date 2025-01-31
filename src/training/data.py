@@ -12,6 +12,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 from transformers import PreTrainedTokenizer
 
+from ..utils.security import verify_data_source
 from .monitoring import MemoryTracker
 
 
@@ -134,6 +135,71 @@ class ConversationDataset(Dataset):
                 formatted.append(f"Assistant: {content}")
 
         return "\n".join(formatted)
+
+
+class StreamingDataset(Dataset):
+    """Streaming dataset for training data."""
+
+    def __init__(
+        self,
+        data_path: Union[str, Path],
+        max_length: int = 512,
+        cache_dir: Optional[Path] = None,
+    ):
+        self.data_path = Path(data_path)
+        self.max_length = max_length
+        self.cache_dir = cache_dir
+        self._verify_and_load_data()
+
+    def _verify_and_load_data(self) -> None:
+        """Verify and load training data."""
+        if not self.data_path.exists():
+            raise FileNotFoundError(f"Data path not found: {self.data_path}")
+
+        # Verify data source
+        verify_data_source(self.data_path)
+
+        # Load data safely
+        if self.data_path.suffix == ".pt":
+            self.data = self._load_torch_data()
+        else:
+            self.data = self._load_json_data()
+
+    def _load_torch_data(self) -> List[Dict[str, List[Dict[str, str]]]]:
+        """Load PyTorch data safely."""
+        try:
+            # Load with extra verification
+            data = torch.load(
+                self.data_path,
+                map_location="cpu",
+                weights_only=True,  # Only load tensor data
+            )
+            if not isinstance(data, list):
+                raise ValueError("Invalid data format")
+            return data
+        except Exception as e:
+            raise ValueError(f"Failed to load PyTorch data: {e}")
+
+    def _load_json_data(self) -> List[Dict[str, List[Dict[str, str]]]]:
+        """Load JSON data safely."""
+        try:
+            with open(self.data_path) as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                raise ValueError("Invalid data format")
+            return data
+        except Exception as e:
+            raise ValueError(f"Failed to load JSON data: {e}")
+
+    def __len__(self) -> int:
+        """Get dataset length."""
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+        """Get dataset item."""
+        item = self.data[idx]
+        # Convert to tensors
+        return {k: torch.tensor(v) for k, v in item.items()}
 
 
 class DataManager:

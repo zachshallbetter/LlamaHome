@@ -1,96 +1,138 @@
 # Do not modify version numbers in this file - they are carefully tested and synchronized
 
 [build-system]
-requires = [
-    "setuptools>=45",
-    "wheel",
-]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "llamahome"
 version = "0.1.0"
-description = "A framework for training and deploying LLM models"
-authors = [{name = "Your Name", email = "your.email@example.com"}]
-license = {text = "MIT"}
+description = "A secure and efficient home for your LLMs"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Zach Shallbetter", email = "zachshallbetter@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
 dependencies = [
     "torch>=2.0.0",
     "transformers>=4.30.0",
-    "rich>=10.0.0",
-    "tensorboard>=2.13.0",
-    "plotly>=5.13.0",
     "pydantic>=2.0.0",
-    "httpx>=0.25.0",
     "fastapi>=0.100.0",
     "uvicorn>=0.22.0",
-    "python-jose[cryptography]>=3.3.0",
-    "prometheus-client>=0.17.0",
+    "python-dotenv>=1.0.0",
+    "toml>=0.10.2",
     "psutil>=5.9.0",
-    "python-json-logger>=2.0.7",
-    "ratelimit>=2.2.1",
-    "pyjwt>=2.8.0",
+    "prometheus-client>=0.17.0",
+    "PyJWT>=2.7.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "black",
-    "isort",
-    "mypy",
-    "ruff",
-    "bandit",
-    "pytest>=7.0.0",
+    "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
-    "pytest-benchmark>=4.0.0",
+    "black>=23.3.0",
+    "isort>=5.12.0",
+    "mypy>=1.4.1",
+    "ruff>=0.0.280",
+    "bandit>=1.7.5",
 ]
-security = [
-    "python-jose[cryptography]>=3.3.0",
-    "passlib>=1.7.4",
-    "bcrypt>=4.0.1",
-    "cryptography>=41.0.0",
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
 ]
-monitoring = [
-    "prometheus-client>=0.17.0",
-    "grafana-api-client>=2.3.0",
-    "elasticsearch>=8.9.0",
-    "opensearch-py>=2.3.0",
-]
-cuda = [
-    "flash-attn>=2.3.0; platform_system=='Linux' and python_version>='3.8'",
-]
-mps = [
-    "torch>=2.1.0",  # MPS support requires PyTorch 2.1+
-]
+
+[tool.setuptools]
+packages = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ["py311"]
 include = '\.pyi?$'
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+line_length = 88
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
-line_length = 88
-
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "B"]
-ignore = ["E501"]  # Ignore line length errors
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["E501"]
+
+[tool.ruff.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "security: marks tests as security tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise AssertionError",
+    "raise ImportError",
+]

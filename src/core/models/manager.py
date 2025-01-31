@@ -1,131 +1,112 @@
-"""Model management functionality."""
+"""Model management implementation."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Optional, TypeVar
 
-from ..utils import LogManager, LogTemplates
-from .base import BaseModel
-from .config import ModelManagerConfig
+import torch
+from pydantic import BaseModel
+from transformers import PreTrainedModel
+
+from .config import ModelConfig
+
+T = TypeVar("T", bound="BaseModel")
 
 
 class ModelManager:
     """Manages model loading and configuration."""
 
-    def __init__(self, config: Optional[ModelManagerConfig] = None) -> None:
-        """Initialize model manager.
+    def __init__(self, config: ModelConfig):
+        self.config = config
+        self._model: Optional[PreTrainedModel] = None
 
-        Args:
-            config: Optional model manager configuration
-        """
-        self.logger = LogManager(LogTemplates.MODEL_INIT).get_logger(__name__)
-        self.config = config or ModelManagerConfig()
-        self._validate_environment()
-        self.models: Dict[str, BaseModel] = {}
-
-    def _validate_environment(self) -> None:
-        """Validate model environment."""
-        # Ensure required directories exist
-        self.config.models_path.mkdir(parents=True, exist_ok=True)
-        self.config.cache_path.mkdir(parents=True, exist_ok=True)
-
-        if self.config.use_local:
-            self.config.local_path.mkdir(parents=True, exist_ok=True)
-
-    async def load_model(self, model_name: Optional[str] = None) -> Any:
-        """Load model by name."""
-        model_name = model_name or self.config.default_model
-        model_base = model_name.split("-")[0]
-
-        if model_base not in self.config.model_config["models"]:
-            raise ValueError(f"Unknown model: {model_name}")
-
-        # Load model using appropriate method
-        if self.config.use_local:
-            return await self._load_local_model(model_name)
-        return await self._load_remote_model(model_name)
-
-    def load_model_from_path(
-        self, model_name: str, model_path: Union[str, Path]
-    ) -> BaseModel:
-        """Load a model from disk.
-
-        Args:
-            model_name: Name of the model
-            model_path: Path to model files
+    async def load_model(self) -> PreTrainedModel:
+        """Load model based on configuration.
 
         Returns:
-            Loaded model instance
+            Loaded model
+
+        Raises:
+            ValueError: If model loading fails
         """
-        model_path = Path(model_path)
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model path does not exist: {model_path}")
+        try:
+            # Load model based on source
+            if self.config.model.model_path:
+                model = await self._load_local_model()
+            else:
+                model = await self._load_remote_model()
 
-        self.logger.info(f"Loading model {model_name} from {model_path}")
-        model = BaseModel()  # Replace with actual model loading
-        self.models[model_name] = model
-        return model
+            # Move to device if specified
+            if self.config.resources.device_map == "auto" and torch.cuda.is_available():
+                model = model.to("cuda")
 
-    def save_model(self, model_name: str, model_path: Union[str, Path]) -> None:
-        """Save a model to disk.
+            self._model = model
+            return model
+
+        except Exception as e:
+            raise ValueError(f"Failed to load model: {str(e)}") from e
+
+    async def _load_local_model(self) -> PreTrainedModel:
+        """Load model from local path."""
+        from transformers import AutoModelForCausalLM
+
+        return AutoModelForCausalLM.from_pretrained(
+            self.config.model.model_path,
+            torch_dtype=self._get_torch_dtype(),
+            device_map=self.config.resources.device_map,
+            trust_remote_code=self.config.model.trust_remote_code,
+            revision=self.config.model.model_revision,
+            **self._get_quantization_kwargs(),
+        )
+
+    async def _load_remote_model(self) -> PreTrainedModel:
+        """Load model from remote source."""
+        from transformers import AutoModelForCausalLM
+
+        return AutoModelForCausalLM.from_pretrained(
+            self.config.model.model_name,
+            torch_dtype=self._get_torch_dtype(),
+            device_map=self.config.resources.device_map,
+            trust_remote_code=self.config.model.trust_remote_code,
+            use_auth_token=self.config.model.use_auth_token,
+            revision=self.config.model.model_revision,
+            **self._get_quantization_kwargs(),
+        )
+
+    def _get_torch_dtype(self) -> torch.dtype:
+        """Get torch dtype from configuration."""
+        dtype_map = {
+            "float16": torch.float16,
+            "float32": torch.float32,
+            "bfloat16": torch.bfloat16,
+        }
+        return dtype_map.get(str(self.config.model.torch_dtype), torch.float16)
+
+    def _get_quantization_kwargs(self) -> Dict[str, bool]:
+        """Get quantization keyword arguments."""
+        if self.config.model.quantization == "int8":
+            return {"load_in_8bit": True}
+        elif self.config.model.quantization == "int4":
+            return {"load_in_4bit": True}
+        return {}
+
+    async def save_model(self, path: Path) -> None:
+        """Save model to disk.
 
         Args:
-            model_name: Name of the model to save
-            model_path: Path to save model files
+            path: Save path
+
+        Raises:
+            ValueError: If model is not loaded or save fails
         """
-        if model_name not in self.models:
-            raise KeyError(f"Model not found: {model_name}")
+        if not self._model:
+            raise ValueError("No model loaded")
 
-        model_path = Path(model_path)
-        model_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self._model.save_pretrained(path)
+        except Exception as e:
+            raise ValueError(f"Failed to save model: {str(e)}") from e
 
-        self.logger.info(f"Saving model {model_name} to {model_path}")
-        model = self.models[model_name]
-        model.save_pretrained(model_path)
-
-    def list_models(self) -> List[str]:
-        """List all loaded models.
-
-        Returns:
-            List of model names
-        """
-        return list(self.models.keys())
-
-    def get_model(self, model_name: str) -> BaseModel:
-        """Get a loaded model by name.
-
-        Args:
-            model_name: Name of the model to get
-
-        Returns:
-            Model instance
-        """
-        if model_name not in self.models:
-            raise KeyError(f"Model not found: {model_name}")
-        return self.models[model_name]
-
-    def unload_model(self, model_name: str) -> None:
-        """Unload a model from memory.
-
-        Args:
-            model_name: Name of the model to unload
-        """
-        if model_name not in self.models:
-            raise KeyError(f"Model not found: {model_name}")
-        del self.models[model_name]
-        self.logger.info(f"Unloaded model: {model_name}")
-
-    def download_model(self, model_name: str, model_url: str) -> Path:
-        """Download a model from a URL.
-
-        Args:
-            model_name: Name to give the downloaded model
-            model_url: URL to download from
-
-        Returns:
-            Path where model was downloaded
-        """
-        # Add model downloading logic here
-        download_path = Path(f"models/{model_name}")
-        download_path.parent.mkdir(parents=True, exist_ok=True)
-        self.logger.info(f"Downloading model {model_name} from {model_url}")
-        return download_path
+    @property
+    def model(self) -> Optional[PreTrainedModel]:
+        """Get loaded model."""
+        return self._model

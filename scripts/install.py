@@ -1,34 +1,84 @@
 #!/usr/bin/env python3
-"""Installation script for LlamaHome."""
+"""Installation script with security measures."""
 
 import os
 import platform
+import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
 
 
-def run_command(cmd: List[str], ignore_errors: bool = False) -> None:
-    """Run a command with proper error handling."""
+def validate_command(command: List[str]) -> None:
+    """Validate command for security.
+
+    Args:
+        command: Command list to validate
+
+    Raises:
+        ValueError: If command is invalid
+    """
+    if not command:
+        raise ValueError("Empty command")
+
+    # Validate executable
+    executable = command[0]
+    if not Path(executable).is_file():
+        # Check PATH
+        found = False
+        for path in os.environ.get("PATH", "").split(os.pathsep):
+            if Path(path) / executable:
+                found = True
+                break
+        if not found:
+            raise ValueError(f"Invalid executable: {executable}")
+
+    # Validate arguments
+    for arg in command[1:]:
+        if not isinstance(arg, str):
+            raise ValueError(f"Invalid argument type: {type(arg)}")
+        if ";" in arg or "|" in arg or "&" in arg:
+            raise ValueError(f"Invalid argument characters in: {arg}")
+
+
+def run_command(command: List[str], cwd: Optional[Path] = None) -> Tuple[int, str, str]:
+    """Run command securely.
+
+    Args:
+        command: Command list to run
+        cwd: Optional working directory
+
+    Returns:
+        Tuple of (return code, stdout, stderr)
+
+    Raises:
+        subprocess.CalledProcessError: If command fails
+    """
+    # Validate command
+    validate_command(command)
+
+    # Run command securely
     try:
-        # Add security checks
-        if not all(isinstance(arg, str) for arg in cmd):
-            raise ValueError("Command arguments must be strings")
-
-        subprocess.run(
-            cmd,
+        result = subprocess.run(
+            command,
+            cwd=cwd,
             check=True,
-            shell=False,  # Prevent shell injection
-            env=os.environ.copy(),  # Use clean environment
+            capture_output=True,
+            text=True,
         )
+        return result.returncode, result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
-        if not ignore_errors:
-            raise RuntimeError(f"Command failed: {' '.join(cmd)}") from e
+        print(f"Command failed: {e.stderr}", file=sys.stderr)
+        raise
 
 
 def is_cuda_available() -> bool:
-    """Check if CUDA is available and properly configured."""
+    """Check if CUDA is available and properly configured.
+
+    Returns:
+        Whether CUDA is available
+    """
     if platform.system() == "Darwin":  # macOS
         return False
 
@@ -39,21 +89,34 @@ def is_cuda_available() -> bool:
 
     # Check for nvcc
     try:
-        subprocess.run(["nvcc", "--version"], capture_output=True, check=True)
+        subprocess.run(
+            ["nvcc", "--version"],
+            capture_output=True,
+            check=True,
+        )
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
 
 def is_apple_silicon() -> bool:
-    """Check if running on Apple Silicon."""
+    """Check if running on Apple Silicon.
+
+    Returns:
+        Whether running on Apple Silicon
+    """
     return platform.system() == "Darwin" and platform.machine() == "arm64"
 
 
 def get_torch_install_command() -> List[str]:
-    """Get the appropriate torch installation command for the platform."""
+    """Get the appropriate torch installation command for the platform.
+
+    Returns:
+        Installation command list
+    """
+    base_cmd = [sys.executable, "-m", "pip"]
     if is_apple_silicon():
-        return [
+        return base_cmd + [
             "install",
             "--pre",
             "torch",
@@ -62,66 +125,113 @@ def get_torch_install_command() -> List[str]:
             "--extra-index-url",
             "https://download.pytorch.org/whl/nightly/cpu",
         ]
-    return ["install", "torch"]
+    return base_cmd + ["install", "torch"]
 
 
-def install_requirements(venv_path: Path) -> None:
-    """Install package requirements based on platform."""
-    pip_cmd = [str(venv_path / "bin" / "pip")]
-
-    # Install base requirements first
-    print("Installing base requirements...")
-    run_command(pip_cmd + ["install", "--upgrade", "pip", "setuptools", "wheel"])
-    run_command(pip_cmd + ["install", "numpy"])  # Install numpy before torch
-
-    # Install PyTorch with appropriate backend
-    if is_apple_silicon():
-        print("Installing PyTorch with MPS support for Apple Silicon...")
-    else:
-        print("Installing PyTorch...")
-    run_command(pip_cmd + get_torch_install_command())
-
-    # Determine which extras to install
-    extras = ["dev", "test"]
-    if not is_apple_silicon() and is_cuda_available():
-        print("CUDA detected, installing CUDA dependencies...")
-        extras.append("cuda")
-    else:
-        if is_apple_silicon():
-            print("Apple Silicon detected, using MPS for GPU acceleration...")
-            extras.append("mps")  # Add MPS extras for Apple Silicon
-        else:
-            print("CUDA not detected, running in CPU-only mode...")
-
-    # Install the package with appropriate extras
-    print("Installing LlamaHome with extras...")
-    extras_str = f".[{','.join(extras)}]"
-    run_command(pip_cmd + ["install", "-e", extras_str], ignore_errors=True)
+def setup_directories() -> None:
+    """Create required directories securely."""
+    directories = [
+        ".cache/models",
+        ".cache/training",
+        ".cache/system",
+        ".data/models",
+        ".data/training",
+        ".data/metrics",
+        ".logs",
+        "config",
+    ]
+    for directory in directories:
+        path = Path(directory)
+        path.mkdir(parents=True, exist_ok=True)
+        # Set secure permissions
+        path.chmod(0o750)
 
 
-def main() -> None:
-    """Run installation process."""
-    # Ensure we're in the project root
-    project_root = Path(__file__).parent.parent
-    os.chdir(project_root)
+def setup_config_files() -> None:
+    """Set up configuration files securely."""
+    # Copy example files if they don't exist
+    example_files = [
+        (".env.example", ".env"),
+        ("config/training_config.toml.example", "config/training_config.toml"),
+        ("config/models.json.example", "config/models.json"),
+    ]
+    for src, dst in example_files:
+        src_path = Path(src)
+        dst_path = Path(dst)
+        if not dst_path.exists() and src_path.exists():
+            dst_path.write_text(src_path.read_text())
+            # Set secure permissions
+            dst_path.chmod(0o640)
 
-    # Create and activate virtual environment
-    venv_path = project_root / ".venv"
+
+def install_dependencies() -> None:
+    """Install Python dependencies securely."""
+    requirements = Path(__file__).parent.parent / "requirements.txt"
+    if not requirements.exists():
+        raise FileNotFoundError("requirements.txt not found")
+
+    print("Installing Python dependencies...")
+    run_command([sys.executable, "-m", "pip", "install", "-r", str(requirements)])
+
+    # Install appropriate PyTorch version
+    print("Installing PyTorch...")
+    run_command(get_torch_install_command())
+
+    # Install development dependencies if in dev mode
+    if os.environ.get("LLAMAHOME_ENV") == "development":
+        print("Installing development dependencies...")
+        run_command([sys.executable, "-m", "pip", "install", "-e", ".[dev,test]"])
+
+
+def setup_environment() -> None:
+    """Set up development environment securely."""
+    # Create virtual environment
+    venv_path = Path(".venv")
     if not venv_path.exists():
         print("Creating virtual environment...")
         run_command([sys.executable, "-m", "venv", str(venv_path)])
 
-    # Install requirements
-    install_requirements(venv_path)
+    # Create directory structure
+    print("Creating directory structure...")
+    setup_directories()
 
-    print("Installation complete!")
+    # Set up configuration files
+    print("Setting up configuration files...")
+    setup_config_files()
 
-    if not is_cuda_available():
-        print("\nNote: CUDA support is not available. To enable GPU acceleration:")
-        print("1. Install NVIDIA CUDA Toolkit 11.7+")
-        print("2. Set CUDA_HOME environment variable")
-        print("3. Run the installation script again")
+    # Install dependencies
+    install_dependencies()
+
+    # Verify installation
+    verify_installation()
+
+    print("Environment setup complete!")
+
+
+def verify_installation() -> None:
+    """Verify installation and print system information."""
+    print("\nSystem Information:")
+    print(f"Python Version: {platform.python_version()}")
+    print(f"Platform: {platform.platform()}")
+
+    if is_cuda_available():
+        print("CUDA: Available")
+        try:
+            import torch
+            print(f"PyTorch CUDA: {torch.version.cuda}")
+        except ImportError:
+            print("PyTorch: Not installed")
+    else:
+        print("CUDA: Not available")
+        if is_apple_silicon():
+            print("Apple Silicon detected: Using MPS backend")
+        else:
+            print("Running in CPU-only mode")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        setup_environment()
+    except Exception as e:
+        print(f"Setup failed: {e}", file=sys.stderr)
+        sys.exit(1)
