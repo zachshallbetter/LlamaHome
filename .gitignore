@@ -104,3 +104,4 @@ build/
 # IDE
 .idea/
 .vscode/
+.env.example
