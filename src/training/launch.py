@@ -2,9 +2,11 @@
 Distributed training launcher.
 """
 
+import asyncio
 import logging
 import os
 import sys
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -17,11 +19,10 @@ from ..core.config import TrainingConfig
 from ..core.config.base import BaseConfig
 from .data import DataConfig, StreamingDataset
 from .distributed import DistributedConfig, DistributedTrainer
-from .model import create_model
-from .optimization import create_optimizer
+from .model import create_model, ModelManager
+from .optimization import create_optimizer, create_scheduler, OptimizerManager
 from .pipeline import TrainingPipeline
 from .processing import ProcessingConfig
-from .scheduler import create_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -87,32 +88,44 @@ async def train_worker(
             rank=rank,
         )
 
-        # Create model and move to device
-        model = create_model(config.model)
+        # Initialize model manager
+        model_manager = ModelManager(config.model)
+        model = await model_manager.initialize_model()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
         model.to(device)
 
-        # Wrap model for distributed training
-        model = DistributedTrainer(
-            model=model,
-            device=device,
-            config=config,
+        # Initialize distributed trainer
+        trainer = DistributedTrainer(
+            config={
+                "distributed": {
+                    "world_size": world_size,
+                    "rank": rank,
+                    "backend": config.distributed.backend,
+                    "init_method": "env://",
+                }
+            }
         )
+        model = trainer.distribute_model(model)
 
         # Create dataset
         dataset = StreamingDataset(data_path)
 
-        # Create optimizer and scheduler
-        optimizer = await create_optimizer(model, config.optimization)
-        scheduler = await create_scheduler(optimizer, config.optimization)
+        # Initialize optimizer manager
+        optimizer_manager = OptimizerManager(config.optimization)
+        optimizer = await optimizer_manager.create_optimizer(model)
+        scheduler = await optimizer_manager.create_scheduler()
 
-        # Train model
-        await model.train(
-            dataset=dataset,
+        # Create training pipeline
+        pipeline = TrainingPipeline(
+            model=model,
             optimizer=optimizer,
             scheduler=scheduler,
+            config=config,
             output_dir=output_dir,
         )
+
+        # Train model
+        await pipeline.train(dataset)
 
     except Exception as e:
         logger.error(f"Training worker failed: {e}")
@@ -136,22 +149,42 @@ async def launch_training(
     # Load configuration
     config = TrainingConfig.parse_obj(load_config(config_path))
 
-    # Initialize training components
-    model = await create_model(config.model)
-    optimizer = await create_optimizer(model, config.optimization)
-
-    # Create training pipeline
-    pipeline = TrainingPipeline(
-        model=model,
-        optimizer=optimizer,
-        config=config,
-        output_dir=output_dir,
-    )
-
-    # Launch training
     if distributed:
-        await launch_distributed_training(pipeline, config)
+        world_size = torch.cuda.device_count()
+        if world_size > 1:
+            await asyncio.gather(*[
+                train_worker(
+                    rank=i,
+                    world_size=world_size,
+                    config=config,
+                    data_path=data_path,
+                    output_dir=output_dir,
+                )
+                for i in range(world_size)
+            ])
+        else:
+            logger.warning("Distributed training requested but only one GPU available")
+            await train_worker(0, 1, config, data_path, output_dir)
     else:
+        # Initialize model manager
+        model_manager = ModelManager(config.model)
+        model = await model_manager.initialize_model()
+
+        # Initialize optimizer manager
+        optimizer_manager = OptimizerManager(config.optimization)
+        optimizer = await optimizer_manager.create_optimizer(model)
+        scheduler = await optimizer_manager.create_scheduler()
+
+        # Create training pipeline
+        pipeline = TrainingPipeline(
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            config=config,
+            output_dir=output_dir,
+        )
+
+        # Train model
         await pipeline.train(data_path)
 
 

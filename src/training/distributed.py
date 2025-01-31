@@ -5,11 +5,12 @@ Distributed training implementation.
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 from transformers import PreTrainedModel, PreTrainedTokenizer
@@ -66,169 +67,267 @@ class DistributedTrainerConfig:
 
 
 class DistributedTrainer:
-    """Distributed training implementation."""
+    """Manages distributed training across multiple processes."""
 
-    def __init__(
-        self,
-        config: DistributedTrainerConfig,
-    ) -> None:
-        """Initialize distributed trainer."""
-        self.config = config
-        self.model = config.model
-        self.tokenizer = config.tokenizer
-        self._setup_distributed()
-
-    def _setup_distributed(self) -> None:
-        """Set up distributed training environment."""
-        os.environ["MASTER_ADDR"] = self.config.master_addr
-        os.environ["MASTER_PORT"] = self.config.master_port
-        os.environ["WORLD_SIZE"] = str(self.config.world_size)
-        os.environ["RANK"] = str(self.config.rank)
-
-        if not dist.is_initialized():
-            dist.init_process_group(
-                backend=self.config.backend,
-                init_method=self.config.init_method,
-                world_size=self.config.world_size,
-                rank=self.config.rank,
-            )
-
-    def _setup_model(self) -> None:
-        """Set up distributed model."""
-        if self.config.sync_batch_norm:
-            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
-
-        self.model = DistributedDataParallel(
-            self.model,
-            device_ids=[self.config.local_rank],
-            output_device=self.config.local_rank,
-            find_unused_parameters=self.config.find_unused_parameters,
-            gradient_as_bucket_view=self.config.gradient_as_bucket_view,
-            static_graph=self.config.static_graph,
-        )
-
-    async def _setup_data(
-        self, dataset: StreamingDataset
-    ) -> torch.utils.data.DataLoader:
-        """Set up distributed data loading."""
-        sampler = DistributedSampler(
-            dataset,
-            num_replicas=self.config.world_size,
-            rank=self.config.rank,
-            shuffle=self.config.data_config.shuffle,
-        )
-
-        return torch.utils.data.DataLoader(
-            dataset,
-            batch_size=self.config.data_config.batch_size,
-            sampler=sampler,
-            num_workers=self.config.data_config.num_workers,
-            pin_memory=self.config.data_config.pin_memory,
-            prefetch_factor=self.config.data_config.prefetch_factor,
-        )
-
-    async def train(
-        self,
-        train_dataset: str | Path,
-        eval_dataset: Optional[Union[str, Path]] = None,
-    ) -> None:
-        """Run distributed training.
-
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize distributed trainer.
+        
         Args:
-            train_dataset: Path to training dataset
-            eval_dataset: Optional path to evaluation dataset
+            config: Configuration dictionary
         """
-        # Implementation here...
+        self.config = config
+        self.world_size = config["distributed"]["world_size"]
+        self.rank = config["distributed"]["rank"]
+        self._initialize_process_group()
 
-    async def _train_epoch(
+    def _initialize_process_group(self):
+        """Initialize the distributed process group."""
+        dist.init_process_group(
+            backend=self.config["distributed"]["backend"],
+            init_method=self.config["distributed"]["init_method"],
+            world_size=self.world_size,
+            rank=self.rank,
+        )
+
+    def distribute_model(self, model: nn.Module) -> DistributedDataParallel:
+        """Wrap model for distributed training.
+        
+        Args:
+            model: Model to distribute
+            
+        Returns:
+            Distributed model
+        """
+        device = self.get_device()
+        model = model.to(device)
+        return DistributedDataParallel(model, device_ids=[device.index])
+
+    def create_distributed_sampler(self, dataset) -> 'DistributedSampler':
+        """Create a distributed sampler for the dataset.
+        
+        Args:
+            dataset: Dataset to sample from
+            
+        Returns:
+            Distributed sampler
+        """
+        return DistributedSampler(
+            dataset_size=len(dataset),
+            num_replicas=self.world_size,
+            rank=self.rank
+        )
+
+    def synchronize_gradients(self, model: nn.Module) -> float:
+        """Synchronize gradients across processes.
+        
+        Args:
+            model: Model to synchronize
+            
+        Returns:
+            Global gradient norm
+        """
+        for param in model.parameters():
+            if param.grad is not None:
+                dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
+                param.grad.data /= self.world_size
+        return self._compute_grad_norm(model)
+
+    def _compute_grad_norm(self, model: nn.Module) -> float:
+        """Compute gradient norm.
+        
+        Args:
+            model: Model to compute norm for
+            
+        Returns:
+            Gradient norm
+        """
+        total_norm = 0.0
+        for param in model.parameters():
+            if param.grad is not None:
+                total_norm += param.grad.data.norm(2).item() ** 2
+        return total_norm ** 0.5
+
+    def save_checkpoint(
         self,
-        dataloader: torch.utils.data.DataLoader,
-        processor: TensorProcessor,
+        model: nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler],
-        metrics: DistributedMetrics,
-    ) -> Dict[str, float]:
-        """Train single epoch with distributed support."""
-        epoch_metrics: dict[str, float] = {}
-        self.model.train()
+        epoch: int,
+        step: int,
+        path: Path,
+    ):
+        """Save training checkpoint.
+        
+        Args:
+            model: Model to save
+            optimizer: Optimizer to save
+            epoch: Current epoch
+            step: Current step
+            path: Path to save to
+        """
+        if self.rank == 0:  # Only save on main process
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'epoch': epoch,
+                'step': step,
+            }, path)
 
-        for step, batch in enumerate(dataloader):
-            # Process batch
-            optimizer.zero_grad()
-            batch_metrics = await processor.process_batch(batch, is_training=True)
+    def load_checkpoint(self, path: Path) -> Dict[str, Any]:
+        """Load training checkpoint.
+        
+        Args:
+            path: Path to load from
+            
+        Returns:
+            Checkpoint state
+        """
+        return torch.load(path, map_location=self.get_device())
 
-            # Backward pass
-            batch_metrics["loss"].backward()
+    def get_device(self) -> torch.device:
+        """Get device for current process.
+        
+        Returns:
+            Torch device
+        """
+        if torch.cuda.is_available():
+            return torch.device(f'cuda:{self.rank % torch.cuda.device_count()}')
+        return torch.device('cpu')
 
-            # Gradient synchronization
-            if self.config.gradient_as_bucket_view:
-                optimizer.step()
+    def validate_world_size(self, size: int):
+        """Validate world size parameter.
+        
+        Args:
+            size: World size to validate
+            
+        Raises:
+            ValueError: If size is invalid
+        """
+        if size <= 0:
+            raise ValueError(f"World size must be positive, got {size}")
+
+    def validate_rank(self, rank: int):
+        """Validate rank parameter.
+        
+        Args:
+            rank: Rank to validate
+            
+        Raises:
+            ValueError: If rank is invalid
+        """
+        if rank < 0:
+            raise ValueError(f"Rank must be non-negative, got {rank}")
+
+    def synchronize(self):
+        """Synchronize all processes."""
+        dist.barrier()
+
+
+class DistributedSampler:
+    """Sampler for distributed training."""
+
+    def __init__(self, dataset_size: int, num_replicas: int, rank: int):
+        """Initialize distributed sampler.
+        
+        Args:
+            dataset_size: Total dataset size
+            num_replicas: Number of processes
+            rank: Current process rank
+        """
+        self.dataset_size = dataset_size
+        self.num_replicas = num_replicas
+        self.rank = rank
+        self.epoch = 0
+        self.num_samples = self._get_num_samples()
+        self.total_size = self._get_total_size()
+
+    def _get_num_samples(self) -> int:
+        """Calculate number of samples for this process.
+        
+        Returns:
+            Number of samples
+        """
+        return (self.dataset_size - self.rank - 1) // self.num_replicas + 1
+
+    def _get_total_size(self) -> int:
+        """Calculate total size across all processes.
+        
+        Returns:
+            Total size
+        """
+        return self.num_samples * self.num_replicas
+
+    def __iter__(self):
+        """Get iterator over indices.
+        
+        Returns:
+            Iterator over indices
+        """
+        # Deterministically shuffle based on epoch
+        g = torch.Generator()
+        g.manual_seed(self.epoch)
+        indices = torch.randperm(self.dataset_size, generator=g).tolist()
+
+        # Add extra samples to make it evenly divisible
+        indices += indices[:(self.total_size - len(indices))]
+        assert len(indices) == self.total_size
+
+        # Subsample
+        indices = indices[self.rank:self.total_size:self.num_replicas]
+        assert len(indices) == self.num_samples
+
+        return iter(indices)
+
+    def __len__(self) -> int:
+        """Get length of sampler.
+        
+        Returns:
+            Number of samples
+        """
+        return self.num_samples
+
+    def set_epoch(self, epoch: int):
+        """Set the epoch number.
+        
+        Args:
+            epoch: Epoch number
+        """
+        self.epoch = epoch
+
+
+class GradientSynchronizer:
+    """Handles gradient synchronization across processes."""
+
+    def __init__(self, world_size: int):
+        """Initialize gradient synchronizer.
+        
+        Args:
+            world_size: Number of processes
+        """
+        self.world_size = world_size
+
+    def synchronize(
+        self,
+        gradients: List[torch.Tensor],
+        reduction: str = "mean"
+    ) -> List[torch.Tensor]:
+        """Synchronize gradients across processes.
+        
+        Args:
+            gradients: List of gradient tensors
+            reduction: Reduction operation ("sum" or "mean")
+            
+        Returns:
+            Synchronized gradients
+        """
+        for grad in gradients:
+            if reduction == "sum":
+                dist.all_reduce(grad, op=dist.ReduceOp.SUM)
+            elif reduction == "mean":
+                dist.all_reduce(grad, op=dist.ReduceOp.AVG)
             else:
-                for param in self.model.parameters():
-                    if param.grad is not None:
-                        dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
-                        param.grad.data /= self.config.world_size
-                optimizer.step()
+                raise ValueError(f"Unknown reduction: {reduction}")
 
-            # Update learning rate
-            if scheduler is not None:
-                scheduler.step()
-
-            # Update metrics
-            await metrics.update_metrics(
-                step + len(dataloader) * epoch, batch_metrics, self.model
-            )
-
-            # Accumulate epoch metrics
-            for key, value in batch_metrics.items():
-                if key not in epoch_metrics:
-                    epoch_metrics[key] = 0.0
-                epoch_metrics[key] += float(
-                    value.item() if torch.is_tensor(value) else value
-                )
-
-        # Average epoch metrics
-        for key in epoch_metrics:
-            epoch_metrics[key] /= len(dataloader)
-
-        return epoch_metrics
-
-    async def _save_checkpoint(
-        self, path: Path, epoch: int, metrics: Dict[str, float]
-    ) -> None:
-        """Save training checkpoint."""
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        state = {
-            "epoch": epoch,
-            "model_state": self.model.module.state_dict(),
-            "metrics": metrics,
-            "config": {
-                "distributed": self.config,
-                "data": self.config.data_config,
-                "processing": self.config.processing_config,
-            },
-        }
-
-        safe_torch_save(state, path)
-
-    async def load_checkpoint(self, path: Path) -> Dict[str, Any]:
-        """Load training checkpoint."""
-        state = safe_torch_load(path, map_location=f"cuda:{self.config.local_rank}")
-
-        # Load model state
-        self.model.module.load_state_dict(state["model_state"])
-
-        # Synchronize model parameters
-        for param in self.model.parameters():
-            dist.broadcast(param.data, src=0)
-
-        return state
-
-    def cleanup(self) -> None:
-        """Clean up distributed training resources."""
-        if dist.is_initialized():
-            dist.destroy_process_group()
+        return gradients
 
 
 def launch_distributed(

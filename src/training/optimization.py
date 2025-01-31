@@ -9,9 +9,11 @@ from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import (
     CosineAnnealingLR,
     LinearLR,
+    LRScheduler,
     ReduceLROnPlateau,
     _LRScheduler,
 )
+from transformers import get_scheduler
 
 from ..core.config.base import BaseConfig
 from ..core.utils import LogManager, LogTemplates
@@ -279,4 +281,173 @@ class LinearScheduler(_LRScheduler):
 class OptimizationError(Exception):
     """Optimization error."""
 
+    pass
+
+
+async def create_optimizer(
+    model: torch.nn.Module,
+    config: Dict[str, Any]
+) -> Optimizer:
+    """Create optimizer from configuration.
+    
+    Args:
+        model: Model to optimize
+        config: Optimizer configuration
+        
+    Returns:
+        Configured optimizer
+        
+    Raises:
+        ValueError: If optimizer configuration is invalid
+    """
+    try:
+        # Get optimizer parameters
+        optimizer_name = config.get("name", "adamw").lower()
+        lr = config.get("learning_rate", 1e-4)
+        weight_decay = config.get("weight_decay", 0.01)
+        beta1 = config.get("beta1", 0.9)
+        beta2 = config.get("beta2", 0.999)
+        eps = config.get("eps", 1e-8)
+
+        # Create parameter groups
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() 
+                          if not any(nd in n for nd in no_decay)],
+                "weight_decay": weight_decay,
+            },
+            {
+                "params": [p for n, p in model.named_parameters() 
+                          if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        # Create optimizer
+        if optimizer_name == "adamw":
+            optimizer = AdamW(
+                optimizer_grouped_parameters,
+                lr=lr,
+                betas=(beta1, beta2),
+                eps=eps
+            )
+        else:
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+
+        return optimizer
+
+    except Exception as e:
+        logger.error(f"Failed to create optimizer: {e}")
+        raise ValueError(f"Optimizer creation failed: {e}")
+
+
+async def create_scheduler(
+    optimizer: Optimizer,
+    config: Dict[str, Any]
+) -> Optional[LRScheduler]:
+    """Create learning rate scheduler.
+    
+    Args:
+        optimizer: Optimizer to schedule
+        config: Scheduler configuration
+        
+    Returns:
+        Configured scheduler or None if not specified
+        
+    Raises:
+        ValueError: If scheduler configuration is invalid
+    """
+    try:
+        scheduler_config = config.get("scheduler")
+        if not scheduler_config:
+            return None
+
+        scheduler_type = scheduler_config.get("name", "linear")
+        num_training_steps = scheduler_config.get("num_training_steps", 1000)
+        num_warmup_steps = scheduler_config.get("num_warmup_steps", 0)
+
+        scheduler = get_scheduler(
+            name=scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=num_training_steps,
+        )
+
+        return scheduler
+
+    except Exception as e:
+        logger.error(f"Failed to create scheduler: {e}")
+        raise ValueError(f"Scheduler creation failed: {e}")
+
+
+class OptimizerManager:
+    """Manages optimization components."""
+
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize optimizer manager.
+        
+        Args:
+            config: Optimization configuration
+        """
+        self.config = config
+        self.optimizer = None
+        self.scheduler = None
+
+    async def create_optimizer(self, model: torch.nn.Module) -> Optimizer:
+        """Create optimizer for model.
+        
+        Args:
+            model: Model to optimize
+            
+        Returns:
+            Created optimizer
+        """
+        self.optimizer = await create_optimizer(model, self.config)
+        return self.optimizer
+
+    async def create_scheduler(self) -> Optional[LRScheduler]:
+        """Create scheduler for optimizer.
+        
+        Returns:
+            Created scheduler or None
+            
+        Raises:
+            ValueError: If optimizer not initialized
+        """
+        if self.optimizer is None:
+            raise ValueError("Optimizer must be created before scheduler")
+
+        self.scheduler = await create_scheduler(self.optimizer, self.config)
+        return self.scheduler
+
+    def save_state(self, path: str) -> None:
+        """Save optimizer and scheduler state.
+        
+        Args:
+            path: Path to save to
+        """
+        state = {
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+        }
+        torch.save(state, path)
+
+    def load_state(self, path: str) -> None:
+        """Load optimizer and scheduler state.
+        
+        Args:
+            path: Path to load from
+        """
+        state = torch.load(path)
+        
+        if self.optimizer and state["optimizer"]:
+            self.optimizer.load_state_dict(state["optimizer"])
+            
+        if self.scheduler and state["scheduler"]:
+            self.scheduler.load_state_dict(state["scheduler"])
+
+
+class OptimizationError(Exception):
+    """Optimization-related error."""
     pass

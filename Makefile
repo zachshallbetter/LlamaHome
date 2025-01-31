@@ -4,6 +4,21 @@ VENV := .venv
 BIN := $(VENV)/bin
 PYTHON_VERSION := $(shell $(PYTHON) --version | cut -d' ' -f2)
 
+# Platform detection
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+# PyTorch installation command
+ifeq ($(UNAME_S),Darwin)
+    ifeq ($(UNAME_M),arm64)
+        TORCH_INSTALL := pip3 install --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    else
+        TORCH_INSTALL := pip3 install torch torchvision torchaudio
+    endif
+else
+    TORCH_INSTALL := pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+endif
+
 # Directories
 CACHE_DIR := .cache
 DATA_DIR := data
@@ -26,6 +41,21 @@ TRAINING_CONFIG := $(CONFIG_DIR)/training_config.toml
 MODELS_CONFIG := $(CONFIG_DIR)/models.json
 ENV_FILE := .env
 
+# Platform detection
+ifeq ($(OS),Windows_NT)
+    VENV_BIN := $(VENV)/Scripts
+    VENV_PYTHON := $(VENV_BIN)/python.exe
+    VENV_PIP := $(VENV_BIN)/pip.exe
+    VENV_ACTIVATE := $(VENV_BIN)/activate.bat
+    RM := rmdir /s /q
+else
+    VENV_BIN := $(VENV)/bin
+    VENV_PYTHON := $(VENV_BIN)/python
+    VENV_PIP := $(VENV_BIN)/pip
+    VENV_ACTIVATE := $(VENV_BIN)/activate
+    RM := rm -rf
+endif
+
 # Default target
 .PHONY: all
 all: setup
@@ -43,13 +73,20 @@ setup-dirs:
 .PHONY: setup-env
 setup-env:
 	@echo "Setting up Python environment..."
+	@if [ -d "$(VENV)" ]; then \
+		echo "Virtual environment already exists. Cleaning..."; \
+		$(RM) $(VENV); \
+	fi
 	@$(PYTHON) -m venv $(VENV)
 	@echo "Activating virtual environment..."
-	@. $(VENV)/bin/activate && \
+	@. $(VENV_ACTIVATE) && \
 	echo "Upgrading pip..." && \
-	$(BIN)/pip install --upgrade pip && \
-	echo "Installing Python dependencies..." && \
-	$(BIN)/pip install -r requirements.txt
+	$(VENV_PIP) install --upgrade pip && \
+	echo "Installing PyTorch..." && \
+	$(TORCH_INSTALL) && \
+	echo "Installing other dependencies..." && \
+	$(VENV_PIP) install -r requirements.txt || \
+	(echo "Failed to install dependencies. Check requirements.txt" && exit 1)
 
 # Configuration setup
 .PHONY: setup-config
@@ -65,42 +102,56 @@ setup-config:
 setup: setup-dirs setup-env setup-config
 	@echo "Setup complete"
 
+# Development setup
+.PHONY: setup-dev
+setup-dev: setup
+	@echo "Installing development dependencies..."
+	@. $(VENV_ACTIVATE) && $(VENV_PIP) install -e ".[dev]" || \
+	(echo "Failed to install development dependencies" && exit 1)
+
+# Test setup
+.PHONY: setup-test
+setup-test: setup
+	@echo "Installing test dependencies..."
+	@. $(VENV_ACTIVATE) && $(VENV_PIP) install -e ".[test]" || \
+	(echo "Failed to install test dependencies" && exit 1)
+
 # Clean targets
 .PHONY: clean-pycache
 clean-pycache:
 	@echo "Cleaning Python cache..."
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@find . -type f -name "*.pyc" -delete
-	@rm -rf $(PYCACHE)/*
+	@$(RM) $(PYCACHE)
 	@echo "Python cache cleaned"
 
 .PHONY: clean-cache
 clean-cache:
 	@echo "Cleaning cache directories..."
-	@rm -rf $(MODEL_CACHE)/* $(TRAINING_CACHE)/* $(SYSTEM_CACHE)/*
+	@$(RM) $(MODEL_CACHE) $(TRAINING_CACHE) $(SYSTEM_CACHE)
 	@echo "Cache directories cleaned"
 
 .PHONY: clean-all
 clean-all: clean-pycache clean-cache
 	@echo "Cleaning all temporary files..."
-	@rm -rf $(VENV) .pytest_cache .mypy_cache .ruff_cache
+	@$(RM) $(VENV) .pytest_cache .mypy_cache .ruff_cache
 	@echo "All temporary files cleaned"
 
 # Training targets
 .PHONY: train
 train:
 	@echo "Starting training..."
-	@$(BIN)/python -m src.interfaces.cli train $(filter-out $@,$(MAKECMDGOALS))
+	@. $(VENV_ACTIVATE) && $(VENV_PYTHON) -m src.interfaces.cli train $(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: train-resume
 train-resume:
 	@echo "Resuming training..."
-	@$(BIN)/python -m src.interfaces.cli train-resume $(filter-out $@,$(MAKECMDGOALS))
+	@. $(VENV_ACTIVATE) && $(VENV_PYTHON) -m src.interfaces.cli train-resume $(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: train-eval
 train-eval:
 	@echo "Evaluating model..."
-	@$(BIN)/python -m src.interfaces.cli train-eval $(filter-out $@,$(MAKECMDGOALS))
+	@. $(VENV_ACTIVATE) && $(VENV_PYTHON) -m src.interfaces.cli train-eval $(filter-out $@,$(MAKECMDGOALS))
 
 # Distributed Training
 .PHONY: train-distributed train-multi-node

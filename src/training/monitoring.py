@@ -5,10 +5,11 @@ Training monitoring and metrics system.
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 try:
     import plotly.graph_objects as go
@@ -39,6 +40,234 @@ class MonitorConfig:
     track_weights: bool = True
     track_attention: bool = True
     tensorboard_dir: str = "runs"
+
+
+@dataclass
+class MetricsConfig:
+    """Configuration for metrics collection."""
+    track_gradients: bool = True
+    log_interval: int = 10
+    save_interval: int = 100
+    eval_interval: int = 500
+    metrics: List[str] = None
+
+    def __post_init__(self):
+        if self.metrics is None:
+            self.metrics = ["loss", "accuracy", "perplexity"]
+
+
+class TrainingMetrics:
+    """Tracks and manages training metrics."""
+
+    def __init__(self, config: MetricsConfig):
+        """Initialize metrics tracker.
+        
+        Args:
+            config: Metrics configuration
+        """
+        self.config = config
+        self.metrics_history = {}
+        self.current_step = 0
+
+    def track_gradients(self, model: torch.nn.Module, step: int):
+        """Track model gradients.
+        
+        Args:
+            model: Model to track gradients for
+            step: Current training step
+        """
+        if not self.config.track_gradients:
+            return
+
+        grad_norm = 0.0
+        for param in model.parameters():
+            if param.grad is not None:
+                grad_norm += param.grad.data.norm(2).item() ** 2
+        grad_norm = grad_norm ** 0.5
+
+        self.update_metric("gradient_norm", grad_norm, step)
+
+    def update_metric(self, name: str, value: float, step: int):
+        """Update a metric value.
+        
+        Args:
+            name: Metric name
+            value: Metric value
+            step: Training step
+        """
+        if name not in self.metrics_history:
+            self.metrics_history[name] = []
+        self.metrics_history[name].append((step, value))
+
+    def get_results(self) -> List[Dict[str, Any]]:
+        """Get all tracked metrics.
+        
+        Returns:
+            List of metric dictionaries
+        """
+        results = []
+        for step in sorted(set(s for m in self.metrics_history.values() for s, _ in m)):
+            metrics = {}
+            for name, history in self.metrics_history.items():
+                values = [v for s, v in history if s == step]
+                if values:
+                    metrics[name] = values[0]
+            results.append({"step": step, "metrics": metrics})
+        return results
+
+
+class MetricsCollector:
+    """Collects and manages training metrics."""
+
+    def __init__(self):
+        """Initialize metrics collector."""
+        self.metrics = {}
+        self.history = {}
+        self.custom_metrics = {}
+
+    def log_metric(self, name: str, value: float, step: Optional[int] = None):
+        """Log a metric value.
+        
+        Args:
+            name: Metric name
+            value: Metric value
+            step: Optional step number
+        """
+        if not isinstance(value, (int, float)):
+            raise ValueError(f"Metric value must be numeric, got {type(value)}")
+        
+        if step is not None and step < 0:
+            raise ValueError(f"Step must be non-negative, got {step}")
+
+        self.metrics[name] = value
+        if name not in self.history:
+            self.history[name] = []
+        if step is not None:
+            self.history[name].append((step, value))
+        else:
+            self.history[name].append(value)
+
+    def get_metrics(self) -> Dict[str, float]:
+        """Get current metrics.
+        
+        Returns:
+            Dictionary of current metric values
+        """
+        metrics = self.metrics.copy()
+        for name, fn in self.custom_metrics.items():
+            if name not in metrics and "loss" in metrics:
+                metrics[name] = fn(metrics["loss"])
+        return metrics
+
+    def get_metric_history(self, name: str) -> List[float]:
+        """Get history for a specific metric.
+        
+        Args:
+            name: Metric name
+            
+        Returns:
+            List of historical values
+        """
+        return [v for _, v in self.history.get(name, [])]
+
+    def register_custom_metric(self, name: str, fn):
+        """Register a custom metric function.
+        
+        Args:
+            name: Metric name
+            fn: Function to compute metric
+        """
+        self.custom_metrics[name] = fn
+
+    def save(self, path: Path):
+        """Save metrics to file.
+        
+        Args:
+            path: Path to save to
+        """
+        torch.save({
+            "metrics": self.metrics,
+            "history": self.history,
+        }, path)
+
+    def load(self, path: Path):
+        """Load metrics from file.
+        
+        Args:
+            path: Path to load from
+        """
+        data = torch.load(path)
+        self.metrics = data["metrics"]
+        self.history = data["history"]
+
+
+class PerformanceMonitor:
+    """Monitors training performance metrics."""
+
+    def __init__(self):
+        """Initialize performance monitor."""
+        self.stats = {}
+        self._start_times = {}
+
+    def track(self, name: str):
+        """Context manager for tracking performance.
+        
+        Args:
+            name: Name of the operation to track
+        """
+        class TrackingContext:
+            def __init__(self, monitor, name):
+                self.monitor = monitor
+                self.name = name
+
+            def __enter__(self):
+                self.monitor._start_tracking(self.name)
+                return self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                self.monitor._end_tracking(self.name)
+
+        return TrackingContext(self, name)
+
+    def _start_tracking(self, name: str):
+        """Start tracking an operation.
+        
+        Args:
+            name: Operation name
+        """
+        self._start_times[name] = torch.cuda.Event(enable_timing=True)
+        self._start_times[name].record()
+
+    def _end_tracking(self, name: str):
+        """End tracking an operation.
+        
+        Args:
+            name: Operation name
+        """
+        end_event = torch.cuda.Event(enable_timing=True)
+        end_event.record()
+        torch.cuda.synchronize()
+
+        duration = self._start_times[name].elapsed_time(end_event)
+        if name not in self.stats:
+            self.stats[name] = {}
+        self.stats[name]["duration"] = duration
+        self.stats[name]["memory_allocated"] = torch.cuda.memory_allocated()
+        if torch.cuda.is_available():
+            self.stats[name]["memory_cached"] = torch.cuda.memory_reserved()
+
+    def get_stats(self, name: Optional[str] = None) -> Dict[str, Any]:
+        """Get performance statistics.
+        
+        Args:
+            name: Optional operation name
+            
+        Returns:
+            Dictionary of statistics
+        """
+        if name is not None:
+            return self.stats.get(name, {})
+        return self.stats
 
 
 class TrainingMetrics:
