@@ -1,5 +1,14 @@
 name: Trunk Check
 
+# Define permissions explicitly
+permissions:
+  # Only read access needed for most operations
+  contents: read
+  # Needed for trunk to post annotations
+  checks: write
+  # Needed for caching
+  actions: read
+
 on:
   push:
     branches: [main, develop]
@@ -37,10 +46,12 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Trunk Check
-        uses: trunk-io/trunk-action@v1
+        # Pin to specific commit hash for security
+        uses: trunk-io/trunk-action@29a6c9b6e5ef0f7638917208ec3b46ea43646b43  # v1.1.0
         with:
           check-mode: all
-          arguments: check --no-progress
+          arguments: check
+          github-annotate: notice
 
       - name: Run pre-commit checks
         run: |

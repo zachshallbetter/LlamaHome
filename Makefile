@@ -249,7 +249,9 @@ test-specialized:
 
 test-coverage:
 	@echo "Running tests with coverage..."
-	@. $(VENV_ACTIVATE) && pytest --cov=src --cov-report=term-missing --cov-report=html tests/
+	coverage run -m pytest
+	coverage xml
+	coverage html
 
 # Run targets
 .PHONY: run
