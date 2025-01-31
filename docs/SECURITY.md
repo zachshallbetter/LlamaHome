@@ -316,3 +316,30 @@ For security concerns, contact:
 - Emergency Contact: [INSERT EMERGENCY CONTACT]
 
 Remember: Security is everyone's responsibility. Stay vigilant and report any concerns promptly.
+
+# Security Guide
+
+## Automated Security Checks
+
+We use several automated tools to ensure code security:
+
+### Trunk Security Scanning
+
+Our Trunk configuration includes security-focused tools:
+
+- **trufflehog**: Scans for secrets and sensitive data
+  - Runs on all PRs and pushes
+  - Ignores test files and documentation
+  - Configured to detect various token formats
+
+- **bandit**: Python security linter
+  - Checks for common security issues
+  - Custom rules for our codebase
+  - Integrated with CI/CD
+
+- **git-diff-check**: Prevents accidental commits of sensitive data
+  - Runs pre-commit
+  - Checks for large binary files
+  - Validates line endings
+
+See [.trunk/README.md](../.trunk/README.md) for security tool configuration.
