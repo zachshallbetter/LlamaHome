@@ -40,7 +40,7 @@ jobs:
         uses: trunk-io/trunk-action@v1
         with:
           check-mode: all
-          arguments: --github-annotate notice
+          arguments: check --no-progress
 
       - name: Run pre-commit checks
         run: |
