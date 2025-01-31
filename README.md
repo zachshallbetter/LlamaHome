@@ -1,4 +1,4 @@
-# LlamaHome
+# Llama Home
 
 A comprehensive training and inference pipeline for LLM models, featuring efficient resource management, advanced monitoring, and enterprise-grade security features.
 
