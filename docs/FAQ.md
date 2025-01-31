@@ -20,20 +20,20 @@ This document provides answers to frequently asked questions about LlamaHome, in
 
 ### What is LlamaHome?
 
-LlamaHome is a comprehensive environment for running, training, and optimizing Llama models. It combines the best features of llama-recipes and H2O optimization to provide a powerful and efficient platform for working with Llama models.
+LlamaHome is a comprehensive environment for training and fine-tuning large language models. The system focuses on efficient resource utilization, robust monitoring, and flexible configuration options.
 
 ### What are the key features?
 
-- 🚀 Optimized Llama model inference
-- 🔄 Efficient context window management
-- 💾 Smart caching and resource management
-- 🎯 High-performance training pipeline
-- 🔧 Advanced configuration system
-- 📊 Comprehensive monitoring
+- 🚀 Efficient training pipeline with distributed support
+- 📊 Advanced monitoring and metrics tracking
+- 💾 Smart caching system with multiple backends
+- 🔄 Checkpoint management with safetensors support
+- 📈 Dynamic batch sizing and memory optimization
+- 🛠️ Modular architecture with clean separation of concerns
 
 ### Which Python versions are supported?
 
-LlamaHome requires Python 3.11. Python 3.13 is not yet supported, and Python 3.12 support is experimental.
+LlamaHome requires Python 3.11. Python 3.13 is not yet supported.
 
 ## Installation
 
@@ -49,24 +49,19 @@ LlamaHome requires Python 3.11. Python 3.13 is not yet supported, and Python 3.1
 2. **Install Dependencies**
 
    ```bash
-   # Install Poetry
-   curl -sSL https://install.python-poetry.org | python3 -
-   
-   # Install project dependencies
+   # Setup environment and install dependencies
    make setup
    ```
 
 ### What are the system requirements?
 
 Minimum requirements:
-
 - CPU: 4 cores, 2.5GHz+
 - RAM: 16GB
 - Storage: 50GB SSD
 - GPU: 8GB VRAM (for 7B model)
 
 Recommended requirements:
-
 - CPU: 8+ cores, 3.5GHz+
 - RAM: 32GB
 - Storage: 100GB NVMe SSD
@@ -80,7 +75,21 @@ Yes, LlamaHome can run on CPU-only systems, but performance will be significantl
 
 ### How do I configure LlamaHome?
 
-1. **Basic Configuration**
+1. **Project Configuration**
+
+   Configuration is managed through `pyproject.toml`:
+   ```toml
+   [project]
+   name = "llamahome"
+   version = "0.1.0"
+   requires-python = ">=3.11"
+
+   [project.dependencies]
+   torch = ">=2.0.0"
+   transformers = ">=4.30.0"
+   ```
+
+2. **Environment Configuration**
 
    ```bash
    # Copy example configuration
@@ -90,37 +99,26 @@ Yes, LlamaHome can run on CPU-only systems, but performance will be significantl
    nano .env
    ```
 
-2. **Model Configuration**
-
-   ```yaml
-   # config/model_config.toml
-   models:
-     llama3.3:
-       version: "3.3"
-       variants:
-         - "7b"
-         - "13b"
-         - "70b"
-   ```
-
 ### Where are configuration files stored?
 
-Configuration files are stored in the `.config` directory:
+- `pyproject.toml`: Core project configuration
+- `.env`: Environment variables
+- `.config/`: Additional configuration files
 
-- `model_config.toml`: Model settings
-- `system_config.toml`: System settings
-- `training_config.toml`: Training settings
+### How do I manage dependencies?
 
-### How do I change model parameters?
+Dependencies are managed through `pyproject.toml`:
 
-Edit the model configuration in `config/model_config.toml`:
+```toml
+[project.dependencies]
+torch = ">=2.0.0"
+transformers = ">=4.30.0"
 
-```yaml
-models:
-  llama3.3:
-    optimization:
-      quantization: "int8"
-      gpu_layers: 32
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.3.0",
+]
 ```
 
 ## Model Management
@@ -172,7 +170,6 @@ make clean-models
 ### What affects model speed?
 
 Key factors:
-
 - Hardware capabilities
 - Model size
 - Batch size
@@ -194,62 +191,48 @@ make report
 ### Common Issues
 
 1. **Installation Fails**
-
    ```text
-   Q: Poetry installation fails
+   Q: Setup fails
    A: Ensure Python 3.11 is installed and active
    ```
 
 2. **Model Loading Fails**
-
    ```text
    Q: Model fails to load
    A: Check GPU memory and model requirements
    ```
 
 3. **Out of Memory**
-
    ```text
    Q: GPU out of memory error
    A: Reduce batch size or enable memory optimization
    ```
 
-### Error Messages
-
-1. **CUDA Error**
-
-   ```text
-   Q: CUDA out of memory
-   A: Reduce model size or batch size
-   ```
-
-2. **Import Error**
-
-   ```text
-   Q: Module not found
-   A: Ensure all dependencies are installed
-   ```
-
 ### Debug Mode
 
 Enable debug mode for detailed logging:
-
 ```bash
-# Enable debug mode
 export LLAMAHOME_LOG_LEVEL=DEBUG
-
-# Run with debug output
 make run-debug
 ```
 
 ## Development
 
-### How do I contribute?
+### How do I set up a development environment?
 
-1. Read [Contributing Guide](CONTRIBUTING.md)
-2. Fork repository
-3. Create feature branch
-4. Submit pull request
+```bash
+# Install development dependencies
+make setup-dev
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Run linters
+make lint
+```
 
 ### How do I run tests?
 
@@ -257,17 +240,23 @@ make run-debug
 # Run all tests
 make test
 
-# Run specific tests
+# Run specific test categories
 make test-unit
 make test-integration
+make test-performance
 ```
 
 ### How do I debug issues?
 
-1. Enable debug logging
-2. Use test fixtures
-3. Check error logs
-4. Run unit tests
+1. Enable debug logging:
+   ```bash
+   export LLAMAHOME_LOG_LEVEL=DEBUG
+   ```
+
+2. Run tests with verbose output:
+   ```bash
+   make test-unit -v
+   ```
 
 ## Security
 
@@ -307,8 +296,7 @@ See [Security Policy](SECURITY.md) for:
 ### How do I report bugs?
 
 1. Check existing issues
-2. Create new issue
-3. Provide details:
+2. Create new issue with:
    - Steps to reproduce
    - Expected behavior
    - Actual behavior

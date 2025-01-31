@@ -18,28 +18,56 @@
 
 This document outlines the testing infrastructure and practices for the LlamaHome project. Our testing strategy encompasses unit tests, integration tests, performance tests, and system tests.
 
+## Test Configuration
+
+Testing configuration is managed through `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "security: marks tests as security tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+]
+```
+
 ## Test Categories
 
 ### Unit Tests
 
 - Located in `tests/` directory
-- Focus on individual components and functions
+- Focus on individual components
 - Run with `make test-unit`
-- Marked with `@pytest.mark` without specific markers
 
 ### Integration Tests
 
-- Test interaction between components
-- Located in `tests/` with integration test files
+- Test component interactions
+- Located in `tests/integration/`
 - Run with `make test-integration`
-- Marked with `@pytest.mark.integration`
 
 ### Performance Tests
 
-- Measure system performance and resource usage
-- Located in `tests/training/test_performance.py`
+- Measure system performance
+- Located in `tests/performance/`
 - Run with `make test-performance`
-- Marked with `@pytest.mark.performance`
 
 ### System Tests
 
@@ -98,12 +126,22 @@ def test_feature():
     pass
 ```
 
-### Test Fixtures
+### Test Dependencies
 
-- Common fixtures in `tests/conftest.py`
-- Resource management fixtures
-- Mock configurations
-- Test data setup
+Development dependencies are managed in `pyproject.toml`:
+
+```toml
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-qt>=4.2.0",
+    "pytest-mock>=3.11.1",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.3.1",
+]
+```
 
 ### Best Practices
 
@@ -114,19 +152,41 @@ def test_feature():
 5. Mock external dependencies
 6. Clean up resources in fixtures
 
+## Test Environment
+
+### Setup
+
+```bash
+# Install test dependencies
+make setup-test
+
+# Verify test environment
+make test-env
+```
+
+### Environment Variables
+
+```bash
+# Set test environment
+export TESTING=true
+export PYTEST_ADDOPTS="-v --strict-markers"
+```
+
 ## Continuous Integration
 
 ### GitHub Actions
 
-- Automated test runs on pull requests
-- Coverage reports uploaded as artifacts
-- Performance test results tracked
+Tests are automatically run on:
+- Pull requests
+- Push to main branch
+- Scheduled daily runs
 
-### Test Environment
+### Test Coverage
 
-- Python 3.11
-- Dependencies managed through poetry
-- GPU tests skipped if no GPU available
+Coverage requirements:
+- Minimum 80% coverage
+- Reports generated in HTML and XML
+- Coverage tracked in CI/CD
 
 ## Performance Testing
 

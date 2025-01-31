@@ -19,7 +19,7 @@
 ```yaml
 python:
   version: ">=3.11,<3.13"  # Python 3.11 required, 3.13 not yet supported
-  packages: "requirements.txt"
+  build_system: "setuptools>=61.0.0"
 
 cuda:
   version: ">=11.7,<=12.1"
@@ -49,7 +49,7 @@ hardware:
 1. **System Requirements Check**
 
    ```bash
-   # Check Python version (3.11 or 3.12 required)
+   # Check Python version (3.11 required)
    python --version
    
    # Check GPU requirements (if using GPU)
@@ -59,12 +59,11 @@ hardware:
 2. **Installation**
 
    ```bash
-   # Install Poetry
-   curl -sSL https://install.python-poetry.org | python3 -
-
-   # Clone and setup LlamaHome
+   # Clone LlamaHome
    git clone https://github.com/zachshallbetter/llamahome.git
    cd llamahome
+
+   # Setup environment and install dependencies
    make setup
    ```
 
@@ -76,36 +75,83 @@ hardware:
    # Edit .env with your settings
    ```
 
-### Common Setup Scenarios
+### Configuration Structure
 
-1. **CPU-Only Setup**
+The project uses `pyproject.toml` as the central configuration file:
 
-   ```yaml
-   # config/model_config.toml
-   compute:
-     device: cpu
-     threads: 8
-     batch_size: 4
+```toml
+# Core project configuration
+[project]
+name = "llamahome"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+# Dependencies
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    # ... other dependencies
+]
+
+# Development dependencies
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.3.0",
+    # ... other dev dependencies
+]
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q"
+```
+
+### Environment Configuration
+
+1. **Basic Settings**
+
+   ```env
+   PYTHON_VERSION=3.11
+   LLAMAHOME_ENV=development
+   LLAMAHOME_LOG_LEVEL=INFO
    ```
 
-2. **GPU Setup (NVIDIA)**
+2. **Model Settings**
 
-   ```yaml
-   # config/model_config.toml
-   compute:
-     device: cuda
-     gpu_layers: 32
-     batch_size: 16
+   ```env
+   LLAMA_MODEL=llama3.3
+   LLAMA_MODEL_SIZE=13b
+   LLAMA_MODEL_VARIANT=chat
    ```
 
-3. **Apple Silicon Setup**
+### Development Setup
 
-   ```yaml
-   # config/model_config.toml
-   compute:
-     device: mps
-     batch_size: 8
-   ```
+```bash
+# Install development dependencies
+make setup-dev
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Run linters
+make lint
+```
 
 ## Detailed Configuration
 
@@ -165,7 +211,7 @@ hardware:
 
    ```text
    Problem: "Python 3.13 is not supported"
-   Solution: Install Python 3.11 or 3.12
+   Solution: Install Python 3.11
    Command: pyenv install 3.11
    ```
 

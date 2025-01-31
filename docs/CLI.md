@@ -40,214 +40,193 @@ graph TD
 
 ### Prerequisites
 
-- Python: Version 3.11 or higher required
-- Dependency Management: Poetry for easy setup
-- Model Files: Ensure you have at least one supported Llama model available, or be prepared to download one
+- Python 3.11 or higher
+- Virtual environment (recommended)
+- CUDA-capable GPU (optional)
 
-### Installation Steps
+### Installation
 
-1. Install Poetry (if not already installed):
-
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
-
-2. Clone and Install LlamaHome:
+1. Clone and Install:
 
    ```bash
-   git clone https://github.com/llamahome/llamahome.git
+   git clone https://github.com/zachshallbetter/llamahome.git
    cd llamahome
-
-   poetry install  # Install dependencies
-   poetry shell    # Activate virtual environment
+   make setup
    ```
 
-3. Set Up Environment Variables:
+2. Set Up Environment:
 
    ```bash
-   # UNIX-like systems
-   export LLAMA_HOME_MODEL_PATH=/path/to/llama/model
+   # Copy example environment file
+   cp .env.example .env
 
-   # Windows (PowerShell)
-   $Env:LLAMA_HOME_MODEL_PATH="C:\path\to\llama\model"
+   # Edit environment variables
+   nano .env
    ```
 
-Adjust these paths and environment variables according to your setup.
+3. Verify Installation:
 
-### Launching the CLI
+   ```bash
+   # Activate virtual environment
+   source .venv/bin/activate  # Unix/macOS
+   # or
+   .venv\Scripts\activate     # Windows
 
-Once the environment is prepared, launch the CLI with:
-
-```bash
-llamahome
-```
-
-If you've installed using Poetry, you may need:
-
-```bash
-poetry run llamahome
-```
+   # Run CLI
+   python -m src.interfaces.cli
+   ```
 
 ## CLI Features
 
 ### Command History & Navigation
 
-- History Recall: Use Up/Down arrows to navigate through previously executed commands
-- Search History: Press Ctrl+R to search through your command history
-- Persisted History: By default, history is saved in `.config/history.txt`, so it's available after restarts
+- History Recall: Up/Down arrows
+- Search History: Ctrl+R
+- History saved in `.config/history.txt`
 
 ### Auto-Completion & Suggestions
 
-- Tab Completion: Press Tab to auto-complete commands, model names, and file paths
-- Dynamic Suggestions: As you type, suggestions appear in gray. Press Right Arrow to accept them
-- Multiple Options: If multiple completions are available, a menu appears. Use arrow keys to navigate and Enter to select
+- Tab Completion: Commands, models, paths
+- Dynamic Suggestions: Gray text, Right Arrow to accept
+- Multiple Options: Arrow keys to navigate
 
 ### Key Bindings
 
-- Ctrl+C: Cancel the current operation (if any)
-- Ctrl+D: Exit the CLI
-- Arrow Keys: Move the cursor left/right through the current line or up/down through history
-- Home/End: Jump to the start or end of the line
-- Ctrl+K/U/W/Y: Edit text inline (cut/paste words or entire lines)
-
-### Mouse Support
-
-- Click to Position Cursor: Jump to any point in the command line
-- Click to Select Completion Options: Quickly choose suggestions with a mouse click
-- Scroll Completion Menu: If the completion list is long, scroll to find the right option
+- Ctrl+C: Cancel operation
+- Ctrl+D: Exit CLI
+- Arrow Keys: Navigation
+- Home/End: Line navigation
+- Ctrl+K/U/W/Y: Text editing
 
 ### Basic Commands
 
-- `help`: Show a list of available commands and usage examples
-- `models`: List all available models, including versions and compatibility info
-- `model <name>`: Select a model for subsequent operations
-- `download <model>`: Download specified model resources
-- `remove <model>`: Remove a previously downloaded model
-- `chat`: Start an interactive chat session with the selected model
-- `train <params>`: Train a model with specified parameters (data paths, epochs, etc.)
-- `quit`: Exit the CLI
+```bash
+# Show help
+help
 
-Example:
+# List models
+models
+
+# Download model
+download llama-3.3-7b
+
+# Start chat
+chat
+
+# Exit CLI
+quit
+```
+
+## Configuration
+
+### Environment Variables
 
 ```bash
-llamahome> models
-Available Models:
- - llama-3.3-7b (version 3.3-7b)
+# Core settings
+LLAMAHOME_ENV=development
+LLAMAHOME_LOG_LEVEL=INFO
 
-llamahome> model llama-3.3-7b
-[INFO] Model set to llama-3.3-7b
+# Model settings
+LLAMA_MODEL=llama3.3
+LLAMA_MODEL_SIZE=13b
+```
 
-llamahome> download llama-3.3-7b --force
-[INFO] Downloading model...
-[INFO] Download complete.
+### Project Configuration
+
+Configuration is managed through `pyproject.toml`:
+
+```toml
+[project]
+name = "llamahome"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[project.scripts]
+llamahome = "src.interfaces.cli:main"
+
+[tool.llamahome.cli]
+history_file = ".config/history.txt"
+max_history = 1000
+completion_style = "fancy"
 ```
 
 ## Advanced Usage
 
 ### Multi-Format Output
 
-- Text Output (default): Ideal for direct reading in the terminal
-- JSON Output: Use `--output json` for structured output, perfect for scripting or integration with other tools
-- Progress Indicators: Long-running tasks (like training) show progress bars and estimated completion times
-
-### Environment Customization
-
-Set environment variables for customization:
-
 ```bash
-export LLAMAHOME_CONFIG=./config/custom_config.toml
-export LLAMAHOME_CACHE=./.cache/models
+# JSON output
+llamahome --output json list-models
+
+# Detailed output
+llamahome --verbose train
 ```
 
-These variables influence the default paths, caching strategies, and model directories used by the CLI.
-
 ### Scripting & Automation
-
-Combine CLI commands in shell scripts to automate tasks. For example:
 
 ```bash
 #!/usr/bin/env bash
 
-# Batch download models
+# Activate environment
+source .venv/bin/activate
+
+# Run commands
 llamahome download llama-3.3-7b
-llamahome download llama-3.3-7b-finetuned
-
-# List models to verify
-llamahome models
+llamahome train --data path/to/data
 ```
-
-Run `chmod +x script.sh` and `./script.sh` to execute.
-
-## Configuration & Integration
-
-### Model Configuration Files
-
-Models are defined in `.config/models.json`:
-
-```json
-{
-  "llama": {
-    "versions": {
-      "3.3-7b": {
-        "url": "https://example.com/llama-3.3-7b",
-        "size": "7B",
-        "type": "base",
-        "format": "meta"
-      }
-    }
-  }
-}
-```
-
-When you run `llamahome download llama-3.3-7b`, the CLI reads these definitions to know where to fetch models.
-
-### Plugin Support
-
-Extend CLI functionality with plugins that add new commands or integrations:
-
-- Install Plugins: Place them in the `plugins/` directory
-- Configure in `.config/plugins.toml`: Enable or disable plugins
-- New Commands: Loaded automatically at CLI startup
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. Command Not Found
-   - Check that the CLI is installed properly
-   - Confirm your PATH includes Poetry's bin directory if using Poetry
+   ```bash
+   # Ensure virtual environment is activated
+   source .venv/bin/activate
+   ```
 
-2. Slow Completion or Response
-   - Check for model availability in `.config/models.json`
-   - Verify that the model is downloaded and properly configured
-   - Consider enabling hardware acceleration or streaming in config files
+2. Model Issues
+   ```bash
+   # Verify model installation
+   llamahome verify-model llama-3.3-7b
+   ```
 
-3. Network or Download Issues
-   - Ensure internet connectivity
-   - Verify the model URL and credentials if required
-   - Try using `--force` to redownload corrupted files
+3. Environment Issues
+   ```bash
+   # Check configuration
+   llamahome doctor
+   ```
 
-4. Compatibility Problems
-   - Ensure Python 3.11 or higher is installed
-   - Check CUDA version and GPU drivers if using GPU acceleration
-   - Update dependencies with `poetry update`
+### Debug Mode
 
-### Logs & Diagnostics
+```bash
+# Enable debug logging
+export LLAMAHOME_LOG_LEVEL=DEBUG
 
-- Check logs in `logs/` directory for detailed error reports
-- Increase verbosity using `--verbose` for more detailed output
-- Consult the LlamaHome Community Forum for additional support and best practices
+# Run with debug output
+llamahome --debug
+```
 
 ## Best Practices
 
-- Keep Your CLI Updated: Regularly pull the latest changes from the repository and run `poetry install` to get bug fixes and new features
-- Backup Configuration: Keep a backup of `.config/models.json` and `.config/history.txt`
-- Use Versioned Models: Specify exact model versions to ensure reproducibility
-- Prompt Clarity: Provide clear and explicit prompts for better model responses
+1. Environment Management
+   - Use virtual environment
+   - Keep dependencies updated
+   - Follow configuration structure
+
+2. Command Usage
+   - Use tab completion
+   - Leverage history search
+   - Check command help
+
+3. Resource Management
+   - Monitor system resources
+   - Clean up unused models
+   - Manage cache effectively
 
 ## Next Steps
 
-- [GUI Guide](GUI.md): For a graphical interface to LlamaHome features
-- [API Documentation](API.md): Integrate programmatically with LlamaHome
-- [Plugin Development](Plugins.md): Extend the CLI with custom plugins
-- [Advanced Configuration](Config.md): Dive deeper into YAML and JSON configurations
+1. [Training Guide](Training.md)
+2. [Model Management](Models.md)
+3. [API Integration](API.md)
+4. [Performance Tuning](Performance.md)
