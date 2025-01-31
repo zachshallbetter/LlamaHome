@@ -5,6 +5,10 @@ import torch
 from typing import Dict, Any
 
 from src.training.data import DataManager, DatasetProcessor, DataConfig
+from src.training.cache import CacheManager
+from src.training.batch import BatchGenerator
+from src.training.augmentation import DataAugmenter
+
 from src.core.config import ConfigManager
 
 

@@ -79,7 +79,7 @@ src/
 │   ├── distributed.py    # Distributed training
 │   ├── optimization.py   # Training optimizations
 │   └── data.py          # Data management
-data/
+.data/
 ├── training/             # Training data
 │   ├── raw/             # Original datasets
 │   └── processed/       # Preprocessed data

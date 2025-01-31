@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.distributed as dist
 from unittest.mock import MagicMock, patch
-from src.training.distributed import DistributedTrainer
+from src.training.distributed import DistributedTrainer, DistributedDataParallel, DistributedSampler, GradientSynchronizer
 
 
 @pytest.fixture

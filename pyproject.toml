@@ -16,45 +16,118 @@ authors = [
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
+    "Intended Audience :: Developers", 
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
+# Core dependencies
 dependencies = [
+    # ML/DL
     "torch>=2.0.0",
-    "transformers>=4.30.0", 
-    "pydantic>=2.0.0",
+    "torchvision>=0.15.0",
+    "torchaudio>=2.0.0",
+    "transformers>=4.30.0",
+    "accelerate>=0.20.3",
+    "bitsandbytes>=0.41.1",
+    "optimum>=1.13.2",
+    "tokenizers>=0.13.3",
+    "sentencepiece>=0.1.99",
+    "sacremoses>=0.0.53",
+    "peft>=0.14.0",
+    
+    # API & Server
     "fastapi>=0.100.0",
     "uvicorn>=0.22.0",
+    "starlette>=0.27.0",
+    "python-multipart>=0.0.6",
+    "websockets>=11.0.3",
+    "PyJWT>=2.7.0",
+    "httpx>=0.24.1",
+    "ratelimit>=2.2.1",
+    
+    # Configuration & Environment
     "python-dotenv>=1.0.0",
     "toml>=0.10.2",
-    "psutil>=5.9.0",
+    "pydantic>=2.0.0,<3.0.0",
+    
+    # Monitoring & Metrics
+    "psutil>=5.9.6",
     "prometheus-client>=0.17.0",
-    "PyJWT>=2.7.0",
+    
+    # File & Text Processing
+    "PyMuPDF>=1.25.2",
+    "aiofiles>=23.1.0",
+    "nltk>=3.9.1",
+    "regex>=2023.0.0",
+    
+    # GUI
+    "PyQt6>=6.8.0",
+    "PyQt6-Qt6>=6.8.0",
+    "PyQt6-sip>=13.6.0",
 ]
 
 [project.optional-dependencies]
+# Development dependencies
 dev = [
+    # Testing
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
+    "pytest-qt>=4.2.0",
+    "pytest-mock>=3.11.1",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.3.1",
+    
+    # Code Quality
     "black>=23.3.0",
     "isort>=5.12.0",
     "mypy>=1.4.1",
     "ruff>=0.0.280",
     "bandit>=1.7.5",
+    "mypy-extensions>=0.5.1",
+    
+    # Type Stubs
+    "types-toml>=0.10.8",
+    "types-psutil>=5.9.5",
+    "types-PyJWT>=1.7.1",
+    "types-python-dateutil>=2.8.19",
+    "types-requests>=2.31.0",
+    "types-setuptools>=68.0.0",
+    "types-aiofiles>=23.1.0.1",
+    
+    # Testing Utilities
+    "faker>=19.3.0",
+    "freezegun>=1.2.2",
+    "responses>=0.23.3",
+    "coverage>=7.3.0",
+    "rich>=13.5.2",
 ]
+
+# Testing dependencies
 test = [
     "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
+    "pytest-asyncio>=0.21.0", 
     "pytest-cov>=4.1.0",
+    "pytest-qt>=4.2.0",
+    "pytest-mock>=3.11.1",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=3.3.1",
+]
+
+# Platform specific dependencies
+platform_specific = [
+    "xformers>=0.0.29.post1; platform_system == 'Linux' and python_version >= '3.9'",
+    "triton>=2.0.0; platform_system == 'Linux'",
+    "pywin32>=306.0; sys_platform == 'win32'",
+    "pyobjc-framework-Cocoa>=9.2; sys_platform == 'darwin'",
 ]
 
 [tool.setuptools]
 packages = ["src"]
 
+# Code formatting
 [tool.black]
 line-length = 88
 target-version = ["py311"]
@@ -70,8 +143,21 @@ use_parentheses = true
 ensure_newline_before_comments = true
 known_first_party = ["src"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-skip = [".venv", "build", "dist", ".data", "docs", "Makefile", "tests", "config", "outputs", "logs", "notebooks"]
+skip = [
+    ".venv",
+    "build",
+    "dist",
+    ".data",
+    "docs",
+    "Makefile",
+    "tests",
+    "config",
+    "outputs",
+    "logs",
+    "notebooks"
+]
 
+# Linting
 [tool.ruff]
 line-length = 88
 target-version = "py311"
@@ -96,6 +182,7 @@ ignore = [
 [tool.ruff.isort]
 known-first-party = ["src"]
 
+# Type checking
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
@@ -121,27 +208,37 @@ warn_untyped_fields = true
 
 [[tool.mypy.overrides]]
 module = [
+    # ML/DL
     "torch.*",
     "transformers.*",
+    
+    # Testing
     "pytest.*",
     "setuptools.*",
+    
+    # System & Monitoring
     "psutil.*",
     "prometheus_client.*",
+    
+    # Web & API
     "ratelimit.*",
     "jwt.*",
     "fastapi.*",
     "fastapi.testclient.*",
     "httpx.*",
     "uvicorn.*",
+    
+    # UI & File handling
     "PyQt6.*",
     "PyQt6.QtWidgets.*",
-    "PyQt6.QtCore.*", 
+    "PyQt6.QtCore.*",
     "PyQt6.QtGui.*",
     "fitz.*",
     "aiofiles.*"
 ]
 ignore_missing_imports = true
 
+# Testing
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"
@@ -156,6 +253,7 @@ markers = [
     "security: marks tests as security tests",
 ]
 
+# Coverage
 [tool.coverage.run]
 branch = true
 source = ["src"]
@@ -170,3 +268,46 @@ exclude_lines = [
     "raise AssertionError",
     "raise ImportError",
 ]
+
+# Security
+[bandit]
+exclude_dirs = [
+    "tests",
+    "venv",
+    ".env",
+    ".venv",
+    "examples",
+    "docs",
+]
+skips = ["B101"]  # Skip assert checks in test files
+
+[bandit.assert_used]
+skips = ["*/test_*.py"]
+
+# Security exceptions
+[bandit.B301]
+exclude_dirs = ["src/core/utils/io.py"]  # Allow pickle in safe_load_torch with verification
+
+[bandit.B403]
+exclude_dirs = ["src/core/utils/io.py"]  # Allow import of pickle in safe contexts
+
+[bandit.B404]
+exclude_dirs = ["scripts/install.py"]  # Allow subprocess in install scripts
+
+[bandit.B603]
+exclude_dirs = ["scripts/install.py"]  # Allow subprocess calls in install scripts
+
+[bandit.B607]
+exclude_dirs = ["scripts/install.py"]  # Allow PATH searches in install scripts
+
+[bandit.formatters]
+output = "screen"
+
+[bandit.config]
+recursive = true
+aggregate = true
+number = 3
+level = "HIGH"
+
+[bandit.profiles]
+test = "all"

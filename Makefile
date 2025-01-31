@@ -84,9 +84,9 @@ setup-env:
 	$(VENV_PIP) install --upgrade pip && \
 	echo "Installing PyTorch..." && \
 	$(TORCH_INSTALL) && \
-	echo "Installing other dependencies..." && \
-	$(VENV_PIP) install -r requirements.txt || \
-	(echo "Failed to install dependencies. Check requirements.txt" && exit 1)
+	echo "Installing project and dependencies..." && \
+	$(VENV_PIP) install -e ".[dev]" || \
+	(echo "Failed to install dependencies. Check pyproject.toml" && exit 1)
 
 # Configuration setup
 .PHONY: setup-config
@@ -137,6 +137,21 @@ clean-all: clean-pycache clean-cache
 	@$(RM) $(VENV) .pytest_cache .mypy_cache .ruff_cache
 	@echo "All temporary files cleaned"
 
+# Code quality
+.PHONY: lint
+lint:
+	@echo "Running linters..."
+	@. $(VENV_ACTIVATE) && ruff check .
+	@. $(VENV_ACTIVATE) && mypy .
+	@. $(VENV_ACTIVATE) && black --check .
+	@. $(VENV_ACTIVATE) && bandit -r src/
+
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@. $(VENV_ACTIVATE) && black .
+	@. $(VENV_ACTIVATE) && ruff check --fix .
+
 # Training targets
 .PHONY: train
 train:
@@ -158,16 +173,16 @@ train-eval:
 
 train-distributed:
 	@echo "Starting distributed training..."
-	python -m src.training.launch \
+	@. $(VENV_ACTIVATE) && $(VENV_PYTHON) -m src.training.launch \
 		--config .config/distributed_config.yaml \
 		--data .data/training \
-		--output o.data/output/training \
+		--output .data/output/training \
 		--epochs $(EPOCHS) \
 		--world-size $(WORLD_SIZE)
 
 train-multi-node:
 	@echo "Starting multi-node training..."
-	python -m src.training.launch \
+	@. $(VENV_ACTIVATE) && $(VENV_PYTHON) -m src.training.launch \
 		--config .config/distributed_config.yaml \
 		--data .data/training \
 		--output .data/output/training \
@@ -185,45 +200,30 @@ NODE_RANK ?= 0
 MASTER_ADDR ?= localhost
 MASTER_PORT ?= 29500
 
-# Development targets
+# Testing targets
 .PHONY: test test-unit test-integration test-coverage test-performance test-specialized
 
 test: test-unit test-integration test-specialized
 
 test-unit:
 	@echo "Running unit tests..."
-	@$(BIN)/pytest tests/ -v -m "not integration and not performance and not specialized"
+	@. $(VENV_ACTIVATE) && pytest tests/ -v -m "not integration and not performance and not specialized"
 
 test-integration:
 	@echo "Running integration tests..."
-	@$(BIN)/pytest tests/ -v -m "integration"
+	@. $(VENV_ACTIVATE) && pytest tests/ -v -m "integration"
 
 test-performance:
 	@echo "Running performance tests..."
-	@$(BIN)/pytest tests/performance/ -v -m "performance"
+	@. $(VENV_ACTIVATE) && pytest tests/performance/ -v -m "performance"
 
 test-specialized:
 	@echo "Running specialized tests..."
-	@$(BIN)/pytest tests/specialized/ -v -m "specialized"
+	@. $(VENV_ACTIVATE) && pytest tests/specialized/ -v -m "specialized"
 
 test-coverage:
 	@echo "Running tests with coverage..."
-	@$(BIN)/pytest tests/ --cov=src --cov-report=html --cov-report=xml
-
-.PHONY: lint
-lint:
-	@echo "Running linters..."
-	@$(BIN)/ruff check .
-	@$(BIN)/black --check .
-	@$(BIN)/isort --check-only .
-	@$(BIN)/mypy src/
-
-.PHONY: format
-format:
-	@echo "Formatting code..."
-	@$(BIN)/black .
-	@$(BIN)/isort .
-	@$(BIN)/ruff --fix .
+	@. $(VENV_ACTIVATE) && pytest --cov=src --cov-report=term-missing --cov-report=html tests/
 
 # Run targets
 .PHONY: run
