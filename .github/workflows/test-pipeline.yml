@@ -22,11 +22,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        python -m pip install pytest pytest-cov
         pip install -e ".[test]"
         
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        make test-coverage
+        python -m pytest --cov=llamahome --cov-report=xml --cov-report=html
         
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -64,7 +65,7 @@ jobs:
         
     - name: Run distributed tests
       run: |
-        make test-distributed
+        python -m pytest tests/distributed/
         
     - name: Upload distributed test results
       uses: actions/upload-artifact@v4
