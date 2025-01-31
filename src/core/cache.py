@@ -1,8 +1,9 @@
 """Cache implementations for model optimization."""
 
-from typing import Any, Dict, Optional, Tuple, TypeVar
-
+from typing import Any, Dict, Optional, Tuple, TypeVar, Union
+from pathlib import Path
 import torch
+import psutil
 
 from src.core.utils.log_manager import LogManager, LogTemplates
 
@@ -168,3 +169,157 @@ class StaticCache(BaseCache):
             self.cache[layer_idx]["values"] = self.cache[layer_idx]["values"][
                 :, :, -self.max_length :
             ]
+
+
+class CachePolicy:
+    """Manages cache eviction policies."""
+
+    def __init__(self, policy_type: str = "fifo", config: Optional[Dict[str, Any]] = None):
+        """Initialize cache policy.
+        
+        Args:
+            policy_type: Type of cache policy ("fifo", "lru", "lfu")
+            config: Optional configuration
+        """
+        self.policy_type = policy_type
+        self.config = config or {}
+        self.entries = []
+
+    def add_entry(self, key: str) -> None:
+        """Add entry to cache.
+        
+        Args:
+            key: Cache key
+        """
+        if self.policy_type == "fifo":
+            self.entries.append(key)
+        elif self.policy_type == "lru":
+            if key in self.entries:
+                self.entries.remove(key)
+            self.entries.append(key)
+
+    def get_eviction_candidate(self) -> Optional[str]:
+        """Get next entry to evict.
+        
+        Returns:
+            Key to evict or None
+        """
+        if not self.entries:
+            return None
+        return self.entries[0]
+
+    def remove_entry(self, key: str) -> None:
+        """Remove entry from cache.
+        
+        Args:
+            key: Cache key
+        """
+        if key in self.entries:
+            self.entries.remove(key)
+
+
+class CachePersistence:
+    """Manages cache persistence to disk."""
+
+    def __init__(self, cache_dir: Union[str, Path], config: Optional[Dict[str, Any]] = None):
+        """Initialize cache persistence.
+        
+        Args:
+            cache_dir: Cache directory
+            config: Optional configuration
+        """
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.config = config or {}
+
+    def save(self, key: str, data: Any) -> None:
+        """Save data to cache.
+        
+        Args:
+            key: Cache key
+            data: Data to cache
+        """
+        cache_path = self.cache_dir / f"{key}.pt"
+        torch.save(data, cache_path)
+
+    def load(self, key: str) -> Optional[Any]:
+        """Load data from cache.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Cached data if exists
+        """
+        cache_path = self.cache_dir / f"{key}.pt"
+        if cache_path.exists():
+            return torch.load(cache_path)
+        return None
+
+    def exists(self, key: str) -> bool:
+        """Check if key exists in cache.
+        
+        Args:
+            key: Cache key
+            
+        Returns:
+            Whether key exists
+        """
+        cache_path = self.cache_dir / f"{key}.pt"
+        return cache_path.exists()
+
+    def remove(self, key: str) -> None:
+        """Remove key from cache.
+        
+        Args:
+            key: Cache key
+        """
+        cache_path = self.cache_dir / f"{key}.pt"
+        if cache_path.exists():
+            cache_path.unlink()
+
+
+class MemoryManager:
+    """Manages memory usage and limits."""
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """Initialize memory manager.
+        
+        Args:
+            config: Optional configuration
+        """
+        self.config = config or {}
+        self.memory_limit = self.config.get("memory_limit", None)
+
+    def check_memory_usage(self) -> Dict[str, float]:
+        """Get current memory usage.
+        
+        Returns:
+            Dictionary of memory statistics
+        """
+        stats = {
+            "ram_used": psutil.Process().memory_info().rss / (1024 * 1024),  # MB
+            "ram_percent": psutil.Process().memory_percent(),
+        }
+        
+        if torch.cuda.is_available():
+            stats.update({
+                "gpu_allocated": torch.cuda.memory_allocated() / (1024 * 1024),  # MB
+                "gpu_cached": torch.cuda.memory_reserved() / (1024 * 1024),  # MB
+            })
+            
+        return stats
+
+    def is_memory_available(self, required_mb: float) -> bool:
+        """Check if memory is available.
+        
+        Args:
+            required_mb: Required memory in MB
+            
+        Returns:
+            Whether memory is available
+        """
+        if self.memory_limit:
+            current_usage = self.check_memory_usage()["ram_used"]
+            return current_usage + required_mb <= self.memory_limit
+        return True

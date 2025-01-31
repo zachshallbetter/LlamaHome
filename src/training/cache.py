@@ -18,10 +18,11 @@ import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Optional, TypeVar
+from typing import Any, Dict, Optional, TypeVar, List, Callable, Iterator
 
 import torch
 from pydantic import BaseModel
+from contextlib import contextmanager
 
 from ..core.utils import LogManager, LogTemplates
 from ..core.utils.io import (
@@ -30,6 +31,8 @@ from ..core.utils.io import (
     safe_save_json,
     safe_save_torch,
 )
+
+from src.core.cache import CachePolicy, CachePersistence, MemoryManager
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -372,3 +375,169 @@ class CacheError(Exception):
     """Cache operation error."""
 
     pass
+
+
+class DatasetCache:
+    """Cache for dataset management."""
+
+    def __init__(self, cache_dir: Path, config: Dict[str, Any]):
+        """Initialize dataset cache.
+        
+        Args:
+            cache_dir: Cache directory
+            config: Cache configuration
+        """
+        self.persistence = CachePersistence(cache_dir, config)
+        self.memory_manager = MemoryManager(config)
+
+    def cache_dataset(
+        self,
+        name: str,
+        dataset: List[Dict[str, Any]],
+        preprocess_fn: Optional[Callable] = None
+    ) -> None:
+        """Cache dataset with optional preprocessing.
+        
+        Args:
+            name: Dataset name
+            dataset: Dataset to cache
+            preprocess_fn: Optional preprocessing function
+        """
+        if preprocess_fn:
+            dataset = [preprocess_fn(sample) for sample in dataset]
+        self.persistence.save(name, dataset)
+
+    def get_dataset(self, name: str) -> Optional[List[Dict[str, Any]]]:
+        """Get cached dataset.
+        
+        Args:
+            name: Dataset name
+            
+        Returns:
+            Cached dataset if exists
+        """
+        return self.persistence.load(name)
+
+    @contextmanager
+    def stream_dataset(self, name: str, dataset: List[Dict[str, Any]]) -> Iterator[Dict[str, Any]]:
+        """Stream dataset through cache.
+        
+        Args:
+            name: Dataset name
+            dataset: Dataset to stream
+            
+        Yields:
+            Dataset samples
+        """
+        batch_size = 32  # Could be configurable
+        for i in range(0, len(dataset), batch_size):
+            batch = dataset[i:i + batch_size]
+            if self.memory_manager.is_memory_available(100):  # 100MB buffer
+                yield batch
+            else:
+                # Save to disk if memory constrained
+                self.persistence.save(f"{name}_batch_{i}", batch)
+                yield self.persistence.load(f"{name}_batch_{i}")
+
+
+class TrainingCache:
+    """Main training cache implementation."""
+
+    def __init__(self, cache_dir: Path, config: Dict[str, Any]):
+        """Initialize training cache.
+        
+        Args:
+            cache_dir: Cache directory
+            config: Cache configuration
+        """
+        self.config = config
+        self.max_size = config["cache"].get("max_size", "4GB")
+        self.policy = config["cache"].get("policy", "lru")
+        self.persistence_enabled = config["cache"].get("persistence", True)
+        self.compression_enabled = config["cache"].get("compression", True)
+        
+        self.cache_policy = CachePolicy(self.policy, config)
+        self.persistence = CachePersistence(cache_dir, config)
+        self.memory_manager = MemoryManager(config)
+
+    def store(self, key: str, data: Any, category: str = "default") -> None:
+        """Store data in cache.
+        
+        Args:
+            key: Cache key
+            data: Data to cache
+            category: Optional category
+        """
+        full_key = f"{category}/{key}"
+        self.cache_policy.add_entry(full_key)
+        self.persistence.save(full_key, data)
+
+    def retrieve(self, key: str, category: str = "default") -> Optional[Any]:
+        """Retrieve data from cache.
+        
+        Args:
+            key: Cache key
+            category: Optional category
+            
+        Returns:
+            Cached data if exists
+        """
+        full_key = f"{category}/{key}"
+        return self.persistence.load(full_key)
+
+    def exists(self, key: str, category: str = "default") -> bool:
+        """Check if key exists in cache.
+        
+        Args:
+            key: Cache key
+            category: Optional category
+            
+        Returns:
+            Whether key exists
+        """
+        full_key = f"{category}/{key}"
+        return self.persistence.exists(full_key)
+
+    def get_category_size(self, category: str) -> int:
+        """Get total size of category.
+        
+        Args:
+            category: Cache category
+            
+        Returns:
+            Size in bytes
+        """
+        # Implementation would track category sizes
+        return 0
+
+    def get_total_size(self) -> int:
+        """Get total cache size.
+        
+        Returns:
+            Size in bytes
+        """
+        # Implementation would track total size
+        return 0
+
+    def get_max_size(self) -> int:
+        """Get maximum cache size.
+        
+        Returns:
+            Size in bytes
+        """
+        # Parse max size string (e.g., "4GB")
+        unit = self.max_size[-2:]
+        size = float(self.max_size[:-2])
+        if unit == "GB":
+            return int(size * 1024 * 1024 * 1024)
+        elif unit == "MB":
+            return int(size * 1024 * 1024)
+        return int(size)
+
+    def cleanup(self) -> None:
+        """Clean up cache to stay within size limits."""
+        while self.get_total_size() > self.get_max_size():
+            key = self.cache_policy.get_eviction_candidate()
+            if key:
+                self.persistence.remove(key)
+                self.cache_policy.remove_entry(key)

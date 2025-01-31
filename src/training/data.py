@@ -480,18 +480,19 @@ class CacheManager:
             cache_dir: Directory for cache storage
             config: Configuration dictionary
         """
-        self.cache_dir = cache_dir
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_size = config["data"]["cache_size"]
 
-    def cache_data(self, key: str, data: Dict[str, torch.Tensor]):
+    def cache_data(self, key: str, data: Dict[str, torch.Tensor]) -> None:
         """Cache data with given key.
         
         Args:
             key: Cache key
             data: Data to cache
         """
-        # Implementation would go here
-        pass
+        cache_path = self.cache_dir / f"{key}.pt"
+        torch.save(data, cache_path)
 
     def get_cached_data(self, key: str) -> Optional[Dict[str, torch.Tensor]]:
         """Retrieve cached data.
@@ -502,8 +503,10 @@ class CacheManager:
         Returns:
             Cached data if exists, None otherwise
         """
-        # Implementation would go here
-        pass
+        cache_path = self.cache_dir / f"{key}.pt"
+        if cache_path.exists():
+            return torch.load(cache_path)
+        return None
 
     def is_cached(self, key: str) -> bool:
         """Check if data is cached.
@@ -514,8 +517,8 @@ class CacheManager:
         Returns:
             Whether data is cached
         """
-        # Implementation would go here
-        pass
+        cache_path = self.cache_dir / f"{key}.pt"
+        return cache_path.exists()
 
 
 class BatchGenerator:
@@ -528,6 +531,7 @@ class BatchGenerator:
             config: Configuration dictionary
         """
         self.config = config
+        self.batch_size = config["data"]["batch_size"]
 
     def generate_batch(self, samples: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """Generate a batch from samples.
@@ -538,10 +542,19 @@ class BatchGenerator:
         Returns:
             Batched data
         """
-        # Implementation would go here
-        pass
+        # Basic implementation - can be extended based on needs
+        batch = {}
+        for key in samples[0].keys():
+            if isinstance(samples[0][key], torch.Tensor):
+                batch[key] = torch.stack([s[key] for s in samples])
+            else:
+                batch[key] = [s[key] for s in samples]
+        return batch
 
-    def generate_dynamic_batch(self, samples: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+    def generate_dynamic_batch(
+        self,
+        samples: List[Dict[str, torch.Tensor]]
+    ) -> Dict[str, torch.Tensor]:
         """Generate a dynamic batch based on sequence lengths.
         
         Args:
@@ -550,8 +563,9 @@ class BatchGenerator:
         Returns:
             Dynamically batched data
         """
-        # Implementation would go here
-        pass
+        # Sort by sequence length
+        samples = sorted(samples, key=lambda x: x["input_ids"].size(0), reverse=True)
+        return self.generate_batch(samples)
 
     def collate_batch(self, samples: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         """Collate samples into a batch.
@@ -562,5 +576,11 @@ class BatchGenerator:
         Returns:
             Collated batch
         """
-        # Implementation would go here
-        pass
+        # Basic collation - can be extended based on needs
+        batch = {}
+        for key in samples[0].keys():
+            if isinstance(samples[0][key], torch.Tensor):
+                batch[key] = torch.stack([s[key] for s in samples])
+            else:
+                batch[key] = [s[key] for s in samples]
+        return batch

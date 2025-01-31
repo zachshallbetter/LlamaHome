@@ -3,9 +3,10 @@
 import pytest
 import torch
 from typing import Dict, Any
-
+import psutil
 from src.training.resources import ResourceManager, ResourceConfig
 from src.core.config import ConfigManager
+from src.training.resources import GPUManager, CPUManager, DiskManager, ResourceMonitor
 
 
 @pytest.fixture

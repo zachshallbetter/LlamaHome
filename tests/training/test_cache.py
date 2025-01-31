@@ -3,44 +3,40 @@
 import pytest
 import torch
 from typing import Dict, Any
+from unittest.mock import patch
 
-from src.training.cache import TrainingCache
-from src.training.data import DataManager
+from src.training.cache import (
+    TrainingCache, 
+    DatasetCache,
+    CacheManager,
+    CacheConfig
+)
+from src.training.data import DataManager, DatasetProcessor
 from src.core.config import ConfigManager
+from src.core.cache import CachePolicy, CachePersistence, MemoryManager
 
 
 @pytest.fixture
 def mock_config():
-    """Create mock cache configuration."""
+    """Create mock configuration."""
     return {
         "cache": {
-            "max_size": "4GB",
-            "policy": "lru",
-            "persistence": True,
-            "compression": True,
+            "policy": "fifo",
+            "max_size": "2GB",
             "cleanup_threshold": 0.9,
-            "preload_datasets": True,
         },
         "memory": {
-            "target_memory_usage": 0.8,
-            "check_interval": 1000,
-            "cleanup_margin": 0.1,
-        },
+            "limit": 1024,  # 1GB
+            "check_interval": 1.0,
+        }
     }
 
 
 @pytest.fixture
 def setup_test_env(tmp_path):
-    """Set up test environment with cache directories."""
-    # Create cache directories
+    """Set up test environment."""
     cache_dir = tmp_path / ".cache"
     cache_dir.mkdir(parents=True)
-
-    # Create subdirectories
-    (cache_dir / "datasets").mkdir()
-    (cache_dir / "models").mkdir()
-    (cache_dir / "tensors").mkdir()
-
     return tmp_path
 
 
@@ -314,3 +310,56 @@ class TestDatasetCache:
         # Verify preprocessing
         cached_dataset = dataset_cache.get_dataset("preprocessed_dataset")
         assert all(sample["processed"] for sample in cached_dataset)
+
+
+def test_cache_policy(mock_config):
+    """Test cache policy functionality."""
+    policy = CachePolicy(policy_type="fifo", config=mock_config)
+    
+    # Test adding entries
+    policy.add_entry("key1")
+    policy.add_entry("key2")
+    assert "key1" in policy.entries
+    assert "key2" in policy.entries
+    
+    # Test eviction
+    candidate = policy.get_eviction_candidate()
+    assert candidate == "key1"
+    
+    # Test removal
+    policy.remove_entry("key1")
+    assert "key1" not in policy.entries
+
+
+def test_cache_persistence(mock_config, setup_test_env):
+    """Test cache persistence functionality."""
+    persistence = CachePersistence(
+        cache_dir=setup_test_env / ".cache",
+        config=mock_config
+    )
+    
+    # Test saving and loading
+    data = {"test": "data"}
+    persistence.save("test_key", data)
+    assert persistence.exists("test_key")
+    
+    loaded = persistence.load("test_key")
+    assert loaded == data
+    
+    # Test removal
+    persistence.remove("test_key")
+    assert not persistence.exists("test_key")
+
+
+def test_memory_manager(mock_config):
+    """Test memory management functionality."""
+    memory_manager = MemoryManager(config=mock_config)
+    
+    # Test memory usage tracking
+    usage = memory_manager.check_memory_usage()
+    assert "ram_used" in usage
+    assert "ram_percent" in usage
+    
+    # Test memory availability check
+    available = memory_manager.is_memory_available(100)  # Check for 100MB
+    assert isinstance(available, bool)

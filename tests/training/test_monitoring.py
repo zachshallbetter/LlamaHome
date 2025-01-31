@@ -2,10 +2,14 @@
 
 import pytest
 import torch
+import numpy as np
 from typing import Dict, Any
 
 from src.training.monitoring import TrainingMetrics, MetricsConfig
 from src.core.config import ConfigManager
+from src.training.distributed import DistributedMetricsAggregator
+from src.training.monitoring import MetricsCollector, Visualizer
+from src.training.metrics import PerformanceMonitor
 
 
 @pytest.fixture

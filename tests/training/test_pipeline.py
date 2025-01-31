@@ -12,6 +12,8 @@ from src.training.pipeline import TrainingPipeline, TrainingConfig
 from src.training.data import DataManager
 from src.training.monitoring import MonitorManager
 from src.training.optimization import Optimizer
+from src.training.checkpoint import CheckpointManager
+from src.training.metrics import MetricsManager
 
 
 class TrainingState:

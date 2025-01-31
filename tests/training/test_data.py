@@ -4,7 +4,7 @@ import pytest
 import torch
 from typing import Dict, Any
 
-from src.training.data import DataManager, DataConfig
+from src.training.data import DataManager, DatasetProcessor, DataConfig
 from src.core.config import ConfigManager
 
 
