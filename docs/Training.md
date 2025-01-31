@@ -17,7 +17,7 @@
 
 ## Overview
 
-LlamaHome's training system provides a comprehensive environment for fine-tuning large language models with advanced features for monitoring, optimization, and distributed training. The system integrates H2O's efficient attention mechanisms with llama-recipes' training capabilities, offering a hybrid approach that maximizes both performance and efficiency.
+LlamaHome's training system provides a comprehensive environment for training and fine-tuning large language models. The system focuses on efficient resource utilization, robust monitoring, and flexible configuration options.
 
 ## Key Features
 
@@ -94,41 +94,40 @@ data/
 
 ## Configuration
 
-Training configuration is managed through YAML files in the `.config` directory:
+### Environment Variables
 
-```yaml
-# training_config.toml
-training:
-  batch_size: 32
-  learning_rate: 1e-4
-  warmup_steps: 100
-  gradient_accumulation_steps: 4
-  max_grad_norm: 1.0
-  optimizer:
-    name: adamw
-    weight_decay: 0.01
-    beta1: 0.9
-    beta2: 0.999
-  scheduler:
-    name: cosine
-    num_cycles: 1
+```bash
+# Resource limits
+MAX_GPU_MEMORY=0.9
+MAX_CPU_THREADS=8
 
-distributed:
-  backend: nccl
-  world_size: 1
-  init_method: tcp://localhost:23456
+# Training settings
+CUDA_VISIBLE_DEVICES=0,1
+TORCH_DISTRIBUTED_DEBUG=INFO
 
-monitoring:
-  metrics:
-    - train_loss
-    - val_loss
-    - learning_rate
-    - gpu_memory
-  visualization:
-    update_frequency: 100
-    export_formats:
-      - png
-      - html
+# Logging
+LOG_LEVEL=INFO
+TENSORBOARD_DIR=runs
+```
+
+### Training Configuration
+
+```toml
+[training]
+batch_size = 32
+learning_rate = 1e-4
+gradient_accumulation_steps = 4
+max_grad_norm = 1.0
+
+[cache]
+memory_size = "4GB"
+disk_size = "100GB"
+policy = "lru"
+
+[checkpoint]
+save_steps = 1000
+keep_last_n = 5
+save_best = true
 ```
 
 ## Training Pipeline
@@ -220,60 +219,72 @@ visualizer.plot_losses(
 
 ## Best Practices
 
-1. **Resource Management**
+### 1. Data Management
 
-   - Monitor GPU memory usage
-   - Use gradient accumulation for large models
-   - Enable automatic mixed precision
-   - Implement proper cleanup
+- Use appropriate batch sizes for your hardware
+- Enable dynamic batching for variable length sequences
+- Implement proper data validation
+- Use caching for frequently accessed data
 
-2. **Distributed Training**
+### 2. Training
 
-   - Use NCCL backend for GPU training
-   - Implement proper error handling
-   - Synchronize gradients correctly
-   - Handle process coordination
+- Monitor GPU memory usage
+- Use gradient accumulation for large models
+- Enable automatic mixed precision
+- Implement proper cleanup
 
-3. **Monitoring**
+### 3. Checkpointing
 
-   - Track essential metrics
-   - Set up proper logging
-   - Use interactive visualizations
-   - Export metrics regularly
+- Save checkpoints regularly
+- Track best models based on metrics
+- Clean up old checkpoints
+- Use safe file operations
 
-4. **Data Handling**
-   - Preprocess data efficiently
-   - Use appropriate batch sizes
-   - Implement proper data validation
-   - Handle distributed sampling
+### 4. Monitoring
+
+- Track essential metrics
+- Set up proper logging
+- Monitor resource usage
+- Export metrics regularly
 
 ## Troubleshooting
 
-Common issues and solutions:
+### Common Issues
 
-1. **Memory Issues**
-
+1. Out of Memory
    - Reduce batch size
    - Enable gradient accumulation
-   - Use memory-efficient attention
-   - Monitor GPU memory usage
+   - Use dynamic batching
+   - Enable memory efficient training
 
-2. **Distributed Training**
+2. Slow Training
+   - Check data loading bottlenecks
+   - Enable caching
+   - Optimize batch size
+   - Use multiple workers
 
-   - Check network connectivity
-   - Verify NCCL installation
-   - Monitor process synchronization
-   - Handle timeout issues
-
-3. **Performance**
-   - Profile training pipeline
-   - Optimize data loading
-   - Check GPU utilization
-   - Monitor learning rates
+3. Checkpoint Issues
+   - Verify disk space
+   - Check file permissions
+   - Enable safe file operations
+   - Monitor I/O performance
 
 ## Next Steps
 
-- [Model Configuration](Models.md)
-- [Data Processing](Data.md)
-- [System Architecture](Architecture.md)
-- [API Documentation](API.md)
+1. Advanced Features
+   - Custom optimizers
+   - Learning rate scheduling
+   - Advanced monitoring
+   - Custom augmentations
+
+2. Performance Optimization
+   - Memory profiling
+   - Training speed optimization
+   - Cache efficiency
+   - Resource utilization
+
+3. Integration
+   - Custom datasets
+   - New model architectures
+   - External monitoring tools
+   - Custom metrics

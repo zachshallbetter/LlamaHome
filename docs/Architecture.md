@@ -19,7 +19,7 @@
 
 ## Overview
 
-This document provides a comprehensive overview of LlamaHome's architecture, including system overview, core components, training pipeline, model management system, cache system architecture, resource management, system integration, development workflow, security architecture, performance optimization, directory structure, configuration management, testing strategy, and future extensibility.
+LlamaHome is a comprehensive training and inference pipeline for LLM models with efficient resource management and monitoring. The system is designed with modularity and extensibility in mind, focusing on efficient training, smart caching, and robust monitoring.
 
 ## System Overview
 
@@ -64,114 +64,63 @@ graph TB
 
 ### 1. Training Pipeline
 
-The training pipeline orchestrates the entire training process through interconnected components:
+The training pipeline consists of the following key components:
 
 ```mermaid
-graph LR
-    Data[Data Pipeline] --> Preprocess[Preprocessing]
-    Preprocess --> Train[Training Loop]
-    Train --> Monitor[Monitoring]
-    Train --> Checkpoint[Checkpointing]
+graph TB
+    Data[Data Management] --> Training[Training Pipeline]
+    Training --> Monitor[Monitoring]
+    Training --> Cache[Cache System]
+    Training --> Checkpoint[Checkpoint Management]
     
-    subgraph Data Pipeline
-        Raw[Raw Data] --> Clean[Cleaning]
-        Clean --> Transform[Transformation]
-        Transform --> Batch[Batching]
+    subgraph Data Management
+        DataProcessor[DatasetProcessor]
+        DataCache[DatasetCache]
+        BatchGen[BatchGenerator]
+        Augment[DataAugmenter]
     end
     
-    subgraph Training Loop
-        Forward[Forward Pass] --> Loss[Loss Computation]
-        Loss --> Backward[Backward Pass]
-        Backward --> Optimize[Optimization]
+    subgraph Training Pipeline
+        Forward[Forward Pass]
+        Backward[Backward Pass]
+        Optimize[Optimization]
+        Resource[Resource Management]
     end
     
     subgraph Monitoring
-        Metrics[Metrics Collection] --> Log[Logging]
-        Log --> Visual[Visualization]
+        Metrics[Metrics Collection]
+        Logger[Logging System]
+        Visual[Visualization]
     end
 ```
 
-Directory Structure:
+### 2. Data Management
 
+The data management system includes:
+
+- **DatasetProcessor**: Handles data preprocessing and validation
+- **DatasetCache**: Manages efficient data caching and retrieval
+- **BatchGenerator**: Implements dynamic batch generation and padding
+- **DataAugmenter**: Provides data augmentation capabilities
+
+Directory Structure:
 ```text
 src/
 ├── training/
-│   ├── pipeline.py       # Main training orchestration
-│   ├── data/            # Data processing and loading
-│   │   ├── loader.py    # Data loading utilities
-│   │   ├── transform.py # Data transformations
-│   │   └── validate.py  # Data validation
-│   ├── optimization/    # Training optimization
-│   │   ├── scheduler.py # Learning rate scheduling
-│   │   ├── gradient.py  # Gradient handling
-│   │   └── memory.py    # Memory optimization
-│   ├── monitoring/      # Training monitoring
-│   │   ├── metrics.py   # Metric collection
-│   │   ├── logging.py   # Logging system
-│   │   └── viz.py       # Visualization
-│   └── cache/          # Caching system
-       ├── strategy.py   # Cache strategies
-       ├── policy.py     # Cache policies
-       └── store.py      # Cache storage
+│   ├── data.py          # Dataset processing
+│   ├── cache.py         # Caching system
+│   ├── batch.py         # Batch generation
+│   ├── augmentation.py  # Data augmentation
+│   └── pipeline.py      # Training pipeline
 ```
 
-#### Configuration System
+### 3. Cache System
 
-```mermaid
-graph TB
-    BaseConfig[Base Configuration] --> EnvConfig[Environment Config]
-    EnvConfig --> RuntimeConfig[Runtime Config]
-    RuntimeConfig --> FinalConfig[Final Configuration]
-    
-    subgraph Configuration Sources
-        YAML[YAML Files]
-        ENV[Environment Variables]
-        CLI[Command Line Args]
-        Runtime[Runtime Parameters]
-    end
-    
-    YAML --> BaseConfig
-    ENV --> EnvConfig
-    CLI --> RuntimeConfig
-    Runtime --> RuntimeConfig
-```
-
-Configuration Hierarchy:
-
-- Base configurations in `.config/`
-- Environment-specific overrides
-- Runtime parameters
-- Command-line arguments
-
-### 2. Model Management System
-
-```mermaid
-graph TB
-    Download[Download Manager] --> Verify[Verification]
-    Verify --> Store[Storage]
-    Store --> Version[Version Control]
-    
-    subgraph Download Process
-        Request[HTTP Request] --> Progress[Progress Tracking]
-        Progress --> Checksum[Checksum Verification]
-    end
-    
-    subgraph Storage Management
-        Compress[Compression] --> Index[Indexing]
-        Index --> Catalog[Cataloging]
-    end
-    
-    subgraph Version Control
-        Tag[Version Tags] --> Meta[Metadata]
-        Meta --> Deps[Dependencies]
-    end
-```
-
-### 3. Cache System Architecture
+The caching system implements:
 
 ```mermaid
 graph LR
-    Request[Cache Request] --> Policy[Cache Policy]
+    Cache[CacheManager] --> Policy[Cache Policy]
     Policy --> Store[Cache Store]
     Store --> Memory[Memory Cache]
     Store --> Disk[Disk Cache]
@@ -179,219 +128,122 @@ graph LR
     subgraph Cache Policies
         LRU[LRU Policy]
         Size[Size Policy]
-        TTL[TTL Policy]
-    end
-    
-    subgraph Storage Backends
-        MemStore[Memory Store]
-        DiskStore[Disk Store]
-        NetworkStore[Network Store]
     end
 ```
 
-### 4. Resource Management
+Key features:
+- Configurable cache policies
+- Memory and disk backends
+- Automatic cache invalidation
+- Resource-aware caching
+
+### 4. Checkpoint Management
+
+The checkpoint system provides:
 
 ```mermaid
 graph TB
-    Resource[Resource Manager] --> Memory[Memory Manager]
-    Resource --> GPU[GPU Manager]
-    Resource --> CPU[CPU Manager]
+    Checkpoint[CheckpointManager] --> Save[Save Checkpoint]
+    Checkpoint --> Load[Load Checkpoint]
+    Checkpoint --> Track[Track Best]
     
-    subgraph Memory Management
-        GC[Garbage Collection]
-        Swap[Memory Swapping]
-        Pool[Memory Pool]
-    end
-    
-    subgraph GPU Management
-        CUDA[CUDA Management]
-        Stream[Stream Management]
-        Sync[Synchronization]
+    subgraph Checkpoint Features
+        Model[Model State]
+        Optimizer[Optimizer State]
+        Scheduler[Scheduler State]
+        Metrics[Training Metrics]
     end
 ```
 
-## System Integration
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant CLI
-    participant Core
-    participant Training
-    participant Model
-    participant Cache
-    
-    User->>CLI: Start Training
-    CLI->>Core: Initialize System
-    Core->>Model: Load Model
-    Core->>Cache: Check Cache
-    Core->>Training: Begin Training
-    Training->>Core: Report Progress
-    Core->>CLI: Update Status
-    CLI->>User: Display Results
-```
-
-## Development Workflow
-
-```mermaid
-graph LR
-    Dev[Development] --> Test[Testing]
-    Test --> Build[Build]
-    Build --> Deploy[Deployment]
-    
-    subgraph Development
-        Code[Coding]
-        Review[Code Review]
-        Lint[Linting]
-    end
-    
-    subgraph Testing
-        Unit[Unit Tests]
-        Integration[Integration Tests]
-        Performance[Performance Tests]
-    end
-```
-
-## Security Architecture
-
-```mermaid
-graph TB
-    Auth[Authentication] --> Access[Access Control]
-    Access --> Crypto[Encryption]
-    Crypto --> Audit[Audit Logging]
-    
-    subgraph Security Layers
-        Network[Network Security]
-        Storage[Storage Security]
-        Runtime[Runtime Security]
-    end
-```
-
-## Performance Optimization
-
-```mermaid
-graph TB
-    Perf[Performance] --> Memory[Memory]
-    Perf --> Compute[Computation]
-    Perf --> IO[I/O]
-    
-    subgraph Memory Optimization
-        Cache[Caching]
-        Pool[Pooling]
-        GC[GC Control]
-    end
-    
-    subgraph Compute Optimization
-        GPU[GPU Utilization]
-        Batch[Batch Processing]
-        Pipeline[Pipelining]
-    end
-```
-
-## Directory Structure
-
-Complete system layout:
-
-```text
-.
-├── src/                 # Source code
-│   ├── core/           # Core system components
-│   ├── training/       # Training system
-│   ├── interfaces/     # User interfaces
-│   └── utils/          # Utilities
-├── tests/              # Test suite
-│   ├── unit/          # Unit tests
-│   ├── integration/   # Integration tests
-│   └── performance/   # Performance tests
-├── .config/            # Configuration files
-├── .cache/             # Cache directory
-│   ├── models/        # Model cache
-│   ├── training/      # Training cache
-│   └── system/        # System cache
-├── data/               # Data directory
-│   ├── training/      # Training data
-│   ├── models/        # Model files
-│   └── metrics/       # Training metrics
-└── docs/               # Documentation
-```
+Features:
+- Configurable save intervals
+- Best checkpoint tracking
+- Automatic cleanup
+- Safe file operations
 
 ## Configuration Management
 
-Detailed configuration hierarchy:
+Configuration is handled through:
 
-```mermaid
-graph TB
-    Config[Configuration] --> Default[Default Config]
-    Config --> Env[Environment Config]
-    Config --> Runtime[Runtime Config]
-    Config --> CLI[CLI Arguments]
-    
-    subgraph Configuration Files
-        YAML[YAML Files]
-        JSON[JSON Files]
-        ENV[ENV Files]
-    end
-    
-    subgraph Validation
-        Schema[Schema Validation]
-        Type[Type Checking]
-        Constraint[Constraints]
-    end
+1. Environment variables (.env)
+2. YAML/TOML configuration files
+3. Command-line arguments
+
+Example configuration structure:
+```toml
+[training]
+batch_size = 32
+learning_rate = 1e-4
+gradient_accumulation_steps = 4
+
+[cache]
+memory_size = "4GB"
+disk_size = "100GB"
+policy = "lru"
+
+[checkpoint]
+save_steps = 1000
+keep_last_n = 5
+save_best = true
 ```
-
-Key configuration files:
-
-- `training_config.toml`: Training parameters
-- `models.json`: Model configurations
-- `.env`: Environment variables
 
 ## Testing Strategy
 
-Comprehensive testing approach:
+The testing suite includes:
 
-```mermaid
-graph TB
-    Test[Testing] --> Unit[Unit Tests]
-    Test --> Integration[Integration Tests]
-    Test --> Performance[Performance Tests]
-    
-    subgraph Test Types
-        Functional[Functional Tests]
-        Stress[Stress Tests]
-        Security[Security Tests]
-    end
-    
-    subgraph Coverage
-        Code[Code Coverage]
-        Branch[Branch Coverage]
-        Path[Path Coverage]
-    end
+1. Unit Tests
+   - Component-level testing
+   - Mocked dependencies
+   - Fast execution
+
+2. Integration Tests
+   - End-to-end workflows
+   - Real data processing
+   - Resource management
+
+3. Performance Tests
+   - Memory usage
+   - Training speed
+   - Cache efficiency
+
+Directory Structure:
+```text
+tests/
+├── unit/
+│   ├── training/
+│   ├── data/
+│   └── cache/
+├── integration/
+└── performance/
 ```
+
+## Security Considerations
+
+1. Data Protection
+   - Secure data handling
+   - Token management
+   - Access control
+
+2. Resource Protection
+   - Memory limits
+   - Disk usage limits
+   - Process isolation
 
 ## Future Extensibility
 
-The architecture is designed for easy extension through:
+The system is designed for easy extension of:
 
-```mermaid
-graph TB
-    Extend[Extensibility] --> Module[Modules]
-    Extend --> Plugin[Plugins]
-    Extend --> API[APIs]
-    
-    subgraph Extension Points
-        Interface[Interfaces]
-        Hook[Hooks]
-        Event[Events]
-    end
-    
-    subgraph Plugin System
-        Loader[Plugin Loader]
-        Registry[Plugin Registry]
-        Manager[Plugin Manager]
-    end
-```
+1. Training Features
+   - New optimizers
+   - Custom schedulers
+   - Advanced monitoring
 
-- Modular components
-- Clear interfaces
-- Configuration-driven behavior
-- Plugin system support
+2. Data Processing
+   - Custom augmentations
+   - New batch strategies
+   - Additional cache backends
+
+3. Model Support
+   - New architectures
+   - Custom attention mechanisms
+   - Specialized optimizations
