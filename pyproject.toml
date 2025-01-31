@@ -39,7 +39,10 @@ test = [
     "pytest-cov>=4.1.0",
 ]
 cuda = [
-    "flash-attn>=2.3.0; platform_system!='Darwin' and python_version>='3.8'",
+    "flash-attn>=2.3.0; platform_system=='Linux' and python_version>='3.8'",
+]
+mps = [
+    "torch>=2.1.0",  # MPS support requires PyTorch 2.1+
 ]
 
 [tool.black]

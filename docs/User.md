@@ -60,6 +60,19 @@ LlamaHome is a user-friendly interface for interacting with large language model
 
 ### GPU Support
 
+GPU acceleration support depends on your platform:
+
+#### Apple Silicon (M1/M2) Macs
+M1/M2 Macs use Metal Performance Shaders (MPS) for GPU acceleration:
+```bash
+# Verify MPS is available
+python -c "import torch; print(torch.backends.mps.is_available())"
+
+# In your .env file:
+DEVICE=mps  # Use Metal GPU acceleration
+```
+
+#### NVIDIA GPUs (Linux/Windows)
 CUDA acceleration requires:
 - NVIDIA GPU with compute capability 3.5+
 - CUDA Toolkit 11.7+

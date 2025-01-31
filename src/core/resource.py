@@ -20,16 +20,31 @@ class ResourceConfig:
     timeout: float = 30.0
 
 
+def get_optimal_device() -> str:
+    """Get the optimal available device for the current platform."""
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 @dataclass
 class GPUConfig:
     """GPU resource configuration."""
 
+    device: Optional[str] = None  # Will be set to optimal device if None
     memory_fraction: float = 0.9
     allow_growth: bool = True
     allowed_devices: Optional[List[int]] = None
     device_map: Optional[Dict[str, Union[int, str]]] = None
     max_memory: Optional[Dict[int, str]] = None
     offload_folder: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Set optimal device if none specified."""
+        if self.device is None:
+            self.device = get_optimal_device()
 
 
 class ResourceOptimizer(AsyncContextManager):

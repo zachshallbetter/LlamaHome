@@ -37,6 +37,22 @@ def is_cuda_available() -> bool:
         return False
 
 
+def is_apple_silicon() -> bool:
+    """Check if running on Apple Silicon."""
+    return (
+        platform.system() == "Darwin" 
+        and platform.machine() == "arm64"
+    )
+
+
+def get_torch_install_command() -> list[str]:
+    """Get the appropriate torch installation command for the platform."""
+    if is_apple_silicon():
+        return ["install", "--pre", "torch", "torchvision", "torchaudio", 
+                "--extra-index-url", "https://download.pytorch.org/whl/nightly/cpu"]
+    return ["install", "torch"]
+
+
 def install_requirements(venv_path: Path) -> None:
     """Install package requirements based on platform."""
     pip_cmd = [str(venv_path / "bin" / "pip")]
@@ -45,15 +61,25 @@ def install_requirements(venv_path: Path) -> None:
     print("Installing base requirements...")
     run_command(pip_cmd + ["install", "--upgrade", "pip", "setuptools", "wheel"])
     run_command(pip_cmd + ["install", "numpy"])  # Install numpy before torch
-    run_command(pip_cmd + ["install", "torch"])  # Install torch
+    
+    # Install PyTorch with appropriate backend
+    if is_apple_silicon():
+        print("Installing PyTorch with MPS support for Apple Silicon...")
+    else:
+        print("Installing PyTorch...")
+    run_command(pip_cmd + get_torch_install_command())
     
     # Determine which extras to install
     extras = ["dev", "test"]
-    if is_cuda_available():
+    if not is_apple_silicon() and is_cuda_available():
         print("CUDA detected, installing CUDA dependencies...")
         extras.append("cuda")
     else:
-        print("CUDA not detected, skipping CUDA dependencies...")
+        if is_apple_silicon():
+            print("Apple Silicon detected, using MPS for GPU acceleration...")
+            extras.append("mps")  # Add MPS extras for Apple Silicon
+        else:
+            print("CUDA not detected, running in CPU-only mode...")
     
     # Install the package with appropriate extras
     print("Installing LlamaHome with extras...")
