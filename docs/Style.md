@@ -19,6 +19,7 @@ This document outlines the coding standards and best practices for LlamaHome. Th
 ### Core Principles
 
 1. **Clarity First**
+
    - Write self-documenting code
    - Use descriptive names
    - Keep functions focused
@@ -51,7 +52,7 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    ) -> Response:
        """Process incoming request."""
        return self.handler.handle(request, timeout)
-   
+
    # Bad
    def process_request(self, request: Request, timeout: int = 30) -> Response:
        """Process incoming request."""
@@ -65,12 +66,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    import os
    import sys
    from typing import Dict, List, Optional
-   
+
    # Third-party imports
    import numpy as np
    import torch
    from fastapi import FastAPI
-   
+
    # Local imports
    from llamahome.core import CoreSystem
    from llamahome.utils import logger
@@ -85,7 +86,7 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    model_config = ModelConfig()
    user_response = get_user_input()
    is_valid = validate_input(user_response)
-   
+
    # Bad
    conf = ModelConfig()
    resp = get_user_input()
@@ -99,15 +100,15 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    def initialize_model():
        """Initialize model with configuration."""
        pass
-   
+
    def process_user_request():
        """Process user request with validation."""
        pass
-   
+
    # Bad
    def init_mod():
        pass
-   
+
    def proc_req():
        pass
    ```
@@ -133,12 +134,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
 
    ```python
    from typing import TypeVar, Generic, Protocol
-   
+
    T = TypeVar('T')
-   
+
    class DataProcessor(Generic[T]):
        """Generic data processor."""
-       
+
        def process(self, data: T) -> T:
            """Process data of type T."""
            return data
@@ -157,16 +158,16 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    ) -> TrainingResults:
        """
        Train model on dataset.
-       
+
        Args:
            model: Model instance to train
            dataset: Training dataset
            epochs: Number of training epochs
            learning_rate: Learning rate for optimization
-           
+
        Returns:
            TrainingResults containing metrics and model state
-           
+
        Raises:
            ValueError: If dataset is empty
            ResourceError: If insufficient GPU memory
@@ -180,16 +181,16 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    class ModelManager:
        """
        Manage model lifecycle and resources.
-       
+
        This class handles model initialization, loading,
        unloading, and resource management. It ensures
        proper cleanup and optimal resource utilization.
-       
+
        Attributes:
            models: Dictionary of loaded models
            active_model: Currently active model
            config: Model configuration
-           
+
        Example:
            manager = ModelManager()
            model = await manager.load_model("llama3.3")
@@ -206,11 +207,11 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    class LlamaHomeError(Exception):
        """Base exception for LlamaHome."""
        pass
-   
+
    class ModelError(LlamaHomeError):
        """Model-related errors."""
        pass
-   
+
    class ConfigError(LlamaHomeError):
        """Configuration-related errors."""
        pass
@@ -247,16 +248,16 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    @pytest.mark.core
    class TestModelManager:
        """Test model management functionality."""
-       
+
        @pytest.fixture
        def manager(self):
            """Provide test manager instance."""
            return ModelManager()
-       
+
        def test_initialization(self, manager):
            """Test manager initialization."""
            assert manager.is_initialized
-           
+
        @pytest.mark.asyncio
        async def test_model_loading(self, manager):
            """Test model loading process."""
@@ -270,11 +271,11 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    def test_should_process_valid_request():
        """Test processing of valid request."""
        pass
-   
+
    def test_should_reject_invalid_request():
        """Test rejection of invalid request."""
        pass
-   
+
    def test_should_handle_timeout_gracefully():
        """Test graceful timeout handling."""
        pass
@@ -288,12 +289,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    def test_model_initialization():
        """
        Test model initialization process.
-       
+
        Scenario:
            1. Create model instance
            2. Initialize with configuration
            3. Verify initialization state
-           
+
        Expected:
            - Model should be properly initialized
            - Resources should be allocated
@@ -309,12 +310,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    class TestAPIIntegration:
        """
        Test API integration functionality.
-       
+
        This test suite verifies the integration between
        the API layer and the core system. It ensures
        proper request handling, error management, and
        resource cleanup.
-       
+
        Requirements:
            - Running API server
            - Test database
@@ -335,12 +336,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
      log_level: INFO
      cache_size: 10GB
      max_memory: 90%
-   
+
    performance:
      batch_size: 32
      num_workers: 4
      timeout: 30
-   
+
    security:
      enable_auth: true
      token_expiry: 3600
@@ -382,7 +383,7 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    def validate_environment():
        """
        Validate environment configuration.
-       
+
        Required variables:
            - LLAMAHOME_ENV
            - LLAMAHOME_LOG_LEVEL
@@ -395,7 +396,7 @@ This document outlines the coding standards and best practices for LlamaHome. Th
            "LLAMAHOME_CACHE_DIR",
            "LLAMAHOME_MODEL_DIR"
        ]
-       
+
        for var in required_vars:
            if var not in os.environ:
                raise ConfigError(f"Missing {var}")
@@ -415,11 +416,11 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    ) -> Response:
        """
        Process user request.
-       
+
        Args:
            request: User request
            current_user: Authenticated user
-           
+
        Returns:
            Response containing processed result
        """
@@ -431,12 +432,12 @@ This document outlines the coding standards and best practices for LlamaHome. Th
    ```python
    class APIResponse(BaseModel):
        """API response format."""
-       
+
        status: str
        message: str
        data: Optional[Dict[str, Any]]
        error: Optional[str]
-       
+
        class Config:
            """Response configuration."""
            schema_extra = {
@@ -457,51 +458,51 @@ This document outlines the coding standards and best practices for LlamaHome. Th
 
    ```markdown
    # Component Title
-   
+
    Brief description of the component.
-   
+
    ## Overview
-   
+
    Detailed component description.
-   
+
    ## Usage
-   
+
    Usage examples and patterns.
-   
+
    ## API Reference
-   
+
    Detailed API documentation.
-   
+
    ## Examples
-   
+
    Code examples and use cases.
    ```
 
 2. **Code Examples**
 
-   ```markdown
+   ````markdown
    ### Basic Usage
-   
 
    ```python
    from llamahome import LlamaHome
-   
+
    app = LlamaHome()
    result = await app.process("Hello")
    print(result)
    ```
+   ````
 
 ### Advanced Configuration
 
-   ```python
-   app = LlamaHome(
-       model="llama3.3",
-       config={
-           "temperature": 0.7,
-           "max_tokens": 100
-       }
-   )
-   ```
+```python
+app = LlamaHome(
+    model="llama3.3",
+    config={
+        "temperature": 0.7,
+        "max_tokens": 100
+    }
+)
+```
 
 # Markdown Style Guide
 
@@ -558,12 +559,12 @@ def example():
 
 ### Emphasis and Strong Emphasis
 
-- Use single asterisks for *emphasis*
+- Use single asterisks for _emphasis_
 - Use double asterisks for **strong emphasis**
 - No spaces inside emphasis markers
 
 ```markdown
-This is *emphasized* text
+This is _emphasized_ text
 This is **strong** text
 ```
 
@@ -712,7 +713,7 @@ Content for section two.
 
 ### Code Documentation
 
-```markdown
+````markdown
 ## Function Description
 
 ```python
@@ -720,6 +721,7 @@ def process_data(input: str) -> Dict[str, Any]:
     """Process input data."""
     return {"result": input}
 ```
+````
 
 Key features:
 
@@ -731,7 +733,7 @@ Key features:
 
 ### Avoid
 
-- Mixing emphasis styles (*asterisk* and *underscore*)
+- Mixing emphasis styles (_asterisk_ and _underscore_)
 - Skipping heading levels (# then ###)
 - Empty links or images
 - Inconsistent list marker spacing
@@ -779,3 +781,56 @@ Recommended VS Code settings for Markdown:
 1. [Code Style Guide](Code.md)
 2. [Documentation Guide](Documentation.md)
 3. [Contributing Guide](Contributing.md)
+
+## Code Quality Tools
+
+We use [Trunk](https://trunk.io) as our unified code quality and linting tool. Trunk manages and runs all our linters, formatters, and code quality tools in a consistent way.
+
+### Setup
+
+Trunk configuration is stored in the `.trunk` directory. See [.trunk/README.md](../.trunk/README.md) for detailed documentation.
+
+### Automated Checks
+
+The following checks are run automatically:
+
+- **Pre-commit**: Code formatting (black, isort, prettier)
+- **Pre-push**: Full linting suite
+- **CI/CD**: Complete code quality check with annotations
+
+### Running Checks Locally
+
+```bash
+# Check all files
+trunk check --all
+
+# Format all files
+trunk fmt --all
+
+# Check specific files
+trunk check path/to/file.py
+
+# Run specific linter
+trunk check --all --filter=black
+```
+
+### Linters and Tools
+
+#### Python
+
+- **black**: Code formatting (line length: 88)
+- **isort**: Import sorting (profile: black)
+- **mypy**: Static type checking (strict mode)
+- **ruff**: Fast Python linter
+- **bandit**: Security linting
+
+#### Documentation & Config
+
+- **markdownlint**: Markdown formatting
+- **yamllint**: YAML validation
+- **prettier**: General formatting
+
+#### Security
+
+- **trufflehog**: Secret scanning
+- **git-diff-check**: Whitespace error detection

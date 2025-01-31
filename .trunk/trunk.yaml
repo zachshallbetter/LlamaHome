@@ -16,26 +16,47 @@ lint:
     - ruff@0.1.11
     - bandit@1.8.2
     - yamllint@1.35.1
+    - markdownlint@0.37.0
+    - git-diff-check@SYSTEM
+    - prettier@3.1.1
+    - trufflehog@3.63.2
 
   ignore:
     - linters: [ALL]
       paths:
         - "**/node_modules/**"
         - "**/.venv/**"
-        - .cache/
-        - .data/
-        - .trunk/
-        - .logs/
-        - .github/
+        - .cache/**
+        - .data/**
+        - .trunk/out/**
+        - .trunk/logs/**
+        - .logs/**
         - "*.pyc"
         - "*.pyo"
         - "*.pyd"
         - "*.so"
+        - "**/__pycache__/**"
 
-runtimes:
-  enabled:
-    - python@3.10.8
+    - linters: [trufflehog]
+      paths:
+        - .env.example
+        - docs/**/*.md
+        - "**/test_*.py"
+
+# Commenting out runtime as we're using system Python
+# runtimes:
+#   enabled:
+#     - python@3.11.0
 
 actions:
   enabled:
+    - trunk-announce
+    - trunk-check-pre-push
+    - trunk-fmt-pre-commit
     - trunk-upgrade-available
+
+tools:
+  enabled:
+    - black@23.12.1
+    - isort@5.13.2
+    - ruff@0.1.11

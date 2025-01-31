@@ -18,7 +18,7 @@
 
 ```yaml
 python:
-  version: ">=3.11,<3.13"  # Python 3.11 required, 3.13 not yet supported
+  version: ">=3.11,<3.13" # Python 3.11 required, 3.13 not yet supported
   build_system: "setuptools>=61.0.0"
 
 cuda:
@@ -51,7 +51,7 @@ hardware:
    ```bash
    # Check Python version (3.11 required)
    python --version
-   
+
    # Check GPU requirements (if using GPU)
    nvidia-smi  # For NVIDIA GPUs (optional)
    ```
@@ -153,6 +153,42 @@ make format
 make lint
 ```
 
+## Code Quality Tools
+
+### Trunk Setup
+
+1. Install Trunk:
+
+   ```bash
+   curl -fsSL https://get.trunk.io | bash
+   ```
+
+2. Initialize in your clone:
+
+   ```bash
+   trunk init
+   ```
+
+3. Install managed tools:
+
+   ```bash
+   trunk tools install
+   ```
+
+4. Enable git hooks:
+   ```bash
+   trunk git-hooks install
+   ```
+
+This will set up:
+
+- Pre-commit formatting
+- Pre-push checks
+- All required linters and tools
+- Project-specific configurations
+
+See [.trunk/README.md](../.trunk/README.md) for detailed configuration and usage.
+
 ## Detailed Configuration
 
 ### Environment Configuration
@@ -229,7 +265,7 @@ make lint
 
    ```text
    Problem: "Environment not configured"
-   Solution: 
+   Solution:
    1. Check .env file exists
    2. Verify environment variables
    3. Restart application
@@ -238,6 +274,7 @@ make lint
 ### System Compatibility
 
 1. **Operating System Requirements**
+
    - Linux: Ubuntu 20.04+, CentOS 8+
    - macOS: 12.0+ (Intel/Apple Silicon)
    - Windows: 10/11 with WSL2
@@ -335,7 +372,7 @@ make lint
 
    ```python
    from llamahome.core import LlamaHome
-   
+
    llama = LlamaHome()
    llama.start_server(port=8080)
    ```
@@ -344,7 +381,7 @@ make lint
 
    ```python
    from llamahome.plugins import Plugin
-   
+
    class CustomPlugin(Plugin):
        def initialize(self):
            """Plugin initialization."""

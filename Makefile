@@ -56,6 +56,32 @@ else
     RM := rm -rf
 endif
 
+# Data directories
+MODELS_DIR := $(DATA_DIR)/models
+DATASETS_DIR := $(DATA_DIR)/datasets
+EMBEDDINGS_DIR := $(DATA_DIR)/embeddings
+CHECKPOINTS_DIR := $(DATA_DIR)/checkpoints
+ARTIFACTS_DIR := $(DATA_DIR)/artifacts
+MEMORY_DIR := $(DATA_DIR)/memory
+METRICS_DIR := $(DATA_DIR)/metrics
+TELEMETRY_DIR := $(DATA_DIR)/telemetry
+TRAINING_DIR := $(DATA_DIR)/training
+LOCAL_DIR := $(DATA_DIR)/local
+
+# Create data directories
+.PHONY: setup-data
+setup-data:
+	mkdir -p $(MODELS_DIR) \
+		$(DATASETS_DIR) \
+		$(EMBEDDINGS_DIR) \
+		$(CHECKPOINTS_DIR) \
+		$(ARTIFACTS_DIR) \
+		$(MEMORY_DIR) \
+		$(METRICS_DIR) \
+		$(TELEMETRY_DIR) \
+		$(TRAINING_DIR) \
+		$(LOCAL_DIR)
+
 # Default target
 .PHONY: all
 all: setup

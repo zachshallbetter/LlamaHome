@@ -9,20 +9,38 @@ on:
 jobs:
   trunk-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-          cache: 'pip'
+          cache: "pip"
+
+      - name: Cache Trunk
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/trunk
+          key: trunk-${{ runner.os }}-${{ hashFiles('.trunk/trunk.yaml') }}
+          restore-keys: |
+            trunk-${{ runner.os }}-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
+
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
+        with:
+          check-mode: all
+          arguments: --github-annotate notice
 
       - name: Run pre-commit checks
         run: |

@@ -26,7 +26,6 @@ MANIFEST
 venv/
 env/
 ENV/
-.env
 .venv
 .python-version
 
@@ -38,39 +37,36 @@ ENV/
 .project
 .pydevproject
 .settings/
+.cursor
 
-# Testing
+# Testing and Coverage
 .coverage
 coverage.xml
 htmlcov/
 .pytest_cache/
 .tox/
 nosetests.xml
-.coverage
-.logs
+test-results/
+performance-results/
+distributed-test-results/
 
-
-# Type Checking
-.type_check_cache/
+# Type Checking and Linting
 .mypy_cache/
+.ruff_cache/
 .pyre/
 .pytype/
+.trunk/out/
+.trunk/logs/
+.trunk/notifications/
+.trunk/plugins/
+.trunk/tools/
 
-# Distribution
-*.pyc
-*.pyo
-*.pyd
-*.so
-*.dll
-*.dylib
-
-# Project Specific
-poetry.lock
-.llamahome/
+# Project Data and Cache
 .data/
-*.log
 .cache/
+.logs/
 benchmark_results/
+.llamahome/
 
 # Documentation
 docs/_build/
@@ -83,25 +79,19 @@ site/
 .DS_Store
 Thumbs.db
 
-# Cache directories
-.cache/
-.pytest_cache/
-__pycache__/
-*.py[cod]
-
-# Environment
-.env
-.venv/
-venv/
-ENV/
-
-# Python package metadata
-*.egg-info/
-*.egg
+# Distribution
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
 dist/
 build/
 
-# IDE
-.idea/
-.vscode/
-.env.example
+# Keep Important Config Files
+!.trunk/trunk.yaml
+!.trunk/configs/
+!.github/workflows/
+!.env.example
+

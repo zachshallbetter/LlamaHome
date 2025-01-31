@@ -19,6 +19,13 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, Ta
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 from src.core.models import BenchmarkManager, ModelManager
 from src.core.utils import LogManager, LogTemplates
+from ..core.config.constants import (
+    TRAINING_DIR,
+    CHECKPOINTS_DIR,
+    MODELS_DIR,
+    METRICS_DIR,
+    ARTIFACTS_DIR
+)
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -118,30 +125,40 @@ class ConversationDataset(Dataset):
         }
 
 
-class TrainingData:
-    """Manages training data processing and storage."""
-
-
+class TrainingManager:
+    """Manages training data and processes."""
+    
     def __init__(
         self,
-        data_dir: Union[str, Path],
-        batch_size: int = 4,
+        data_dir: Optional[Union[str, Path]] = None,
+        batch_size: int = 32,
         max_workers: int = 4,
-        config: Optional[Dict] = None
-    ) -> None:
-        """Initialize training data manager.
-
+        config: Optional[dict] = None
+    ):
+        """Initialize training manager.
+        
         Args:
-            data_dir: Directory for training data
-            batch_size: Size of training batches
-            max_workers: Maximum number of worker processes
+            data_dir: Optional custom data directory, defaults to TRAINING_DIR
+            batch_size: Batch size for training
+            max_workers: Max number of worker processes
             config: Optional configuration dictionary
         """
-        self.data_dir = Path(data_dir)
+        self.data_dir = Path(data_dir) if data_dir else Path(TRAINING_DIR)
+        self.checkpoints_dir = Path(CHECKPOINTS_DIR)
+        self.models_dir = Path(MODELS_DIR)
+        self.metrics_dir = Path(METRICS_DIR)
+        self.artifacts_dir = Path(ARTIFACTS_DIR)
+        
+        # Create directories if they don't exist
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.checkpoints_dir.mkdir(parents=True, exist_ok=True)
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+        self.metrics_dir.mkdir(parents=True, exist_ok=True)
+        self.artifacts_dir.mkdir(parents=True, exist_ok=True)
+
         self.batch_size = batch_size
         self.max_workers = max_workers
         self.config = self._load_config(config)
-        self.data_dir.mkdir(parents=True, exist_ok=True)
         self.benchmark = BenchmarkManager()
         self.model_manager = ModelManager()
         logger.info(f"Initialized training manager with data dir: {self.data_dir}")
@@ -491,8 +508,8 @@ def create_training(
     batch_size: int = 4,
     max_workers: int = 4,
     config: Optional[Dict] = None
-) -> TrainingData:
-    """Create a new TrainingData instance.
+) -> TrainingManager:
+    """Create a new TrainingManager instance.
 
     Args:
         data_dir: Directory for training data
@@ -501,6 +518,6 @@ def create_training(
         config: Optional configuration dictionary
 
     Returns:
-        Configured TrainingData instance
+        Configured TrainingManager instance
     """
-    return TrainingData(data_dir, batch_size, max_workers, config)
+    return TrainingManager(data_dir, batch_size, max_workers, config)

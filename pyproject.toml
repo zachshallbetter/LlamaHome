@@ -1,10 +1,13 @@
-# Do not modify version numbers in this file - they are carefully tested and synchronized
+# This file defines the project's build configuration, dependencies, and development tools.
+# Version numbers are managed through CI/CD - do not modify them manually.
 
 [build-system]
+# Specifies the requirements and backend used to build the package
 requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
+# Core project metadata and package information
 name = "llamahome"
 version = "0.1.0"
 description = "A secure and efficient home for your LLMs"
@@ -22,73 +25,77 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Core dependencies
+# Production Dependencies
+# These are required for the package to function in production
 dependencies = [
-    # ML/DL
+    # Machine Learning & Deep Learning Libraries
+    # Core frameworks for model training and inference
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "torchaudio>=2.0.0",
     "transformers>=4.30.0",
     "accelerate>=0.20.3",
-    "bitsandbytes>=0.41.1",
-    "optimum>=1.13.2",
-    "tokenizers>=0.13.3",
-    "sentencepiece>=0.1.99",
-    "sacremoses>=0.0.53",
-    "peft>=0.14.0",
+    "bitsandbytes>=0.41.1",  # Quantization and optimization
+    "optimum>=1.13.2",       # Hardware-specific optimizations
+    "tokenizers>=0.13.3",    # Fast tokenization
+    "sentencepiece>=0.1.99", # Subword tokenization
+    "sacremoses>=0.0.53",    # Text preprocessing
+    "peft>=0.14.0",         # Parameter-Efficient Fine-Tuning
     
-    # API & Server
-    "fastapi>=0.100.0",
-    "uvicorn>=0.22.0",
-    "starlette>=0.27.0",
-    "python-multipart>=0.0.6",
-    "websockets>=11.0.3",
-    "PyJWT>=2.7.0",
-    "httpx>=0.24.1",
-    "ratelimit>=2.2.1",
+    # API & Server Components
+    # Required for serving models and handling requests
+    "fastapi>=0.100.0",      # Modern web framework
+    "uvicorn>=0.22.0",       # ASGI server
+    "starlette>=0.27.0",     # Web toolkit
+    "python-multipart>=0.0.6", # File upload handling
+    "websockets>=11.0.3",     # Real-time communication
+    "PyJWT>=2.7.0",          # Authentication
+    "httpx>=0.24.1",         # HTTP client
+    "ratelimit>=2.2.1",      # Request rate limiting
     
-    # Configuration & Environment
-    "python-dotenv>=1.0.0",
-    "toml>=0.10.2",
-    "pydantic>=2.0.0,<3.0.0",
+    # Configuration & Environment Management
+    "python-dotenv>=1.0.0",  # Environment variable management
+    "toml>=0.10.2",          # Configuration file parsing
+    "pydantic>=2.0.0,<3.0.0", # Data validation
     
-    # Monitoring & Metrics
-    "psutil>=5.9.6",
-    "prometheus-client>=0.17.0",
+    # System Monitoring & Metrics
+    "psutil>=5.9.6",          # System resource monitoring
+    "prometheus-client>=0.17.0", # Metrics collection
     
-    # File & Text Processing
-    "PyMuPDF>=1.25.2",
-    "aiofiles>=23.1.0",
-    "nltk>=3.9.1",
-    "regex>=2023.0.0",
+    # File & Text Processing Utilities
+    "PyMuPDF>=1.25.2",       # PDF processing
+    "aiofiles>=23.1.0",      # Async file operations
+    "nltk>=3.9.1",           # Natural language processing
+    "regex>=2023.0.0",       # Enhanced regular expressions
     
-    # GUI
-    "PyQt6>=6.8.0",
-    "PyQt6-Qt6>=6.8.0",
-    "PyQt6-sip>=13.6.0",
+    # Graphical User Interface
+    "PyQt6>=6.8.0",          # GUI framework
+    "PyQt6-Qt6>=6.8.0",      # Qt bindings
+    "PyQt6-sip>=13.6.0",     # Python/C++ bindings
 ]
 
 [project.optional-dependencies]
-# Development dependencies
+# Development Tools and Utilities
+# Not required for production, but needed for development
 dev = [
-    # Testing
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.1.0",
-    "pytest-qt>=4.2.0",
-    "pytest-mock>=3.11.1",
-    "pytest-timeout>=2.1.0",
-    "pytest-xdist>=3.3.1",
+    # Testing Framework and Plugins
+    "pytest>=7.4.0",         # Testing framework
+    "pytest-asyncio>=0.21.0", # Async test support
+    "pytest-cov>=4.1.0",     # Coverage reporting
+    "pytest-qt>=4.2.0",      # Qt testing
+    "pytest-mock>=3.11.1",   # Mocking support
+    "pytest-timeout>=2.1.0",  # Test timeouts
+    "pytest-xdist>=3.3.1",   # Parallel testing
     
-    # Code Quality
-    "black>=23.3.0",
-    "isort>=5.12.0",
-    "mypy>=1.4.1",
-    "ruff>=0.0.280",
-    "bandit>=1.7.5",
-    "mypy-extensions>=0.5.1",
+    # Code Quality and Style Tools
+    "black>=23.3.0",         # Code formatting
+    "isort>=5.12.0",         # Import sorting
+    "mypy>=1.4.1",           # Static type checking
+    "ruff>=0.0.280",         # Fast linter
+    "bandit>=1.7.5",         # Security linting
+    "mypy-extensions>=0.5.1", # Type system extensions
     
-    # Type Stubs
+    # Type Stubs for Static Analysis
     "types-toml>=0.10.8",
     "types-psutil>=5.9.5",
     "types-PyJWT>=1.7.1",
@@ -97,15 +104,16 @@ dev = [
     "types-setuptools>=68.0.0",
     "types-aiofiles>=23.1.0.1",
     
-    # Testing Utilities
-    "faker>=19.3.0",
-    "freezegun>=1.2.2",
-    "responses>=0.23.3",
-    "coverage>=7.3.0",
-    "rich>=13.5.2",
+    # Development and Testing Utilities
+    "faker>=19.3.0",         # Test data generation
+    "freezegun>=1.2.2",      # Time freezing for tests
+    "responses>=0.23.3",     # HTTP mocking
+    "coverage>=7.3.0",       # Code coverage
+    "rich>=13.5.2",          # Rich terminal output
 ]
 
-# Testing dependencies
+# Testing-only Dependencies
+# Subset of dev dependencies needed just for running tests
 test = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0", 
@@ -116,28 +124,32 @@ test = [
     "pytest-xdist>=3.3.1",
 ]
 
-# Platform specific dependencies
+# Platform-Specific Optimizations
+# Dependencies that are only installed on specific operating systems
 platform_specific = [
-    "xformers>=0.0.29.post1; platform_system == 'Linux' and python_version >= '3.9'",
-    "triton>=2.0.0; platform_system == 'Linux'",
-    "pywin32>=306.0; sys_platform == 'win32'",
-    "pyobjc-framework-Cocoa>=9.2; sys_platform == 'darwin'",
+    "xformers>=0.0.29.post1; platform_system == 'Linux' and python_version >= '3.9'",  # Memory-efficient attention
+    "triton>=2.0.0; platform_system == 'Linux'", # GPU optimization
+    "pywin32>=306.0; sys_platform == 'win32'", # Windows-specific features
+    "pyobjc-framework-Cocoa>=9.2; sys_platform == 'darwin'", # macOS-specific features
 ]
 
 [tool.setuptools]
+# Package Discovery and Build Configuration
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["*"]
-exclude = ["tests*", "docs*"]
+where = ["src"] # Look for packages in src directory
+include = ["*"] # Include all packages
+exclude = ["tests*", "docs*"] # Exclude test and documentation files
 
-# Code formatting
+# Code Style and Formatting Configuration
 [tool.black]
+# Standard Python code formatting settings
 line-length = 88
 target-version = ["py311"]
 include = '\.pyi?$'
 
 [tool.isort]
-profile = "black"
+# Import statement organization settings
+profile = "black" # Compatibility with black
 multi_line_output = 3
 line-length = 88
 include_trailing_comma = true
@@ -160,37 +172,40 @@ skip = [
     "notebooks"
 ]
 
-# Linting
+# Code Quality and Linting
 [tool.ruff]
+# Fast Python linter configuration
 line-length = 88
 target-version = "py311"
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "C",   # flake8-comprehensions
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
+    "F",   # pyflakes - dead code and undefined names
+    "I",   # isort - import sorting
+    "C",   # flake8-comprehensions - list/dict/set comprehension improvements
+    "B",   # flake8-bugbear - bug risk detection
+    "UP",  # pyupgrade - modernize Python code
 ]
 ignore = [
-    "E501",  # line too long, handled by black
+    "E501",  # line too long - handled by black
     "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+    "C901",  # too complex - handled by cognitive complexity checks
 ]
 
 [tool.ruff.per-file-ignores]
-"tests/*" = ["E501"]
+"tests/*" = ["E501"]  # Allow long lines in tests
 
 [tool.ruff.isort]
 known-first-party = ["src"]
 
-# Type checking
+# Type Checking Configuration
 [tool.mypy]
+# Static type checking settings
 python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
+cache_dir = ".cache/project/mypy" # Store type checking cache in project's cache directory
+warn_return_any = true # Warn about returning Any type
+warn_unused_configs = true # Warn about unused configurations
+disallow_untyped_defs = true # Require type annotations for functions
 disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
@@ -203,6 +218,7 @@ strict_equality = true
 ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
+# Pydantic-specific type checking settings
 module = "pydantic.*"
 init_forbid_extra = true
 init_typed = true
@@ -210,8 +226,9 @@ warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
 [[tool.mypy.overrides]]
+# Type checking overrides for external packages
 module = [
-    # ML/DL
+    # ML/DL Libraries
     "torch.*",
     "transformers.*",
     
@@ -241,8 +258,9 @@ module = [
 ]
 ignore_missing_imports = true
 
-# Testing
+# Testing Configuration
 [tool.pytest.ini_options]
+# Test discovery and execution settings
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
@@ -250,21 +268,23 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "security: marks tests as security tests",
+    "slow: marks tests that take longer than average to complete",
+    "integration: marks tests that check component interactions",
+    "unit: marks tests that check individual components",
+    "security: marks tests that verify security features",
 ]
 
-# Coverage
+# Code Coverage Settings
 [tool.coverage.run]
-branch = true
-source = ["src"]
+# Configuration for code coverage measurement
+branch = true # Track branch coverage
+source = ["src"] # Only measure source code
 
 [tool.coverage.report]
+# Coverage report configuration
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
+    "pragma: no cover", # Explicitly exclude lines
+    "def __repr__", # Skip representation methods
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "pass",
@@ -272,8 +292,9 @@ exclude_lines = [
     "raise ImportError",
 ]
 
-# Security
+# Security Analysis Configuration
 [bandit]
+# Security linter settings
 exclude_dirs = [
     "tests",
     "venv",
@@ -287,7 +308,7 @@ skips = ["B101"]  # Skip assert checks in test files
 [bandit.assert_used]
 skips = ["*/test_*.py"]
 
-# Security exceptions
+# Security Policy Exceptions
 [bandit.B301]
 exclude_dirs = ["src/core/utils/io.py"]  # Allow pickle in safe_load_torch with verification
 
@@ -304,13 +325,13 @@ exclude_dirs = ["scripts/install.py"]  # Allow subprocess calls in install scrip
 exclude_dirs = ["scripts/install.py"]  # Allow PATH searches in install scripts
 
 [bandit.formatters]
-output = "screen"
+output = "screen" # Output format for security reports
 
 [bandit.config]
-recursive = true
-aggregate = true
-number = 3
-level = "HIGH"
+recursive = true # Scan directories recursively
+aggregate = true # Aggregate security issues
+number = 3 # Number of issues to show
+level = "HIGH" # Minimum severity level
 
 [bandit.profiles]
-test = "all"
+test = "all" # Security test profile

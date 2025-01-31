@@ -101,7 +101,7 @@ configure_application() {
     fi
 
     # Create necessary directories
-    mkdir -p .data/{models,cache,training,metrics} .logs
+    mkdir -p .data/{models,datasets,embeddings,checkpoints,artifacts,memory,metrics,telemetry,training,local} .logs
 }
 
 # Main execution
