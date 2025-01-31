@@ -11,10 +11,7 @@ from typing import Optional
 import torch
 
 
-
 @dataclass
-
-
 class ResourceConfig:
     """Resource configuration."""
     gpu_memory_fraction: float = 0.9
@@ -25,7 +22,6 @@ class ResourceConfig:
 
 class Resource(ABC):
     """Abstract base class for resources."""
-
 
     def __init__(self):
         self._lock = asyncio.Lock()
@@ -43,7 +39,6 @@ class Resource(ABC):
         async with self._lock:
             self._in_use = True
 
-
     def release(self) -> None:
         """Release resource."""
         self._in_use = False
@@ -52,12 +47,10 @@ class Resource(ABC):
 class GPUResource(Resource):
     """GPU memory and compute resource."""
 
-
     def __init__(self, memory_fraction: float = ResourceConfig.gpu_memory_fraction):
         super().__init__()
         self.memory_fraction = memory_fraction
         self._setup_gpu()
-
 
     def _setup_gpu(self) -> None:
         """Initialize GPU monitoring."""
@@ -79,7 +72,6 @@ class GPUResource(Resource):
         )
         return available_fraction >= (1.0 - self.memory_fraction)
 
-
     def get_memory_info(self) -> dict:
         """Get detailed GPU memory information."""
         return {
@@ -93,12 +85,10 @@ class GPUResource(Resource):
 class CPUResource(Resource):
     """CPU utilization resource."""
 
-
     def __init__(self, usage_threshold: float = ResourceConfig.cpu_usage_threshold):
         super().__init__()
         self.usage_threshold = usage_threshold
         self._setup_cpu()
-
 
     def _setup_cpu(self) -> None:
         """Initialize CPU monitoring."""
@@ -115,20 +105,17 @@ class CPUResource(Resource):
 
         return self._get_average_usage() <= (self.usage_threshold * 100)
 
-
     def _update_history(self, usage: float) -> None:
         """Update CPU usage history."""
         self._usage_history.append(usage)
         if len(self._usage_history) > 10:
             self._usage_history.pop(0)
 
-
     def _get_average_usage(self) -> float:
         """Get average CPU usage."""
         if not self._usage_history:
             return 0.0
         return sum(self._usage_history) / len(self._usage_history)
-
 
     def get_cpu_info(self) -> dict:
         """Get detailed CPU information."""
@@ -143,12 +130,10 @@ class CPUResource(Resource):
 class IOResource(Resource):
     """I/O bandwidth resource."""
 
-
     def __init__(self, queue_size: int = ResourceConfig.io_queue_size):
         super().__init__()
         self.queue_size = queue_size
         self._setup_io()
-
 
     def _setup_io(self) -> None:
         """Initialize I/O monitoring."""
@@ -171,7 +156,6 @@ class IOResource(Resource):
         finally:
             self._queue.get_nowait()
 
-
     def get_io_info(self) -> dict:
         """Get detailed I/O information."""
         current = psutil.disk_io_counters()
@@ -183,9 +167,8 @@ class IOResource(Resource):
         }
 
 
-class ResourceMonitor:
+class ResourceManager:
     """Resource monitoring and management."""
-
 
     def __init__(self, config: Optional[ResourceConfig] = None):
         self.config = config or ResourceConfig()
@@ -202,12 +185,10 @@ class ResourceMonitor:
             for resource in self.resources.values()
         ])
 
-
     def release_resources(self) -> None:
         """Release all resources."""
         for resource in self.resources.values():
             resource.release()
-
 
     def get_resource_info(self) -> dict:
         """Get detailed information about all resources."""

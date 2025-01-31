@@ -1,8 +1,18 @@
 """LlamaHome core module."""
 
 from pathlib import Path
+
 from rich.console import Console
 
+from .resource import (
+    DeviceAllocator,
+    GPUConfig,
+    MemoryConfig,
+    MonitorConfig,
+    MultiGPUManager,
+    PerformanceMonitor,
+    ResourceConfig,
+)
 from .utils.log_manager import LogManager, LogTemplates
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
@@ -30,4 +40,12 @@ def initialize_core() -> None:
         raise
 
 
-__all__ = ["initialize_core"]
+__all__ = [
+    "GPUConfig",
+    "MemoryConfig",
+    "MonitorConfig",
+    "ResourceConfig",
+    "PerformanceMonitor",
+    "DeviceAllocator",
+    "MultiGPUManager",
+]

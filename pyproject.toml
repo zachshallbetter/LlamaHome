@@ -1,67 +1,69 @@
 # Do not modify version numbers in this file - they are carefully tested and synchronized
 
-[tool.poetry]
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "llamahome"
 version = "0.1.0"
-description = "A powerful and flexible home for your LLM projects"
-authors = ["Zach Shallbetter <zach@shallbetter.com>"]
+description = "A framework for training and deploying LLM models"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+license = {text = "MIT"}
 readme = "README.md"
-packages = [{ include = "src" }]
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "rich>=10.0.0",
+    "tensorboard>=2.13.0",
+    "plotly>=5.13.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-torch = "^2.1.1"
-torchvision = "^0.16.1"
-torchaudio = "^2.1.1"
-einops = "^0.7.0"
-pydantic = "^2.0.0"
-PyYAML = "^6.0"
-fire = "^0.5.0"
-httpx = "^0.25.0"
-huggingface-hub = ">=0.24.0"
-prompt-toolkit = "^3.0.0"
-python-dotenv = "^1.0.0"
-requests = "^2.31.0"
-rich = "^13.0.0"
-termcolor = "^2.3.0"
-toml = "^0.10.2"
-transformers = ">=4.47.1"
-
-[tool.poetry.group.cuda]
-optional = true
-
-[tool.poetry.group.cuda.dependencies]
-flash-attn = "^2.3.6"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.0"
-black = "^23.7.0"
-isort = "^5.12.0"
-mypy = "^1.4.1"
-ruff = "^0.0.284"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "mypy",
+    "ruff",
+    "bandit",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+]
+cuda = [
+    "flash-attn>=2.3.0; platform_system!='Darwin' and python_version>='3.8'",
+]
 
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ['py38']
+include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
-multi-line-output = 3
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 
 [tool.ruff]
-select = ["E", "F", "B", "I"]
-ignore = []
 line-length = 88
-target-version = "py311"
+select = ["E", "F", "B"]
+ignore = ["E501"]

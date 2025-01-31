@@ -3,70 +3,43 @@ Example script demonstrating performance monitoring in LlamaHome.
 """
 
 import asyncio
-from pathlib import Path
 
-import torch
-from src.core import MonitorConfig, ResourceConfig, ResourceManager, PerformanceMonitor
+from src.core.resource.config import MonitorConfig
+from src.core.resource.monitor import PerformanceMonitor
 
 
-async def main():
-    """Run performance monitoring example."""
-    # Configuration
-    config = MonitorConfig(
-        metrics=["gpu", "cpu", "memory", "io"],
-        interval=1.0,  # seconds
-        history_size=100,
-        alert_thresholds={
-            "gpu_usage": 0.95,
-            "cpu_usage": 0.90,
-            "memory_usage": 0.85,
-            "io_queue": 1000,
-        },
+async def monitor_resources() -> None:
+    """Monitor system resources."""
+    # Configure monitoring
+    monitor_config = MonitorConfig(
+        check_interval=1.0,
+        memory_threshold=0.8,
+        cpu_threshold=0.7,
+        gpu_temp_threshold=75.0,
     )
 
     # Initialize monitor
-    monitor = PerformanceMonitor(config)
-
-    print("Starting performance monitoring...")
+    monitor = PerformanceMonitor(monitor_config)
 
     try:
-        # Start monitoring
-        await monitor.start()
+        while True:
+            # Check resources
+            metrics = await monitor.check_resources()
 
-        # Simulate workload
-        print("\nSimulating workload...")
-        for i in range(5):
-            # Create some GPU load
-            tensor = torch.randn(5000, 5000, device="cuda")
-            torch.matmul(tensor, tensor.T)
+            # Print metrics
+            print("\nResource Usage:")
+            for name, value in metrics.items():
+                print(f"{name}: {value:.1f}%")
 
-            # Get current metrics
-            metrics = await monitor.get_metrics()
-            print(f"\nIteration {i+1} metrics:")
-            print(f"GPU Usage: {metrics['gpu_usage']:.2%}")
-            print(f"Memory Usage: {metrics['memory_usage']:.2%}")
-            print(f"CPU Usage: {metrics['cpu_usage']:.2%}")
+            # Check if optimization needed
+            if await monitor.should_optimize():
+                print("\nResource optimization recommended!")
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(monitor_config.check_interval)
 
-        # Get performance summary
-        print("\nPerformance Summary:")
-        summary = await monitor.get_summary()
-        print(f"Peak GPU Usage: {summary['peak_gpu_usage']:.2%}")
-        print(f"Average Memory Usage: {summary['avg_memory_usage']:.2%}")
-        print(
-            f"CPU Usage Range: {summary['min_cpu_usage']:.2%} - {summary['max_cpu_usage']:.2%}"
-        )
-
-    except Exception as e:
-        print(f"Monitoring failed: {e}")
-        raise
-
-    finally:
-        # Stop monitoring
-        await monitor.stop()
+    except KeyboardInterrupt:
+        print("\nMonitoring stopped")
 
 
 if __name__ == "__main__":
-    # Run example
-    asyncio.run(main())
+    asyncio.run(monitor_resources())

@@ -7,26 +7,21 @@ plugins:
     - id: trunk
       ref: v1.2.6
       uri: https://github.com/trunk-io/plugins
-      
+
 lint:
   enabled:
-    - black@23.9.1:
-        line-length: 120
-    - ruff@0.1.6:
-        line-length: 120
-        select: ["E", "F", "B"]
-        ignore: ["E501"]
-    - mypy@1.13.0:
-        python-version: "3.11"
-        disallow-untyped-defs: false
-        check-untyped-defs: true
-        warn-return-any: false
-        ignore-missing-imports: true
-        follow-imports: "silent"
+    - isort@5.13.2
+    - black@23.12.1
+    - mypy@1.8.0
+    - ruff@0.1.11
+    - bandit@1.8.2
+    - yamllint@1.35.1
 
   ignore:
     - linters: [ALL]
       paths:
+        - "**/node_modules/**"
+        - "**/.venv/**"
         - .cache/
         - .data/
         - .trunk/
@@ -37,9 +32,10 @@ lint:
         - "*.pyd"
         - "*.so"
 
+runtimes:
+  enabled:
+    - python@3.10.8
+
 actions:
   enabled:
-    - trunk-announce
-    - trunk-check-pre-push
-    - trunk-fmt-pre-commit
     - trunk-upgrade-available

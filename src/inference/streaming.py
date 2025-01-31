@@ -3,19 +3,31 @@ Streaming inference implementation.
 """
 
 import asyncio
-from typing import AsyncIterator, Optional
+from typing import Any, AsyncIterator, List
 
-from .pipeline import InferencePipeline
 from .config import InferenceConfig
+from .pipeline import InferencePipeline
 
 
 class StreamingPipeline(InferencePipeline):
     """Pipeline for streaming inference responses."""
 
     async def generate_stream(
-        self, prompt: str, chunk_size: int = 8, **kwargs
+        self, prompt: str, chunk_size: int = 8, **kwargs: Any
     ) -> AsyncIterator[str]:
-        """Generate streaming response for a given prompt."""
+        """Generate streaming response for a given prompt.
+
+        Args:
+            prompt: Input prompt
+            chunk_size: Size of response chunks
+            **kwargs: Additional generation parameters
+
+        Yields:
+            Generated text chunks
+
+        Raises:
+            RuntimeError: If streaming generation fails
+        """
         try:
             # Prepare inputs
             inputs = self.tokenizer(
@@ -29,7 +41,7 @@ class StreamingPipeline(InferencePipeline):
             # Generate with resource management
             async with self.resource_manager.optimize():
                 # Initialize generation
-                generated_tokens = []
+                generated_tokens: List[int] = []
 
                 # Stream generation
                 for _ in range(0, self.config.processing.max_length, chunk_size):

@@ -249,7 +249,41 @@ Additional resources:
   - Troubleshooting and development
 - [Contributing Guide](docs/Contributing.md) for development guidelines
 
-## Getting Started
+## Quick Start
+
+Get LlamaHome running in minutes:
+
+```bash
+# 1. Install Python 3.11 and git
+# Ubuntu/Debian:
+sudo apt update && sudo apt install python3.11 python3.11-venv git
+# macOS:
+brew install python@3.11 git
+
+# 2. Clone and enter directory
+git clone https://github.com/zachshallbetter/llamahome.git
+cd llamahome
+
+# 3. Run installation
+python3.11 scripts/install.py
+
+# 4. Configure
+cp .env.example .env
+# Edit .env with your preferred settings
+
+# 5. Start application
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+python -m src.interfaces.cli
+```
+
+Once in the CLI:
+```text
+> models         # List available models
+> download llama3.3-7b
+> chat           # Start chatting
+```
+
+## Development Setup
 
 ### Prerequisites
 
@@ -261,9 +295,11 @@ Additional resources:
 - Poetry
 - Git
 
-### Why Trunk?
+### Development Tools
 
-[Trunk](https://docs.trunk.io/cli) is used for code quality assurance and development workflow automation. In LlamaHome, we use it for:
+#### Trunk
+
+[Trunk](https://docs.trunk.io/cli) is used for code quality assurance and development workflow automation:
 
 1. **Code Quality**
    - Automated linting and formatting
@@ -280,20 +316,20 @@ Additional resources:
    - Local development automation
    - CI/CD integration
 
-To initialize Trunk in your environment:
+To initialize Trunk:
 ```bash
 trunk init
 ```
 
-### Why Poetry?
+#### Poetry
 
-[Poetry](https://python-poetry.org/docs/) is our chosen dependency management and packaging tool because it provides:
+[Poetry](https://python-poetry.org/docs/) manages dependencies and packaging:
 
 1. **Dependency Management**
    - Precise dependency resolution
    - Lock file for reproducible installations
    - Virtual environment management
-   - Easy dependency updates and conflict resolution
+   - Easy dependency updates
 
 2. **Project Packaging**
    - Standardized project structure
@@ -301,50 +337,38 @@ trunk init
    - Package publishing tools
    - PEP 517/518 compliance
 
-3. **Development Workflow**
-   - Isolated development environments
-   - Easy dependency addition/removal
-   - Script management
-   - Environment consistency across team members
-
-To set up Poetry in your environment:
+To set up Poetry:
 ```bash
 # Install Poetry
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Install project dependencies
+# Install dependencies
 poetry install
 ```
 
-This ensures consistent dependency management and packaging across all development environments.
+### Development Installation
 
-### Installation
+For development work:
 
 1. **Clone Repository**
-
    ```bash
    git clone https://github.com/zachshallbetter/llamahome.git
    cd llamahome
    ```
 
-2. **Setup Environment**
-
+2. **Setup Development Environment**
    ```bash
    # Install Poetry
    curl -sSL https://install.python-poetry.org | python3 -
-
+   
    # Install dependencies
-   make setup
-   ```
-
-3. **Initialize Trunk**
-
-   ```bash
+   poetry install
+   
+   # Initialize Trunk
    trunk init
    ```
 
-4. **Configure Environment**
-
+3. **Configure Environment**
    ```bash
    # Copy example configuration
    cp .env.example .env

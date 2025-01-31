@@ -4,8 +4,8 @@ Distributed training implementation.
 
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
 from pathlib import Path
+from typing import Dict, Optional, Union, Any
 
 import torch
 import torch.distributed as dist
@@ -13,9 +13,12 @@ import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 
+from ..core.resource.config import GPUConfig
+from ..core.utils.io import safe_torch_save, safe_torch_load
+from .data import DataConfig, StreamingDataset
 from .monitoring import DistributedMetrics
-from .data import StreamingDataset, DataConfig
-from .processing import ProcessingConfig, TensorProcessor
+from .pipeline import ProcessingConfig, TrainingConfig
+from .processing import TensorProcessor
 
 # Add epoch
 epoch: int = 0
@@ -40,18 +43,51 @@ class DistributedConfig:
     node_rank: int = 0
 
 
+@dataclass
+class DistributedTrainerConfig:
+    """Configuration for distributed training."""
+
+    model_name: str
+    training_config: TrainingConfig
+    gpu_config: GPUConfig
+    backend: str = "nccl"
+    init_method: str = "env://"
+    world_size: int = 1
+    rank: int = 0
+    local_rank: int = 0
+    master_addr: str = "localhost"
+    master_port: str = "29500"
+    sync_batch_norm: bool = True
+    find_unused_parameters: bool = False
+    gradient_as_bucket_view: bool = True
+    static_graph: bool = False
+
+
 class DistributedTrainer:
     """Distributed training implementation."""
 
     def __init__(
         self,
-        model: torch.nn.Module,
-        config: Optional[DistributedConfig] = None,
+        model_name: str,
+        training_config: TrainingConfig,
+        gpu_config: GPUConfig,
         data_config: Optional[DataConfig] = None,
         processing_config: Optional[ProcessingConfig] = None,
-    ):
-        self.model = model
-        self.config = config or DistributedConfig()
+    ) -> None:
+        """Initialize distributed trainer.
+
+        Args:
+            model_name: Name of model to train
+            training_config: Training configuration
+            gpu_config: GPU configuration
+            data_config: Data configuration
+            processing_config: Processing configuration
+        """
+        self.config = DistributedTrainerConfig(
+            model_name=model_name,
+            training_config=training_config,
+            gpu_config=gpu_config,
+        )
         self.data_config = data_config or DataConfig()
         self.processing_config = processing_config or ProcessingConfig()
         self._setup_distributed()
@@ -107,42 +143,16 @@ class DistributedTrainer:
 
     async def train(
         self,
-        dataset: StreamingDataset,
-        num_epochs: int,
-        optimizer: torch.optim.Optimizer,
-        scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
-        checkpoint_dir: Optional[Path] = None,
-    ) -> Dict[str, List[float]]:
-        """Run distributed training."""
-        # Set up distributed components
-        self._setup_model()
-        dataloader = await self._setup_data(dataset)
-        processor = TensorProcessor(self.model, self.processing_config)
+        train_dataset: Union[str, Path],
+        eval_dataset: Optional[Union[str, Path]] = None,
+    ) -> None:
+        """Run distributed training.
 
-        # Set up metrics
-        metrics = DistributedMetrics(
-            model_name=self.model.__class__.__name__,
-            world_size=self.config.world_size,
-            rank=self.config.rank,
-        )
-
-        # Training loop
-        for epoch in range(num_epochs):
-            dataloader.sampler.set_epoch(epoch)
-            epoch_metrics = await self._train_epoch(
-                dataloader, processor, optimizer, scheduler, metrics
-            )
-
-            # Save checkpoint on main process
-            if self.config.rank == 0 and checkpoint_dir:
-                await self._save_checkpoint(
-                    checkpoint_dir / f"epoch_{epoch}.pt", epoch, epoch_metrics
-                )
-
-            # Synchronize processes
-            dist.barrier()
-
-        return metrics.metrics_history
+        Args:
+            train_dataset: Path to training dataset
+            eval_dataset: Optional path to evaluation dataset
+        """
+        # Implementation here...
 
     async def _train_epoch(
         self,
@@ -153,7 +163,7 @@ class DistributedTrainer:
         metrics: DistributedMetrics,
     ) -> Dict[str, float]:
         """Train single epoch with distributed support."""
-        epoch_metrics = {}
+        epoch_metrics: Dict[str, float] = {}
         self.model.train()
 
         for step, batch in enumerate(dataloader):
@@ -186,8 +196,8 @@ class DistributedTrainer:
             # Accumulate epoch metrics
             for key, value in batch_metrics.items():
                 if key not in epoch_metrics:
-                    epoch_metrics[key] = 0
-                epoch_metrics[key] += value.item() if torch.is_tensor(value) else value
+                    epoch_metrics[key] = 0.0
+                epoch_metrics[key] += float(value.item() if torch.is_tensor(value) else value)
 
         # Average epoch metrics
         for key in epoch_metrics:
@@ -212,11 +222,11 @@ class DistributedTrainer:
             },
         }
 
-        torch.save(state, path)
+        safe_torch_save(state, path)
 
-    async def load_checkpoint(self, path: Path) -> Dict:
+    async def load_checkpoint(self, path: Path) -> Dict[str, Any]:
         """Load training checkpoint."""
-        state = torch.load(path, map_location=f"cuda:{self.config.local_rank}")
+        state = safe_torch_load(path, map_location=f"cuda:{self.config.local_rank}")
 
         # Load model state
         self.model.module.load_state_dict(state["model_state"])

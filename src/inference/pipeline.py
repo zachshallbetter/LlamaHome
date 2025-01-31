@@ -3,46 +3,47 @@ Inference pipeline implementation.
 """
 
 import asyncio
-from pathlib import Path
-from typing import Optional, List, Dict, Union
+from typing import Any, Dict, List
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from ..core.resource import ResourceManager
+from ..core.utils import MemoryTracker
 from .config import InferenceConfig
-from ..core import ResourceManager, MemoryTracker
 
 
 class InferencePipeline:
     """Main inference pipeline."""
 
-    def __init__(self, model_name: str, config: InferenceConfig, **kwargs):
-        """Initialize inference pipeline."""
-        self.model_name = model_name
+    def __init__(self, config: InferenceConfig) -> None:
+        """Initialize inference pipeline.
+
+        Args:
+            config: Inference configuration
+        """
         self.config = config
         self.resource_manager = ResourceManager(config.resource)
         self.memory_tracker = MemoryTracker()
-
-        # Initialize model and tokenizer
         self._initialize_model()
 
-    def _initialize_model(self):
+    def _initialize_model(self) -> None:
         """Initialize model and tokenizer with proper configuration."""
         # Set device
         if self.config.device is None:
             self.config.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Set dtype
-        dtype_map = {
+        dtype_map: Dict[str, torch.dtype] = {
             "float16": torch.float16,
             "float32": torch.float32,
             "bfloat16": torch.bfloat16,
         }
-        torch_dtype = dtype_map.get(self.config.dtype, torch.float16)
+        torch_dtype = dtype_map.get(str(self.config.dtype), torch.float16)
 
         # Load model
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
+            self.config.model_name,
             torch_dtype=torch_dtype,
             device_map="auto" if self.config.device == "cuda" else None,
             trust_remote_code=self.config.trust_remote_code,
@@ -53,15 +54,26 @@ class InferencePipeline:
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
+            self.config.model_name,
             padding_side="left",
             trust_remote_code=self.config.trust_remote_code,
             use_auth_token=self.config.use_auth_token,
             revision=self.config.model_revision,
         )
 
-    async def generate(self, prompt: str, **kwargs) -> str:
-        """Generate response for a given prompt."""
+    async def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate text from prompt.
+
+        Args:
+            prompt: Input prompt
+            **kwargs: Additional generation parameters
+
+        Returns:
+            Generated text response
+
+        Raises:
+            RuntimeError: If generation fails
+        """
         try:
             # Prepare inputs
             inputs = self.tokenizer(

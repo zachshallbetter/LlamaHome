@@ -3,20 +3,20 @@ Tensor processing implementation for training pipeline.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, List
 
 import torch
 import torch.nn.functional as F
-from torch import nn
 from torch.cuda.amp import autocast
+from transformers import PreTrainedModel
 
+from .pipeline import TrainingError
 
 
 @dataclass
-
-
 class ProcessingConfig:
     """Processing configuration."""
+
     mixed_precision: bool = True
     gradient_checkpointing: bool = True
     compile_mode: str = "reduce-overhead"
@@ -32,17 +32,11 @@ class ProcessingConfig:
 class TensorProcessor:
     """Memory-efficient tensor processing."""
 
-
-    def __init__(
-        self,
-        model: nn.Module,
-        config: Optional[ProcessingConfig] = None
-    ):
+    def __init__(self, model: PreTrainedModel, config: ProcessingConfig) -> None:
         self.model = model
-        self.config = config or ProcessingConfig()
+        self.config = config
         self._setup_processing()
         self._setup_memory_optimization()
-
 
     def _setup_memory_optimization(self) -> None:
         """Set up memory optimizations."""
@@ -56,25 +50,23 @@ class TensorProcessor:
         if self.config.cpu_offload:
             self._setup_cpu_offload()
 
-
     def _enable_memory_efficient_attention(self) -> None:
         """Enable memory efficient attention mechanism."""
         if hasattr(self.model, "config"):
             self.model.config.use_memory_efficient_attention = True
             self.model.config.use_scaled_dot_product_attention = True
 
-
     def _setup_cpu_offload(self) -> None:
         """Set up CPU offloading for memory optimization."""
         if hasattr(self.model, "to"):
-            self.model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.model_device = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
             self.offload_device = torch.device("cpu")
             self.model.to(self.model_device)
 
     async def process_batch(
-        self,
-        batch: Dict[str, torch.Tensor],
-        is_training: bool = True
+        self, batch: Dict[str, torch.Tensor], is_training: bool = True
     ) -> Dict[str, torch.Tensor]:
         """Process batch with memory optimization."""
         if self.config.dynamic_batch_size:
@@ -85,8 +77,7 @@ class TensorProcessor:
         return await self._process_inference_batch(batch)
 
     async def _adjust_batch_size(
-        self,
-        batch: Dict[str, torch.Tensor]
+        self, batch: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Dynamically adjust batch size based on memory."""
         if not torch.cuda.is_available():
@@ -101,18 +92,14 @@ class TensorProcessor:
                 current_batch_size = next(iter(batch.values())).size(0)
                 new_batch_size = max(1, current_batch_size // 2)
 
-                return {
-                    key: tensor[:new_batch_size]
-                    for key, tensor in batch.items()
-                }
+                return {key: tensor[:new_batch_size] for key, tensor in batch.items()}
         except Exception:
             pass  # Fall back to original batch on error
 
         return batch
 
     async def _process_training_batch(
-        self,
-        batch: Dict[str, torch.Tensor]
+        self, batch: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Process training batch with memory optimization."""
         accumulated_loss = 0
@@ -125,13 +112,11 @@ class TensorProcessor:
             # Process with appropriate precision
             if self.config.mixed_precision:
                 sub_results = await self._process_mixed_precision(
-                    sub_batch,
-                    is_training=True
+                    sub_batch, is_training=True
                 )
             else:
                 sub_results = await self._process_full_precision(
-                    sub_batch,
-                    is_training=True
+                    sub_batch, is_training=True
                 )
 
             # Scale loss for gradient accumulation
@@ -155,31 +140,22 @@ class TensorProcessor:
             **{
                 key: value / len(sub_batches)
                 for key, value in accumulated_metrics.items()
-            }
+            },
         }
 
         return results
 
     async def _process_inference_batch(
-        self,
-        batch: Dict[str, torch.Tensor]
+        self, batch: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Process inference batch."""
         with torch.no_grad():
             if self.config.mixed_precision:
-                return await self._process_mixed_precision(
-                    batch,
-                    is_training=False
-                )
-            return await self._process_full_precision(
-                batch,
-                is_training=False
-            )
+                return await self._process_mixed_precision(batch, is_training=False)
+            return await self._process_full_precision(batch, is_training=False)
 
     async def _process_mixed_precision(
-        self,
-        batch: Dict[str, torch.Tensor],
-        is_training: bool
+        self, batch: Dict[str, torch.Tensor], is_training: bool
     ) -> Dict[str, torch.Tensor]:
         """Process batch with mixed precision and memory optimization."""
         with autocast():
@@ -187,24 +163,19 @@ class TensorProcessor:
 
             if is_training and self.config.gradient_clipping:
                 torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(),
-                    self.config.gradient_clipping
+                    self.model.parameters(), self.config.gradient_clipping
                 )
 
             return outputs
 
     async def _process_full_precision(
-        self,
-        batch: Dict[str, torch.Tensor],
-        is_training: bool
+        self, batch: Dict[str, torch.Tensor], is_training: bool
     ) -> Dict[str, torch.Tensor]:
         """Process batch with full precision."""
         return await self._forward_pass(batch, is_training)
 
     async def _forward_pass(
-        self,
-        batch: Dict[str, torch.Tensor],
-        is_training: bool
+        self, batch: Dict[str, torch.Tensor], is_training: bool
     ) -> Dict[str, torch.Tensor]:
         """Execute memory-efficient forward pass."""
         try:
@@ -212,7 +183,9 @@ class TensorProcessor:
             if self.config.cpu_offload:
                 batch = self._move_to_device(batch, self.model_device)
             else:
-                batch = self._move_to_device(batch, next(self.model.parameters()).device)
+                batch = self._move_to_device(
+                    batch, next(self.model.parameters()).device
+                )
 
             # Forward pass with memory tracking
             outputs = self.model(**batch)
@@ -227,25 +200,18 @@ class TensorProcessor:
             return metrics
 
         except Exception as e:
-            raise ProcessingError(f"Forward pass failed: {e}") from e
-
+            raise TrainingError(f"Forward pass failed: {e}") from e
 
     def _move_to_device(
-        self,
-        batch: Dict[str, torch.Tensor],
-        device: torch.device
+        self, batch: Dict[str, torch.Tensor], device: torch.device
     ) -> Dict[str, torch.Tensor]:
         """Move batch to device with memory optimization."""
         return {
-            key: tensor.to(device, non_blocking=True)
-            for key, tensor in batch.items()
+            key: tensor.to(device, non_blocking=True) for key, tensor in batch.items()
         }
 
-
     def _optimize_memory_usage(
-        self,
-        outputs: Dict[str, torch.Tensor],
-        metrics: Dict[str, torch.Tensor]
+        self, outputs: Dict[str, torch.Tensor], metrics: Dict[str, torch.Tensor]
     ) -> None:
         """Optimize memory usage during training."""
         # Move unnecessary tensors to CPU
@@ -257,10 +223,8 @@ class TensorProcessor:
             if key not in ["loss"]:
                 metrics[key] = tensor.to(self.offload_device)
 
-
     def _split_batch(
-        self,
-        batch: Dict[str, torch.Tensor]
+        self, batch: Dict[str, torch.Tensor]
     ) -> List[Dict[str, torch.Tensor]]:
         """Split batch into sub-batches if needed."""
         batch_size = next(iter(batch.values())).size(0)
@@ -276,18 +240,14 @@ class TensorProcessor:
             end_idx = min((i + 1) * self.config.max_batch_size, batch_size)
 
             sub_batch = {
-                key: tensor[start_idx:end_idx]
-                for key, tensor in batch.items()
+                key: tensor[start_idx:end_idx] for key, tensor in batch.items()
             }
             sub_batches.append(sub_batch)
 
         return sub_batches
 
-
     def _calculate_metrics(
-        self,
-        outputs: Dict[str, torch.Tensor],
-        batch: Dict[str, torch.Tensor]
+        self, outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
         """Calculate training metrics."""
         metrics = {}
@@ -299,44 +259,40 @@ class TensorProcessor:
         # Perplexity
         if "logits" in outputs and "labels" in batch:
             metrics["perplexity"] = self._calculate_perplexity(
-                outputs.logits,
-                batch["labels"]
+                outputs.logits, batch["labels"]
             )
 
         # Accuracy
         if "logits" in outputs and "labels" in batch:
             metrics["accuracy"] = self._calculate_accuracy(
-                outputs.logits,
-                batch["labels"]
+                outputs.logits, batch["labels"]
             )
 
         return metrics
 
-
     def _calculate_perplexity(
-        self,
-        logits: torch.Tensor,
-        labels: torch.Tensor
+        self, logits: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
         """Calculate perplexity metric."""
-        loss = F.cross_entropy(
-            logits.view(-1, logits.size(-1)),
-            labels.view(-1)
-        )
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1))
         return torch.exp(loss)
 
-
     def _calculate_accuracy(
-        self,
-        logits: torch.Tensor,
-        labels: torch.Tensor
+        self, logits: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
         """Calculate accuracy metric."""
         predictions = logits.argmax(dim=-1)
         correct = (predictions == labels).float()
         return correct.mean()
 
+    def _setup_processing(self) -> None:
+        """Set up processing configuration."""
+        if self.config.gradient_checkpointing:
+            self.model.gradient_checkpointing_enable()
 
-class ProcessingError(Exception):
-    """Processing error."""
-    pass
+        if hasattr(self.model, "config"):
+            self.model.config.use_cache = False
+
+    def prepare_inputs(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """Prepare model inputs from batch."""
+        return self._move_to_device(batch, next(self.model.parameters()).device)

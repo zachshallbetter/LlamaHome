@@ -43,10 +43,7 @@ setup-dirs:
 .PHONY: setup-env
 setup-env:
 	@echo "Setting up Python environment..."
-	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
-	@$(BIN)/pip install --upgrade pip
-	@$(BIN)/pip install poetry
-	@$(BIN)/poetry install
+	@python3 scripts/install.py
 	@echo "Python environment ready"
 
 # Configuration setup

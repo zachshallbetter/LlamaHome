@@ -1,9 +1,12 @@
-*out
-*logs
-*actions
-*notifications
-*tools
-plugins
+# Trunk-specific files
+out/
+logs/
+actions/
+notifications/
+tools/
+plugins/
 user_trunk.yaml
-user.yaml
-tmp
+
+# Keep only essential files
+!.gitignore
+!trunk.yaml

@@ -3,59 +3,38 @@ Example script demonstrating memory management in LlamaHome.
 """
 
 import asyncio
-from pathlib import Path
 
-import torch
-from src.core import MemoryConfig, ResourceConfig, ResourceManager, MemoryTracker
+from src.core.resource.config import MemoryConfig, MonitorConfig
+from src.core.resource.monitor import PerformanceMonitor
 
 
-async def main():
-    """Run memory management example."""
-    # Configuration
-    config = ResourceConfig(
-        memory=MemoryConfig(
-            gpu_reserved=1024,  # MB
-            cpu_reserved=2048,  # MB
-            swap_threshold=0.8,
-            cleanup_threshold=0.9,
-        ),
-        gpu_memory_fraction=0.9,
-        cpu_usage_threshold=0.8,
-        io_queue_size=1000,
+async def manage_memory() -> None:
+    """Demonstrate memory management."""
+    # Configure memory management
+    memory_config = MemoryConfig(
+        cache_size="4GB", min_free="2GB", cleanup_margin=0.1, check_interval=1.0
     )
 
-    # Initialize resource manager
-    manager = ResourceManager(config)
-    tracker = MemoryTracker()
-
-    print("Starting memory management example...")
+    # Initialize monitor
+    monitor = PerformanceMonitor(MonitorConfig())
 
     try:
-        # Monitor initial state
-        print("\nInitial memory state:")
-        print(tracker.get_memory_stats())
+        while True:
+            # Check memory usage
+            metrics = await monitor.check_resources()
+            memory_percent = metrics["memory_percent"]
 
-        # Demonstrate memory optimization
-        with manager.optimize():
-            # Simulate memory-intensive operation
-            large_tensor = torch.randn(1000, 1000, 1000)
-            print("\nAfter allocation:")
-            print(tracker.get_memory_stats())
+            print(f"\nMemory Usage: {memory_percent:.1f}%")
 
-            # Force garbage collection
-            del large_tensor
-            await manager.cleanup()
-            print("\nAfter cleanup:")
-            print(tracker.get_memory_stats())
+            # Check if cleanup needed
+            if memory_percent > (1 - memory_config.cleanup_margin) * 100:
+                print("Memory cleanup recommended!")
 
-        print("\nFinal memory state:")
-        print(tracker.get_memory_stats())
+            await asyncio.sleep(memory_config.check_interval)
 
-    except Exception as e:
-        print(f"Memory management failed: {e}")
-        raise
+    except KeyboardInterrupt:
+        print("\nMonitoring stopped")
 
 
 if __name__ == "__main__":
-    # Run example
-    asyncio.run(main())
+    asyncio.run(manage_memory())

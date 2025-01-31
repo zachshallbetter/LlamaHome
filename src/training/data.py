@@ -6,17 +6,19 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 from transformers import PreTrainedTokenizer
 
 from .monitoring import MemoryTracker
-@dataclass
 
+
+@dataclass
 class DataConfig:
     """Data loading configuration."""
+
     batch_size: int = 32
     max_length: int = 512
     num_workers: int = 4
@@ -29,9 +31,9 @@ class DataConfig:
     stream_buffer_size: int = 1000
     memory_limit: Optional[int] = None  # In MB
 
-class StreamingDataset(Dataset):
-    """Memory-efficient streaming dataset."""
 
+class ConversationDataset(Dataset):
+    """Memory-efficient streaming dataset."""
 
     def __init__(
         self,
@@ -39,19 +41,18 @@ class StreamingDataset(Dataset):
         tokenizer: PreTrainedTokenizer,
         max_length: int = 512,
         buffer_size: int = 1000,
-        memory_limit: Optional[int] = None
+        memory_limit: Optional[int] = None,
     ):
         self.data_path = Path(data_path)
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.buffer_size = buffer_size
         self.memory_limit = memory_limit
-        self._buffer = []
-        self._file_iter = None
+        self._buffer: List[Dict[str, torch.Tensor]] = []
+        self._file_iter: Optional[Iterator[str]] = None
         self._total_size = self._count_samples()
         self._setup_streaming()
         self.memory_tracker = MemoryTracker()
-
 
     def _count_samples(self) -> int:
         """Count total samples without loading into memory."""
@@ -61,37 +62,32 @@ class StreamingDataset(Dataset):
                 count += 1
         return count
 
-
     def _setup_streaming(self) -> None:
         """Set up file streaming."""
         self._file = self.data_path.open()
         self._file_iter = iter(self._file)
         self._refill_buffer()
 
-
     def _refill_buffer(self) -> None:
         """Refill buffer with next batch of samples."""
-        while len(self._buffer) < self.buffer_size:
-            try:
-                line = next(self._file_iter)
-                sample = json.loads(line)
-                self._buffer.append(sample)
-            except StopIteration:
-                self._file.seek(0)
-                self._file_iter = iter(self._file)
-                if not self._buffer:
-                    raise RuntimeError("Empty dataset")
-                break
+        if self._file_iter is None:
+            raise RuntimeError("File iterator not initialized")
 
-            if self.memory_limit:
-                current_memory = sum(sys.getsizeof(s) for s in self._buffer)
-                if current_memory > self.memory_limit * 1024 * 1024:  # Convert MB to bytes
-                    break
+        try:
+            line = next(self._file_iter)
+        except StopIteration as e:
+            raise RuntimeError("Empty dataset") from e
 
+        sample = json.loads(line)
+        self._buffer.append(sample)
+
+        if self.memory_limit:
+            current_memory = sum(sys.getsizeof(s) for s in self._buffer)
+            if current_memory > self.memory_limit * 1024 * 1024:  # Convert MB to bytes
+                raise RuntimeError("Memory limit exceeded")
 
     def __len__(self) -> int:
         return self._total_size
-
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """Get tokenized conversation with memory-efficient streaming."""
@@ -107,7 +103,7 @@ class StreamingDataset(Dataset):
             max_length=self.max_length,
             padding="max_length",
             truncation=True,
-            return_tensors="pt"
+            return_tensors="pt",
         )
 
         # Prepare labels efficiently
@@ -117,11 +113,10 @@ class StreamingDataset(Dataset):
         return {
             "input_ids": encoding["input_ids"].squeeze(0),
             "attention_mask": encoding["attention_mask"].squeeze(0),
-            "labels": labels.squeeze(0)
+            "labels": labels.squeeze(0),
         }
 
-
-    def _format_conversation(self, conversation: Dict) -> str:
+    def _format_conversation(self, conversation: Dict[str, List[Dict[str, str]]]) -> str:
         """Format conversation for model input."""
         formatted = []
 
@@ -142,34 +137,29 @@ class StreamingDataset(Dataset):
 class DataManager:
     """Data management for training pipeline."""
 
-
     def __init__(
-        self,
-        tokenizer: PreTrainedTokenizer,
-        config: Optional[DataConfig] = None
-    ):
+        self, tokenizer: PreTrainedTokenizer, config: Optional[DataConfig] = None
+    ) -> None:
         self.tokenizer = tokenizer
         self.config = config or DataConfig()
         self._setup_cache()
         self._setup_memory_tracking()
-
 
     def _setup_memory_tracking(self) -> None:
         """Set up memory usage tracking."""
         self.memory_tracker = MemoryTracker()
 
     async def load_data(
-        self,
-        data_path: Union[str, Path]
+        self, data_path: Union[str, Path]
     ) -> Tuple[DataLoader, Optional[DataLoader]]:
         """Load and prepare training data with memory optimization."""
         # Create streaming datasets
-        train_dataset = StreamingDataset(
+        train_dataset = ConversationDataset(
             data_path,
             self.tokenizer,
             self.config.max_length,
             self.config.stream_buffer_size,
-            self.config.memory_limit
+            self.config.memory_limit,
         )
 
         # Split validation if needed
@@ -177,28 +167,23 @@ class DataManager:
         if self.config.validation_split > 0:
             val_size = int(len(train_dataset) * self.config.validation_split)
             train_size = len(train_dataset) - val_size
-            train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+            train_dataset, val_dataset = random_split(
+                train_dataset, [train_size, val_size]
+            )
 
         # Create optimized data loaders
         train_loader = self._create_optimized_loader(
-            train_dataset,
-            shuffle=self.config.shuffle
+            train_dataset, shuffle=self.config.shuffle
         )
 
         val_loader = None
         if val_dataset:
-            val_loader = self._create_optimized_loader(
-                val_dataset,
-                shuffle=False
-            )
+            val_loader = self._create_optimized_loader(val_dataset, shuffle=False)
 
         return train_loader, val_loader
 
-
     def _create_optimized_loader(
-        self,
-        dataset: Dataset,
-        shuffle: bool = True
+        self, dataset: Dataset, shuffle: bool = True
     ) -> DataLoader:
         """Create memory-optimized data loader."""
         return DataLoader(
@@ -210,18 +195,20 @@ class DataManager:
             persistent_workers=self.config.persistent_workers,
             prefetch_factor=self.config.prefetch_factor,
             generator=torch.Generator(),
-            worker_init_fn=self._worker_init_fn
+            worker_init_fn=self._worker_init_fn,
         )
-
 
     def _worker_init_fn(self, worker_id: int) -> None:
         """Initialize worker with memory limits."""
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is not None:
             dataset = worker_info.dataset
-            if hasattr(dataset, 'memory_limit'):
-                dataset.memory_limit = self.config.memory_limit // worker_info.num_workers if self.config.memory_limit else None
-
+            if hasattr(dataset, "memory_limit"):
+                dataset.memory_limit = (
+                    self.config.memory_limit // worker_info.num_workers
+                    if self.config.memory_limit
+                    else None
+                )
 
     def _setup_cache(self) -> None:
         """Set up data caching."""
@@ -229,10 +216,7 @@ class DataManager:
             self.cache_dir = Path(self.config.cache_dir)
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    async def _load_raw_data(
-        self,
-        data_path: Union[str, Path]
-    ) -> List[Dict]:
+    async def _load_raw_data(self, data_path: Union[str, Path]) -> List[Dict[str, List[Dict[str, str]]]]:
         """Load raw data from file."""
         data_path = Path(data_path)
 
@@ -264,8 +248,7 @@ class DataManager:
         except Exception as e:
             raise DataError(f"Failed to load data: {e}") from e
 
-
-    def _validate_data(self, data: List[Dict]) -> None:
+    def _validate_data(self, data: List[Dict[str, List[Dict[str, str]]]]) -> None:
         """Validate data format."""
         for item in data:
             if "messages" not in item:
@@ -279,11 +262,9 @@ class DataManager:
                 if message["role"] not in ["system", "user", "assistant"]:
                     raise DataError(f"Invalid role: {message['role']}")
 
-
     def _split_data(
-        self,
-        data: List[Dict]
-    ) -> Tuple[List[Dict], Optional[List[Dict]]]:
+        self, data: List[Dict[str, List[Dict[str, str]]]]
+    ) -> Tuple[List[Dict[str, List[Dict[str, str]]]], Optional[List[Dict[str, List[Dict[str, str]]]]]]:
         """Split data into train and validation sets."""
         if not self.config.validation_split:
             return data, None
@@ -291,22 +272,32 @@ class DataManager:
         split_idx = int(len(data) * (1 - self.config.validation_split))
         return data[:split_idx], data[split_idx:]
 
-
-    def _create_loader(
-        self,
-        dataset: Dataset,
-        shuffle: bool = True
-    ) -> DataLoader:
+    def _create_loader(self, dataset: Dataset, shuffle: bool = True) -> DataLoader:
         """Create data loader with configuration."""
         return DataLoader(
             dataset,
             batch_size=self.config.batch_size,
             num_workers=self.config.num_workers,
             shuffle=shuffle,
-            pin_memory=True
+            pin_memory=True,
         )
+
+    async def prepare_dataset(self, data_path: Union[str, Path]) -> Dataset:
+        """Prepare dataset from path."""
+        if isinstance(data_path, str):
+            data_path = Path(data_path)
+
+        dataset = ConversationDataset(
+            data_path=data_path,
+            tokenizer=self.tokenizer,
+            max_length=self.config.max_length,
+            buffer_size=self.config.stream_buffer_size,
+            memory_limit=self.config.memory_limit,
+        )
+        return dataset
 
 
 class DataError(Exception):
     """Data loading error."""
+
     pass

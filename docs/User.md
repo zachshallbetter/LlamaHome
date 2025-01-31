@@ -26,44 +26,119 @@ LlamaHome is a user-friendly interface for interacting with large language model
    - CUDA-capable GPU (recommended)
    ```
 
-2. **Quick Install**
+2. **Install Dependencies**
+
+   ```bash
+   # Install Python 3.11
+   # On Ubuntu/Debian:
+   sudo apt update
+   sudo apt install python3.11 python3.11-venv
+
+   # On macOS with Homebrew:
+   brew install python@3.11
+
+   # Install Trunk CLI
+   curl https://get.trunk.io -fsSL | bash
+
+   # Install Git
+   # Ubuntu/Debian:
+   sudo apt install git
+   # macOS:
+   brew install git
+   ```
+
+3. **Clone and Setup**
 
    ```bash
    # Clone repository
    git clone https://github.com/zachshallbetter/llamahome.git
    cd llamahome
-   
-   # Install dependencies
-   make setup
+
+   # Run installation script
+   python3.11 scripts/install.py
    ```
 
-3. **Initial Configuration**
+### GPU Support
+
+CUDA acceleration requires:
+- NVIDIA GPU with compute capability 3.5+
+- CUDA Toolkit 11.7+
+- Proper CUDA_HOME environment variable setup
+
+To enable CUDA support:
+
+1. Install NVIDIA CUDA Toolkit:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt install nvidia-cuda-toolkit
+   
+   # Or download from NVIDIA website
+   # https://developer.nvidia.com/cuda-downloads
+   ```
+
+2. Set CUDA_HOME environment variable:
+   ```bash
+   # Add to your .bashrc or .zshrc
+   export CUDA_HOME=/usr/local/cuda  # Adjust path as needed
+   export PATH=$CUDA_HOME/bin:$PATH
+   export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+   ```
+
+3. Verify installation:
+   ```bash
+   nvcc --version
+   python -c "import torch; print(torch.cuda.is_available())"
+   ```
+
+On macOS or systems without CUDA, the installation will skip CUDA-specific features and run in CPU-only mode.
+
+### First Run
+
+1. **Configure Environment**
 
    ```bash
-   # Copy example configuration
+   # Copy and edit configuration
    cp .env.example .env
-   
-   # Edit configuration
    nano .env
+
+   # Minimum required settings:
+   MODEL_CACHE_DIR=.cache/models
+   CUDA_VISIBLE_DEVICES=0  # Set to -1 for CPU only
    ```
 
-### First Steps
-
-1. **Start CLI**
+2. **Start Application**
 
    ```bash
+   # Activate virtual environment
+   source .venv/bin/activate  # On Unix/macOS
+   # or
+   .venv\Scripts\activate  # On Windows
+
+   # Start CLI interface
+   python -m src.interfaces.cli
+
+   # Or use make command
    make run
    ```
 
-2. **Basic Commands**
+3. **Quick Test**
 
-   ```text
-   help           Show available commands
-   models         List available models
-   download       Download a model
-   chat           Start chat session
-   quit           Exit application
+   ```bash
+   # In the CLI interface:
+   > models  # List available models
+   > download llama3.3-7b  # Download base model
+   > chat  # Start chat session
    ```
+
+### Basic Commands
+
+```text
+help           Show available commands
+models         List available models
+download       Download a model
+chat           Start chat session
+quit           Exit application
+```
 
 ## Basic Usage
 
