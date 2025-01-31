@@ -1,0 +1,21 @@
+# Resource Configuration Schema
+
+[gpu]
+memory_fraction = { type = "float", min = 0.0, max = 1.0, default = 0.9 }
+allow_growth = { type = "bool", default = true }
+per_process_memory = { type = "str", default = "12GB" }
+enable_tf32 = { type = "bool", default = true }
+cuda_devices = { type = "list", element_type = "int", required = false }
+
+[monitor]
+check_interval = { type = "float", min = 0.0, default = 1.0 }
+memory_threshold = { type = "float", min = 0.0, max = 1.0, default = 0.9 }
+cpu_threshold = { type = "float", min = 0.0, max = 1.0, default = 0.8 }
+gpu_temp_threshold = { type = "float", min = 0.0, default = 80.0 }
+alert_on_threshold = { type = "bool", default = true }
+collect_metrics = { type = "bool", default = true }
+
+[resource]
+max_workers = { type = "int", min = 1, default = 4 }
+io_queue_size = { type = "int", min = 1, default = 1000 }
+pin_memory = { type = "bool", default = true } 

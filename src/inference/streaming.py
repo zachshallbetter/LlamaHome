@@ -14,7 +14,7 @@ class StreamingInference:
 
     def __init__(self, config: InferenceConfig) -> None:
         """Initialize streaming inference.
-        
+
         Args:
             config: Inference configuration
         """
@@ -23,10 +23,10 @@ class StreamingInference:
 
     async def generate_stream(self, text: str) -> AsyncIterator[str]:
         """Generate streaming response.
-        
+
         Args:
             text: Input text
-            
+
         Yields:
             Generated tokens
         """

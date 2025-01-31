@@ -1,115 +1,229 @@
-# LlamaHome Configuration System
+# Configuration System
 
-The LlamaHome configuration system provides a flexible, hierarchical approach to managing settings across the application.
+LlamaHome uses a comprehensive configuration system based on TOML files and Pydantic models for validation. The system provides type safety, validation, and flexibility while maintaining ease of use.
 
-## Directory Structure
+## Configuration Structure
+
+The configuration system is organized into several components:
 
 ```
-.
-├── .data/              # Root data directory
-│   ├── models/         # Model files
-│   ├── cache/         # Cache storage
-│   ├── training/      # Training data and outputs
-│   ├── telemetry/     # System telemetry data
-│   ├── memory/        # Memory storage
-│   ├── logs/          # Log files
-│   ├── local/         # Local model storage
-│   └── temp/          # Temporary files
-├── config/            # Configuration files
-│   ├── model_config.toml       # Model-specific settings
-│   ├── training_config.toml    # Training settings
-│   ├── distributed_config.toml # Distributed training config
-│   ├── system_commands.toml    # System command settings
-│   ├── code_check.toml        # Code checking rules
-│   └── llamahome.types.ini    # Type checking configuration
-└── .env               # Environment variables
+config/
+├── schemas/                    # Configuration schemas
+│   ├── model_config.toml      # Model configuration schema
+│   ├── training_config.toml   # Training configuration schema
+│   ├── inference_config.toml  # Inference configuration schema
+│   ├── resource_config.toml   # Resource configuration schema
+│   ├── metrics_config.toml    # Metrics configuration schema
+│   └── monitoring_config.toml # Monitoring configuration schema
+├── model_config.toml          # Default model configuration
+├── training_config.toml       # Default training configuration
+├── inference_config.toml      # Default inference configuration
+├── resource_config.toml       # Default resource configuration
+├── metrics_config.toml        # Default metrics configuration
+└── monitoring_config.toml     # Default monitoring configuration
 ```
 
-## Configuration Sources
+## Configuration Components
 
-The configuration system uses multiple sources with the following precedence (highest to lowest):
+### Model Configuration
+Controls model-specific settings:
+```toml
+[model]
+name = "llama"
+family = "llama"
+size = "13b"
+variant = "chat"
+revision = "main"
+quantization = "none"
 
-1. Environment Variables
-2. .env File
-3. TOML Configuration Files
-4. Default Values
+[resources]
+min_gpu_memory = 16
+max_batch_size = 32
+max_sequence_length = 32768
+```
 
-## Configuration Classes
+### Resource Configuration
+Manages system resources:
+```toml
+[gpu]
+memory_fraction = 0.9
+allow_growth = true
+per_process_memory = "12GB"
+enable_tf32 = true
 
-### PathConfig
-Manages the standard directory structure for data storage.
+[monitor]
+check_interval = 1.0
+memory_threshold = 0.9
+cpu_threshold = 0.8
+```
 
-### ConfigManager
-Central configuration manager that loads and provides access to all configuration sources.
+### Metrics Configuration
+Controls metrics collection:
+```toml
+[storage]
+storage_type = "local"
+retention_days = 30
+compression = true
+export_format = "parquet"
 
-### ModelConfig
-Handles model-specific configuration including:
-- Model paths and cache locations
-- Model parameters and settings
-- H2O integration settings
-- GPU memory requirements
-- Model-specific optimizations
+[metrics]
+enabled_metrics = ["cpu", "memory", "gpu", "throughput"]
+aggregation_interval = 60
+```
 
-## Environment Variables
+### Monitoring Configuration
+Manages system monitoring:
+```toml
+[logging]
+log_interval = 60
+save_interval = 600
+log_level = "INFO"
 
-Key environment variables include:
+[visualization]
+tensorboard = true
+progress_bars = true
+plot_metrics = true
 
+[alerts]
+enabled = true
+alert_on_error = true
+notification_backend = "console"
+```
+
+## Configuration Loading
+
+Configurations can be loaded in several ways:
+
+1. **From Files**:
+```python
+from src.core.models.config import ModelConfig
+
+# Load from default location
+config = await ModelConfig.load()
+
+# Load from specific directory
+config = await ModelConfig.load("path/to/config")
+```
+
+2. **From Environment**:
+Environment variables can override configuration values. Variables should be prefixed with `LLAMAHOME_`:
 ```bash
-# Core Settings
-DATA_ROOT=./.data              # Root data directory
-LLAMAHOME_MODEL_PATH=./.data/models  # Model storage
-MODEL_CACHE_DIR=./.data/cache/models # Model cache
-
-# Model Settings
-DEFAULT_MODEL_NAME=llama3.3-13b
-USE_LOCAL_MODELS=true
-LOCAL_MODELS_PATH=./.data/local
-
-# Llama Settings
-LLAMA_MODEL_SIZE=13b
-LLAMA_MODEL_VARIANT=chat
-LLAMA_MODEL_QUANT=f16
+export LLAMAHOME_MODEL_NAME="llama"
+export LLAMAHOME_MODEL_SIZE="13b"
+export LLAMAHOME_GPU_MEMORY_FRACTION="0.8"
 ```
 
-## TOML Configuration
+3. **Programmatically**:
+```python
+config = ModelConfig(
+    model=ModelSpecs(
+        name="llama",
+        family="llama",
+        size="13b"
+    ),
+    resources=ResourceSpecs(
+        min_gpu_memory=16,
+        max_batch_size=32
+    )
+)
+```
 
-### Model Configuration (model_config.toml)
-Defines model-specific parameters, requirements, and capabilities.
+## Configuration Validation
 
-### Training Configuration (training_config.toml)
-Specifies training pipeline settings, optimization parameters, and resource management.
+All configurations are validated using Pydantic models and schemas:
 
-### Distributed Configuration (distributed_config.toml)
-Controls distributed training setup, communication, and resource allocation.
+1. **Type Validation**:
+```python
+class ResourceSpecs(BaseConfig):
+    min_gpu_memory: int = Field(8, ge=8)
+    max_batch_size: int = Field(32, ge=1)
+    max_sequence_length: int = Field(32768, ge=512)
+```
 
-## Usage
+2. **Value Constraints**:
+```python
+class MonitorConfig(BaseConfig):
+    check_interval: float = Field(1.0, gt=0.0)
+    memory_threshold: float = Field(0.9, ge=0.0, le=1.0)
+    cpu_threshold: float = Field(0.8, ge=0.0, le=1.0)
+```
+
+3. **Schema Validation**:
+```toml
+# In schema file
+[gpu]
+memory_fraction = { type = "float", min = 0.0, max = 1.0, default = 0.9 }
+allow_growth = { type = "bool", default = true }
+```
+
+## Best Practices
+
+1. **Configuration Organization**:
+   - Keep related settings together in appropriate sections
+   - Use descriptive names for configuration keys
+   - Include comments for non-obvious settings
+
+2. **Environment Variables**:
+   - Use environment variables for sensitive information
+   - Use environment variables for deployment-specific settings
+   - Follow the `LLAMAHOME_` prefix convention
+
+3. **Validation**:
+   - Always define constraints for numeric values
+   - Use enums or literals for fixed choices
+   - Include meaningful error messages
+
+4. **Documentation**:
+   - Document all configuration options
+   - Include example configurations
+   - Explain the impact of each setting
+
+## Configuration Updates
+
+Configurations can be updated at runtime:
 
 ```python
-from src.core.config import ConfigManager, ModelConfig
+# Update specific values
+await config_manager.update_config("resources", {
+    "gpu_memory_fraction": 0.8
+})
 
-# Get configuration manager
-config_manager = ConfigManager()
-
-# Access model configuration
-model_config = ModelConfig()
-
-# Get paths
-models_path = config_manager.paths.get("models")
-cache_path = config_manager.paths.get("cache")
+# Merge configurations
+await config_manager.merge_configs("model", other_config)
 ```
 
-## Extending the Configuration
+## Error Handling
 
-To add new configuration options:
+The configuration system provides detailed error messages:
 
-1. Add settings to appropriate TOML file
-2. Update environment variables if needed
-3. Create or update corresponding configuration class
-4. Update documentation
+```python
+try:
+    config = await ModelConfig.load()
+except ConfigError as e:
+    print(f"Configuration error: {e}")
+    # Handle error appropriately
+```
 
-## Security
+## Adding New Configurations
 
-- Environment variables take precedence for sensitive settings
-- Configuration files should not contain secrets
-- Use .env for local development settings
-- Production settings should be managed through environment variables
+To add a new configuration component:
+
+1. Create a schema file in `config/schemas/`
+2. Create a default configuration file in `config/`
+3. Define Pydantic models for validation
+4. Add loading and validation logic
+5. Add tests for the new configuration
+
+Example:
+```python
+class NewConfig(BaseConfig):
+    """New configuration component."""
+    setting_1: str
+    setting_2: int = Field(42, ge=0)
+    
+    @classmethod
+    async def load(cls, config_dir: str = "config") -> 'NewConfig':
+        from ..config.manager import ConfigManager
+        manager = ConfigManager(config_dir)
+        return await manager.load_config(cls, "new", "new_config.toml")
+```

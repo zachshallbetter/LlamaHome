@@ -2,10 +2,22 @@
 Configuration classes for inference.
 """
 
+import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional, List
+from pathlib import Path
 
+import torch
+from pydantic import Field
+
+from ..core.config import ConfigManager
 from ..core.resource import GPUConfig
+from ..core.schemas import InferenceSchema
+from ..core.config.base import (
+    BaseConfig,
+    ResourceConfig,
+    ProcessingConfig
+)
 
 
 @dataclass
@@ -46,19 +58,89 @@ class ResourceConfig:
     timeout: float = 30.0  # seconds
 
 
-@dataclass
-class InferenceConfig:
-    """Inference configuration."""
-
+class ModelConfig(BaseConfig):
+    """Model-specific configuration."""
     model_name: str
-    model_path: Optional[str] = None
-    gpu_config: GPUConfig = GPUConfig()
-    batch_size: int = 1
-    max_length: int = 2048
-    temperature: float = 0.7
-    top_p: float = 0.9
-    top_k: int = 50
-    repetition_penalty: float = 1.1
-    num_return_sequences: int = 1
+    model_path: Optional[Path] = None
+    trust_remote_code: bool = False
+    use_auth_token: bool = False
+    model_revision: str = "main"
+    quantization: Optional[str] = None
+    device_map: Optional[str] = "auto"
+    torch_dtype: Optional[str] = "float16"
+    max_memory: Optional[dict] = None
+
+
+class InferenceConfig(BaseConfig):
+    """Inference configuration."""
+    model: ModelConfig
+    resources: ResourceConfig
+    processing: ProcessingConfig
+    
+    # Inference-specific settings
+    max_new_tokens: int = Field(512, ge=1)
+    temperature: float = Field(0.7, ge=0.0, le=2.0)
+    top_p: float = Field(0.95, ge=0.0, le=1.0)
+    top_k: int = Field(50, ge=0)
+    repetition_penalty: float = Field(1.1, ge=0.0)
+    length_penalty: float = Field(1.0, ge=0.0)
+    no_repeat_ngram_size: int = Field(3, ge=0)
+    num_return_sequences: int = Field(1, ge=1)
+    do_sample: bool = True
+    early_stopping: bool = True
+    
+    # Streaming settings
     stream_output: bool = False
+    chunk_size: int = Field(4, ge=1)
+    max_chunks: Optional[int] = None
+    
+    # Cache settings
     use_cache: bool = True
+    cache_dir: Optional[Path] = None
+    
+    @classmethod
+    async def load(
+        cls,
+        config_dir: Path = Path("config"),
+        env_prefix: str = "LLAMAHOME_"
+    ) -> 'InferenceConfig':
+        """Load inference configuration."""
+        from ..core.config.manager import ConfigManager
+        
+        manager = ConfigManager(config_dir, env_prefix)
+        
+        # Load model config
+        model = await manager.load_config(
+            ModelConfig,
+            "model",
+            "model_config.toml"
+        )
+        
+        # Load resource config
+        resources = await manager.load_config(
+            ResourceConfig,
+            "resources",
+            "resource_config.toml"
+        )
+        
+        # Load processing config
+        processing = await manager.load_config(
+            ProcessingConfig,
+            "processing",
+            "processing_config.toml"
+        )
+        
+        # Load inference-specific config
+        inference = await manager.load_config(
+            cls,
+            "inference",
+            "inference_config.toml"
+        )
+        
+        # Merge all configs
+        return cls(
+            model=model,
+            resources=resources,
+            processing=processing,
+            **inference.dict(exclude={'model', 'resources', 'processing'})
+        )

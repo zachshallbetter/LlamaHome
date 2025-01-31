@@ -1,0 +1,46 @@
+# Training Configuration Schema
+
+[optimization]
+learning_rate = { type = "float", min = 0.0, default = 5e-5 }
+weight_decay = { type = "float", min = 0.0, default = 0.01 }
+warmup_steps = { type = "int", min = 0, default = 100 }
+max_grad_norm = { type = "float", min = 0.0, default = 1.0 }
+gradient_accumulation_steps = { type = "int", min = 1, default = 1 }
+mixed_precision = { type = "bool", default = true }
+gradient_checkpointing = { type = "bool", default = false }
+
+[data]
+batch_size = { type = "int", min = 1, default = 32 }
+max_sequence_length = { type = "int", min = 1, default = 512 }
+num_workers = { type = "int", min = 0, default = 4 }
+prefetch_factor = { type = "int", min = 1, default = 2 }
+pin_memory = { type = "bool", default = true }
+drop_last = { type = "bool", default = false }
+shuffle = { type = "bool", default = true }
+validation_split = { type = "float", min = 0.0, max = 1.0, default = 0.1 }
+
+[checkpointing]
+save_steps = { type = "int", min = 1, default = 1000 }
+save_total_limit = { type = "int", min = 1, default = 5 }
+save_strategy = { type = "str", allowed = ["steps", "epoch"], default = "steps" }
+evaluation_strategy = { type = "str", allowed = ["steps", "epoch"], default = "steps" }
+eval_steps = { type = "int", min = 1, default = 100 }
+logging_steps = { type = "int", min = 1, default = 10 }
+
+[distributed]
+backend = { type = "str", allowed = ["nccl", "gloo"], default = "nccl" }
+world_size = { type = "int", min = 1, default = 1 }
+num_nodes = { type = "int", min = 1, default = 1 }
+node_rank = { type = "int", min = 0, default = 0 }
+local_rank = { type = "int", min = 0, default = 0 }
+master_addr = { type = "str", default = "localhost" }
+master_port = { type = "str", default = "29500" }
+sync_batch_norm = { type = "bool", default = true }
+
+[monitoring]
+enable_tensorboard = { type = "bool", default = true }
+log_level = { type = "str", allowed = ["DEBUG", "INFO", "WARNING", "ERROR"], default = "INFO" }
+log_steps = { type = "int", min = 1, default = 10 }
+profile_steps = { type = "int", min = 0, default = 0 }
+save_metrics = { type = "bool", default = true }
+metrics_path = { type = "str", default = "metrics" } 

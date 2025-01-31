@@ -1,21 +1,23 @@
 """Basic inference example."""
 
-from src.inference import InferenceManager
-from src.inference.config import InferenceConfig
+from src.core.config import ConfigManager
+from src.inference import InferenceConfig, InferenceManager
 
-# Create inference configuration
-# ruff: noqa: E501
-config = InferenceConfig(
-    model_name="llama3.3-7b",
-    batch_size=4,
-    max_length=1024,
-    temperature=0.8
-)
 
-# Initialize inference manager
-manager = InferenceManager(config)
+def main() -> None:
+    """Run basic inference example."""
+    # Get configuration
+    ConfigManager()
+    inference_config = InferenceConfig()
 
-# Run inference
-text = "Summarize this article:"
-result = manager.generate(text)
-print(result)
+    # Initialize inference manager
+    manager = InferenceManager(inference_config)
+
+    # Run inference
+    text = "Summarize this article:"
+    result = manager.generate(text)
+    print(result)
+
+
+if __name__ == "__main__":
+    main()

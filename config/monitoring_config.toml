@@ -1,0 +1,30 @@
+# Default Monitoring Configuration
+
+[logging]
+log_interval = 60
+save_interval = 600
+log_level = "INFO"
+file_logging = true
+console_logging = true
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+[visualization]
+tensorboard = true
+progress_bars = true
+plot_metrics = true
+update_interval = 10
+tensorboard_dir = "metrics/tensorboard"
+
+[alerts]
+enabled = true
+alert_on_error = true
+alert_on_completion = true
+alert_on_threshold = true
+notification_backend = "console"
+throttle_interval = 300
+
+[monitoring]
+resource_monitoring = true
+metrics_history_size = 1000
+enable_profiling = false
+profiling_interval = 3600 

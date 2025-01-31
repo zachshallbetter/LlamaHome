@@ -1,3 +1,50 @@
+# Default Training Configuration
+
+[optimization]
+learning_rate = 5e-5
+weight_decay = 0.01
+warmup_steps = 100
+max_grad_norm = 1.0
+gradient_accumulation_steps = 1
+mixed_precision = true
+gradient_checkpointing = false
+
+[data]
+batch_size = 32
+max_sequence_length = 512
+num_workers = 4
+prefetch_factor = 2
+pin_memory = true
+drop_last = false
+shuffle = true
+validation_split = 0.1
+
+[checkpointing]
+save_steps = 1000
+save_total_limit = 5
+save_strategy = "steps"
+evaluation_strategy = "steps"
+eval_steps = 100
+logging_steps = 10
+
+[distributed]
+backend = "nccl"
+world_size = 1
+num_nodes = 1
+node_rank = 0
+local_rank = 0
+master_addr = "localhost"
+master_port = "29500"
+sync_batch_norm = true
+
+[monitoring]
+enable_tensorboard = true
+log_level = "INFO"
+log_steps = 10
+profile_steps = 0
+save_metrics = true
+metrics_path = "metrics"
+
 [cache]
 memory_size = 1000
 disk_size = 10000
@@ -23,19 +70,7 @@ progress_bars = true
 resource_monitoring = true
 metrics_history_size = 1000
 
-[optimization]
-learning_rate = 5e-5
-weight_decay = 0.01
-warmup_steps = 100
-scheduler_type = "cosine"
-max_grad_norm = 1.0
-adam_beta1 = 0.9
-adam_beta2 = 0.999
-adam_epsilon = 1e-8
-
 [processing]
-mixed_precision = true
-gradient_checkpointing = true
 compile_mode = "reduce-overhead"
 max_batch_size = 8
 accumulation_steps = 4

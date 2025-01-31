@@ -1,0 +1,30 @@
+# Monitoring Configuration Schema
+
+[logging]
+log_interval = { type = "int", min = 1, default = 60 }
+save_interval = { type = "int", min = 1, default = 600 }
+log_level = { type = "str", allowed = ["DEBUG", "INFO", "WARNING", "ERROR"], default = "INFO" }
+file_logging = { type = "bool", default = true }
+console_logging = { type = "bool", default = true }
+log_format = { type = "str", default = "%(asctime)s - %(name)s - %(levelname)s - %(message)s" }
+
+[visualization]
+tensorboard = { type = "bool", default = true }
+progress_bars = { type = "bool", default = true }
+plot_metrics = { type = "bool", default = true }
+update_interval = { type = "int", min = 1, default = 10 }
+tensorboard_dir = { type = "str", default = "metrics/tensorboard" }
+
+[alerts]
+enabled = { type = "bool", default = true }
+alert_on_error = { type = "bool", default = true }
+alert_on_completion = { type = "bool", default = true }
+alert_on_threshold = { type = "bool", default = true }
+notification_backend = { type = "str", allowed = ["console", "email", "slack"], default = "console" }
+throttle_interval = { type = "int", min = 1, default = 300 }
+
+[monitoring]
+resource_monitoring = { type = "bool", default = true }
+metrics_history_size = { type = "int", min = 1, default = 1000 }
+enable_profiling = { type = "bool", default = false }
+profiling_interval = { type = "int", min = 1, default = 3600 } 

@@ -6,20 +6,23 @@ import os
 from pathlib import Path
 from typing import Dict, Optional
 
-import torch
 import toml
+import torch
+import torch.distributed as dist
 from torch.distributed.elastic.multiprocessing.errors import record
 
-from .distributed import DistributedTrainer, DistributedConfig
+from ..core.config import TrainingConfig
 from .data import DataConfig, StreamingDataset
-from .processing import ProcessingConfig
+from .distributed import DistributedConfig, DistributedTrainer
+from .manager import TrainingManager
 from .model import create_model  # Assuming create_model is defined in model module
-from .optimization import (
+from .optimization import (  # Assuming create_optimizer is defined in optimizer module
     create_optimizer,
-)  # Assuming create_optimizer is defined in optimizer module
-from .scheduler import (
+)
+from .processing import ProcessingConfig
+from .scheduler import (  # Assuming create_scheduler is defined in scheduler module
     create_scheduler,
-)  # Assuming create_scheduler is defined in scheduler module
+)
 
 
 def load_config(config_path: Path) -> Dict:
@@ -172,6 +175,42 @@ def launch_distributed(
             ),
             nprocs=world_size,
         )
+
+
+async def launch_training(
+    model_path: Path,
+    training_config: Optional[TrainingConfig] = None,
+    distributed_config: Optional[DistributedConfig] = None,
+) -> None:
+    """Launch training process.
+
+    Args:
+        model_path: Path to model
+        training_config: Optional training configuration
+        distributed_config: Optional distributed configuration
+    """
+    manager = TrainingManager(training_config, distributed_config)
+
+    if distributed_config and distributed_config.basic["world_size"] > 1:
+        # Set up distributed environment
+        os.environ["MASTER_ADDR"] = distributed_config.basic.get(
+            "master_addr", "localhost"
+        )
+        os.environ["MASTER_PORT"] = distributed_config.basic.get("master_port", "29500")
+
+        dist.init_process_group(
+            backend=distributed_config.basic["backend"],
+            init_method=distributed_config.basic["init_method"],
+            world_size=distributed_config.basic["world_size"],
+            rank=distributed_config.basic["rank"],
+        )
+
+    try:
+        pipeline = await manager.setup_training(model_path)
+        await pipeline.train()
+    finally:
+        if dist.is_initialized():
+            dist.destroy_process_group()
 
 
 def main():

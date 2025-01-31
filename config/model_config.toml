@@ -1,3 +1,38 @@
+# Default Model Configuration
+
+[model]
+name = "llama"
+family = "llama"
+size = "13b"
+variant = "chat"
+revision = "main"
+quantization = "none"
+
+[resources]
+min_gpu_memory = 16
+max_batch_size = 32
+max_sequence_length = 32768
+device_map = "auto"
+torch_dtype = "float16"
+
+[optimization]
+attention_implementation = "h2o"
+use_bettertransformer = true
+use_compile = true
+compile_mode = "reduce-overhead"
+
+[h2o]
+enabled = true
+window_length = 512
+heavy_hitter_tokens = 128
+compression = true
+
+[security]
+trust_remote_code = false
+use_auth_token = false
+verify_downloads = true
+allowed_model_sources = ["huggingface.co"]
+
 [models."llama3.3"]
 name = "Llama 3.3"
 versions = ["7b", "13b", "70b"]

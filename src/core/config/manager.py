@@ -4,17 +4,29 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import toml
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from ..utils import LogManager, LogTemplates
 from .constants import (
     ROOT_DIR, CONFIG_DIR, LOCAL_CONFIG_DIR, CACHE_DIR, DATA_DIR
 )
+from .base import (
+    BaseConfig,
+    ConfigError,
+    ResourceConfig,
+    ProcessingConfig,
+    OptimizationConfig,
+    MonitoringConfig,
+    CacheConfig
+)
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
+
+T = TypeVar('T', bound=BaseConfig)
 
 
 @dataclass
@@ -55,7 +67,7 @@ class ConfigData:
 
 
 class ConfigManager:
-    """Manages configuration loading and validation."""
+    """Manages configuration loading and validation across the application."""
 
     REQUIRED_ENV_VARS = {
         "LLAMAHOME_ENV",
@@ -65,14 +77,15 @@ class ConfigManager:
         "LLAMAHOME_LOG_LEVEL"
     }
 
-    def __init__(self, config_dir: Optional[Path] = None) -> None:
-        """Initialize config manager.
-
-        Args:
-            config_dir: Optional custom config directory path
-        """
+    def __init__(
+        self,
+        config_dir: Path = Path("config"),
+        env_prefix: str = "LLAMAHOME_"
+    ):
+        self.config_dir = config_dir
+        self.env_prefix = env_prefix
+        self.configs: Dict[str, BaseConfig] = {}
         self.workspace_root = ROOT_DIR
-        self.config_dir = config_dir or CONFIG_DIR
         self.local_config_dir = LOCAL_CONFIG_DIR
         self._config: Optional[ConfigData] = None
         self._load_environment()
@@ -98,7 +111,75 @@ class ConfigManager:
             return local_path
         return self.config_dir / filename
 
-    def load_config(self) -> ConfigData:
+    async def load_config(
+        self,
+        config_type: Type[T],
+        name: str,
+        file_name: Optional[str] = None
+    ) -> T:
+        """Load configuration of specified type."""
+        try:
+            # Try loading from file first
+            if file_name:
+                config_path = self.config_dir / file_name
+                if config_path.exists():
+                    config = config_type.load_from_file(config_path)
+                    self.configs[name] = config
+                    return config
+
+            # Fall back to environment variables
+            config = config_type.load_from_env(self.env_prefix)
+            self.configs[name] = config
+            return config
+
+        except Exception as e:
+            raise ConfigError(f"Failed to load {name} config: {str(e)}")
+
+    async def save_config(
+        self,
+        name: str,
+        file_name: Optional[str] = None
+    ) -> None:
+        """Save configuration to file."""
+        if name not in self.configs:
+            raise ConfigError(f"Config {name} not found")
+
+        if file_name:
+            config_path = self.config_dir / file_name
+            self.configs[name].save_to_file(config_path)
+
+    async def get_config(self, name: str) -> BaseConfig:
+        """Get loaded configuration by name."""
+        if name not in self.configs:
+            raise ConfigError(f"Config {name} not found")
+        return self.configs[name]
+
+    async def update_config(
+        self,
+        name: str,
+        updates: Dict[str, Any]
+    ) -> None:
+        """Update configuration values."""
+        if name not in self.configs:
+            raise ConfigError(f"Config {name} not found")
+
+        config = self.configs[name]
+        for key, value in updates.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+
+    async def merge_configs(
+        self,
+        name: str,
+        other_config: BaseConfig
+    ) -> None:
+        """Merge another configuration into existing one."""
+        if name not in self.configs:
+            raise ConfigError(f"Config {name} not found")
+
+        self.configs[name].merge(other_config)
+
+    def load_config_data(self) -> ConfigData:
         """Load configuration from files.
 
         Returns:
@@ -211,28 +292,6 @@ class ConfigManager:
             return {section: dict(parser[section]) for section in parser.sections()}
         except configparser.Error as e:
             raise ValueError(f"Invalid INI in {filename}: {e}")
-
-    def get_config(self) -> ConfigData:
-        """Get current configuration.
-
-        Returns:
-            Current configuration data
-
-        Raises:
-            RuntimeError: If config not loaded
-        """
-        if not self._config:
-            raise RuntimeError("Configuration not loaded")
-        return self._config
-
-    def reload_config(self) -> ConfigData:
-        """Reload configuration from files.
-
-        Returns:
-            Reloaded configuration data
-        """
-        self._config = None
-        return self.load_config()
 
     def validate(self) -> bool:
         """Validate current configuration.
@@ -456,3 +515,55 @@ class ConfigManager:
             List of validation errors
         """
         return self._config.errors if self._config else []
+
+
+class ApplicationConfig(BaseModel):
+    """Complete application configuration."""
+    resources: ResourceConfig
+    processing: ProcessingConfig
+    optimization: OptimizationConfig
+    monitoring: MonitoringConfig
+    cache: CacheConfig
+
+    @classmethod
+    async def load(
+        cls,
+        config_dir: Path = Path("config"),
+        env_prefix: str = "LLAMAHOME_"
+    ) -> 'ApplicationConfig':
+        """Load complete application configuration."""
+        manager = ConfigManager(config_dir, env_prefix)
+
+        resources = await manager.load_config(
+            ResourceConfig,
+            "resources",
+            "resource_config.toml"
+        )
+        processing = await manager.load_config(
+            ProcessingConfig,
+            "processing",
+            "processing_config.toml"
+        )
+        optimization = await manager.load_config(
+            OptimizationConfig,
+            "optimization",
+            "optimization_config.toml"
+        )
+        monitoring = await manager.load_config(
+            MonitoringConfig,
+            "monitoring",
+            "monitoring_config.toml"
+        )
+        cache = await manager.load_config(
+            CacheConfig,
+            "cache",
+            "cache_config.toml"
+        )
+
+        return cls(
+            resources=resources,
+            processing=processing,
+            optimization=optimization,
+            monitoring=monitoring,
+            cache=cache
+        )

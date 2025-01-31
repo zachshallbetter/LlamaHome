@@ -1,0 +1,21 @@
+# Default Resource Configuration
+
+[gpu]
+memory_fraction = 0.9
+allow_growth = true
+per_process_memory = "12GB"
+enable_tf32 = true
+cuda_devices = [0, 1]  # Use first two GPUs by default
+
+[monitor]
+check_interval = 1.0
+memory_threshold = 0.9
+cpu_threshold = 0.8
+gpu_temp_threshold = 80.0
+alert_on_threshold = true
+collect_metrics = true
+
+[resource]
+max_workers = 4
+io_queue_size = 1000
+pin_memory = true 

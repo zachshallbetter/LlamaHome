@@ -8,16 +8,16 @@ from typing import Dict, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
-from transformers import PreTrainedModel, PreTrainedTokenizer
 
+from ..core.config import ConfigManager
 from ..core.utils import LogManager, LogTemplates
 from ..core.utils.io import safe_torch_load, safe_torch_save
-from .cache import CacheConfig, CacheManager
-from .data import DataConfig, DataManager
+from .cache import CacheConfig
+from .config import DistributedConfig, TrainingConfig
 from .monitoring import MonitorConfig
 from .optimization import OptimizationConfig
-from .processing import ProcessingConfig, TensorProcessor
-from .resources import ResourceConfig, ResourceManager
+from .processing import ProcessingConfig
+from .resources import ResourceConfig
 
 logger = LogManager(LogTemplates.SYSTEM_STARTUP).get_logger(__name__)
 
@@ -115,52 +115,36 @@ class TrainingPipeline:
 
     def __init__(
         self,
-        model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizer,
         config: Optional[TrainingConfig] = None,
-    ):
-        """Initialize training pipeline.
-
-        Args:
-            model: Model to train
-            tokenizer: Tokenizer instance
-            config: Optional training configuration
-        """
-        self.model = model
-        self.tokenizer = tokenizer
+        distributed_config: Optional[DistributedConfig] = None,
+        optimization_config: Optional[OptimizationConfig] = None,
+    ) -> None:
+        """Initialize training pipeline."""
         self.config = config or TrainingConfig()
-        self.optimizer = Optimizer(
-            model=self.model,
-            learning_rate=self.config.learning_rate,
-            config=self.config.optimization_config,
-        )
-        self._setup_components()
+        self.distributed_config = distributed_config or DistributedConfig()
+        self.optimization_config = optimization_config or OptimizationConfig()
 
-    def _setup_components(self) -> None:
-        """Set up training components."""
-        # Cache manager
-        self.cache_manager = CacheManager(
-            cache_dir=Path(self.config.cache_dir) if self.config.cache_dir else None,
-            config=self.config.cache_config,
-        )
+        self.config_manager = ConfigManager()
+        self._setup_pipeline()
 
-        # Data manager
-        self.data_manager = DataManager(
-            tokenizer=self.tokenizer, config=self.config.data_config
-        )
+    def _setup_pipeline(self) -> None:
+        """Set up training pipeline components."""
+        # Setup based on configurations
+        if self.distributed_config.basic["world_size"] > 1:
+            self._setup_distributed()
 
-        # Monitor manager
-        self.monitor_manager = MonitorManager(
-            config=self.config.monitor_config, model_name=self.model.__class__.__name__
-        )
+        if self.optimization_config.mixed_precision:
+            self._setup_mixed_precision()
 
-        # Processor
-        self.processor = TensorProcessor(
-            model=self.model, config=self.config.processing_config
-        )
+    def _setup_distributed(self) -> None:
+        """Set up distributed training components."""
+        # Implementation of _setup_distributed method
+        pass
 
-        # Resource manager
-        self.resource_manager = ResourceManager(config=self.config.resource_config)
+    def _setup_mixed_precision(self) -> None:
+        """Set up mixed precision training components."""
+        # Implementation of _setup_mixed_precision method
+        pass
 
     async def train(
         self, train_data: Union[str, Path], eval_data: Optional[Union[str, Path]] = None
@@ -182,11 +166,15 @@ class TrainingPipeline:
 
             # Create data loaders
             train_loader = DataLoader(
-                train_dataset, batch_size=self.config.data_config["batch_size"], shuffle=True
+                train_dataset,
+                batch_size=self.config.data_config["batch_size"],
+                shuffle=True,
             )
 
             eval_loader = (
-                DataLoader(eval_dataset, batch_size=self.config.data_config["batch_size"])
+                DataLoader(
+                    eval_dataset, batch_size=self.config.data_config["batch_size"]
+                )
                 if eval_dataset
                 else None
             )

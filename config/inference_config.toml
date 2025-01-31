@@ -1,0 +1,46 @@
+# Default Inference Configuration
+
+[model]
+model_name = "llama3.3-7b"
+model_path = ".data/models"
+trust_remote_code = false
+use_auth_token = false
+model_revision = "main"
+device_map = "auto"
+torch_dtype = "float16"
+
+[resources]
+gpu_memory_fraction = 0.9
+cpu_usage_threshold = 0.8
+max_workers = 4
+io_queue_size = 1000
+enable_gpu = true
+
+[processing]
+batch_size = 32
+max_sequence_length = 512
+num_workers = 4
+prefetch_factor = 2
+pin_memory = true
+drop_last = false
+shuffle = true
+
+[inference]
+max_new_tokens = 512
+temperature = 0.7
+top_p = 0.95
+top_k = 50
+repetition_penalty = 1.1
+length_penalty = 1.0
+no_repeat_ngram_size = 3
+num_return_sequences = 1
+do_sample = true
+early_stopping = true
+
+[streaming]
+stream_output = false
+chunk_size = 4
+
+[cache]
+use_cache = true
+cache_dir = ".cache/inference" 

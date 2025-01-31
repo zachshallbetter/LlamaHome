@@ -1,0 +1,50 @@
+# Inference Configuration Schema
+
+[model]
+model_name = { type = "str", required = true }
+model_path = { type = "str", required = false }
+trust_remote_code = { type = "bool", default = false }
+use_auth_token = { type = "bool", default = false }
+model_revision = { type = "str", default = "main" }
+quantization = { type = "str", required = false }
+device_map = { type = "str", default = "auto" }
+torch_dtype = { type = "str", default = "float16" }
+max_memory = { type = "dict", required = false }
+
+[resources]
+gpu_memory_fraction = { type = "float", min = 0.0, max = 1.0, default = 0.9 }
+cpu_usage_threshold = { type = "float", min = 0.0, max = 1.0, default = 0.8 }
+max_workers = { type = "int", min = 1, default = 4 }
+io_queue_size = { type = "int", min = 1, default = 1000 }
+enable_gpu = { type = "bool", default = true }
+cuda_devices = { type = "list", element_type = "int", required = false }
+
+[processing]
+batch_size = { type = "int", min = 1, default = 32 }
+max_sequence_length = { type = "int", min = 1, default = 512 }
+num_workers = { type = "int", min = 0, default = 4 }
+prefetch_factor = { type = "int", min = 1, default = 2 }
+pin_memory = { type = "bool", default = true }
+drop_last = { type = "bool", default = false }
+shuffle = { type = "bool", default = true }
+
+[inference]
+max_new_tokens = { type = "int", min = 1, default = 512 }
+temperature = { type = "float", min = 0.0, max = 2.0, default = 0.7 }
+top_p = { type = "float", min = 0.0, max = 1.0, default = 0.95 }
+top_k = { type = "int", min = 0, default = 50 }
+repetition_penalty = { type = "float", min = 0.0, default = 1.1 }
+length_penalty = { type = "float", min = 0.0, default = 1.0 }
+no_repeat_ngram_size = { type = "int", min = 0, default = 3 }
+num_return_sequences = { type = "int", min = 1, default = 1 }
+do_sample = { type = "bool", default = true }
+early_stopping = { type = "bool", default = true }
+
+[streaming]
+stream_output = { type = "bool", default = false }
+chunk_size = { type = "int", min = 1, default = 4 }
+max_chunks = { type = "int", required = false }
+
+[cache]
+use_cache = { type = "bool", default = true }
+cache_dir = { type = "str", required = false } 

@@ -20,7 +20,9 @@ class InferenceManager:
         """
         self.config = config
         self.pipeline = (
-            StreamingPipeline(config) if config.stream_output else InferencePipeline(config)
+            StreamingPipeline(config)
+            if config.stream_output
+            else InferencePipeline(config)
         )
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
@@ -65,6 +67,6 @@ class InferenceManager:
         """
         if not isinstance(self.pipeline, StreamingPipeline):
             raise RuntimeError("Streaming not enabled in configuration")
-        
+
         chunk_size = chunk_size or 8
         return self.pipeline.generate_stream(prompt, chunk_size=chunk_size, **kwargs)

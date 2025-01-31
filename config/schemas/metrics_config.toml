@@ -1,0 +1,16 @@
+# Metrics Configuration Schema
+
+[storage]
+storage_type = { type = "str", allowed = ["local", "s3", "gcs"], default = "local" }
+retention_days = { type = "int", min = 1, default = 30 }
+compression = { type = "bool", default = true }
+export_format = { type = "str", allowed = ["parquet", "csv", "json"], default = "parquet" }
+metrics_dir = { type = "str", default = "metrics" }
+export_dir = { type = "str", default = "metrics/exports" }
+
+[metrics]
+enabled_metrics = { type = "set", element_type = "str", default = ["cpu", "memory", "gpu", "throughput"] }
+aggregation_interval = { type = "int", min = 1, default = 60 }
+collect_system_metrics = { type = "bool", default = true }
+collect_model_metrics = { type = "bool", default = true }
+collect_training_metrics = { type = "bool", default = true } 

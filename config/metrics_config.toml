@@ -1,0 +1,16 @@
+# Default Metrics Configuration
+
+[storage]
+storage_type = "local"
+retention_days = 30
+compression = true
+export_format = "parquet"
+metrics_dir = "metrics"
+export_dir = "metrics/exports"
+
+[metrics]
+enabled_metrics = ["cpu", "memory", "gpu", "throughput"]
+aggregation_interval = 60
+collect_system_metrics = true
+collect_model_metrics = true
+collect_training_metrics = true 
